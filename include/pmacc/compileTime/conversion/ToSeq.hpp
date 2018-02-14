@@ -24,7 +24,7 @@
 #include "pmacc/types.hpp"
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -37,7 +37,7 @@ namespace pmacc
 template<typename T_Type>
 struct ToSeq
 {
-    typedef typename bmpl::if_<bmpl::is_sequence< T_Type >,T_Type,bmpl::vector1<T_Type> >::type type;
+    typedef bmp11::mp_if<bmpl::is_sequence< T_Type >,T_Type,bmpl::vector1<T_Type> > type;
 };
 
 }//namespace pmacc

@@ -33,7 +33,7 @@ namespace traits
  * @tparam T_Key a class which is used as identifier
  *
  * This struct must define
- * ::type (boost::mpl::bool_<>)
+ * ::type (boost::mp11::mp_bool<>)
  */
 template<typename T_Object, typename T_Key>
 struct HasFlag;

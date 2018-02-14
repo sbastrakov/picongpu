@@ -40,7 +40,6 @@
 #include "pmacc/compileTime/errorHandlerPolicies/ReturnValue.hpp"
 #include <boost/utility/result_of.hpp>
 #include <boost/type_traits.hpp>
-#include <boost/mpl/if.hpp>
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/contains.hpp>

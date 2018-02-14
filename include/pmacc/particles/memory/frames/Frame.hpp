@@ -25,6 +25,7 @@
 
 #include <boost/mpl/map.hpp>
 #include <boost/mpl/list.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include "pmacc/math/MapTuple.hpp"
 
 
@@ -198,7 +199,7 @@ private:
     typedef typename FrameType::FlagList FlagList;
 public:
 
-    typedef bmpl::contains<FlagList, SolvedAliasName> type;
+    typedef bmp11::mp_contains<FlagList, SolvedAliasName> type;
 };
 
 template<typename T_IdentifierName,

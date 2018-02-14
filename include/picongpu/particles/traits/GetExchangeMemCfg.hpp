@@ -25,7 +25,7 @@
 #include <pmacc/traits/Resolve.hpp>
 #include <pmacc/traits/HasFlag.hpp>
 
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace picongpu
@@ -50,7 +50,7 @@ namespace traits
             exchangeMemCfg< >
         >::type;
 
-        using type = typename bmpl::if_<
+        using type = bmp11::mp_if<
             hasMemCfg,
             typename pmacc::traits::Resolve<
                 typename GetFlagType<
@@ -59,7 +59,7 @@ namespace traits
                 >::type
             >::type,
             ::picongpu::DefaultExchangeMemCfg
-        >::type;
+        >;
     };
 
     //! short hand traits for GetExchangeMemCfg

@@ -23,7 +23,7 @@
 #include <adios.h>
 
 #include "picongpu/simulation_defines.hpp"
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits.hpp>
 
 namespace picongpu
@@ -88,14 +88,14 @@ namespace traits
     struct uint64_cu_unused_adios;
     template<>
     struct PICToAdios<
-                        typename bmpl::if_<
+                        bmp11::mp_if<
                             typename bmpl::or_<
                                 boost::is_same<uint64_t, uint64_cu>,
                                 bmpl::bool_<sizeof(uint64_cu) != sizeof(uint64_t)>
                             >::type,
                             uint64_cu_unused_adios,
                             uint64_cu
-                        >::type
+                        >
                      >: public PICToAdios<uint64_t>
     {};
 

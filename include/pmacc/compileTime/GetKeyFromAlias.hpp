@@ -29,6 +29,7 @@
 
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 namespace pmacc
@@ -67,10 +68,10 @@ private:
     typedef typename bmpl::at<FullMap, T_Key>::type MapType;
 public:
     /* Check for KeyNotFound and calculate final type. (Uses lazy evaluation) */
-    typedef typename bmpl::if_<
+    typedef typename bmp11::mp_if<
         boost::is_same<MapType, bmpl::void_>,
         bmpl::apply<KeyNotFoundPolicy, T_MPLSeq, T_Key>,
-        bmpl::identity<MapType> >::type::type type;
+        bmp11::mp_identity<MapType> >::type type;
 };
 
 }//namespace pmacc

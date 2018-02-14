@@ -27,7 +27,8 @@
 #include "pmacc/ppFunctions.hpp"
 #include <string>
 #include "pmacc/traits/Resolve.hpp"
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/function.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 namespace pmacc
@@ -91,11 +92,11 @@ template<template<typename,typename> class T_Object, typename T_AnyType>
 struct Resolve<T_Object<T_AnyType,pmacc::pmacc_isAlias> >
 {
     /*solve recursive if alias is nested*/
-    typedef typename  bmpl::if_<
-        boost::is_same<T_AnyType,typename Resolve<T_AnyType>::type >,
+    typedef bmp11::mp_if<
+        bmp11::mp_same<T_AnyType,typename Resolve<T_AnyType> >,
         T_AnyType,
         typename Resolve<T_AnyType>::type
-    >::type type;
+    > type;
 };
 
 } //namespace traits

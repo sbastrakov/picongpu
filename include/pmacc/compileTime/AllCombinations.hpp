@@ -32,7 +32,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/pop_back.hpp>
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/mpl/empty.hpp>
 #include <boost/type_traits/is_same.hpp>
 
@@ -114,7 +114,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
 
     typedef typename detail::AllCombinations<ShrinkedRangeVector, OneSeq>::type ResultIfNotEmpty;
-    typedef typename bmpl::if_<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty>::type type;
+    typedef typename bmp11::mp_if<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty> type;
 };
 
 /** recursive end implementation
@@ -178,7 +178,7 @@ struct AllCombinations
 
     /* result type: MplSequence of N-tuples */
     typedef typename detail::AllCombinations<ShrinkedRangeVector, FirstList>::type ResultIfNotEmpty;
-    typedef typename bmpl::if_<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty>::type type;
+    typedef typename bmp11::mp_if<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty> type;
 };
 
 

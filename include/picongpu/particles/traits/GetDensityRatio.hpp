@@ -24,7 +24,7 @@
 #include <pmacc/traits/Resolve.hpp>
 #include <pmacc/traits/HasFlag.hpp>
 
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace picongpu
@@ -55,11 +55,11 @@ struct GetDensityRatio
         >::type
     >::type DensityRatioOfSpecies;
 
-    typedef typename bmpl::if_<
+    typedef bmp11::mp_if<
         hasDensityRatio,
         DensityRatioOfSpecies,
         detail::DefaultDensityRatio
-    >::type type;
+    > type;
 };
 
 } // namespace traits

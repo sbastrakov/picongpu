@@ -23,6 +23,8 @@
 
 #include "pmacc/types.hpp"
 #include "pmacc/random/distributions/Uniform.hpp"
+
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits.hpp>
 
 namespace pmacc
@@ -41,11 +43,11 @@ namespace detail
     class Uniform<
         T_Type,
         T_RNGMethod,
-        typename bmpl::if_c<
+        bmp11::mp_if_c<
             boost::is_integral<T_Type>::value && sizeof(T_Type) <= 4,
             void,
             T_Type
-        >::type
+        >
     >
     {
         typedef T_RNGMethod RNGMethod;

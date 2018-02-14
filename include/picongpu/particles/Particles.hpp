@@ -38,7 +38,7 @@
 #include <pmacc/traits/Resolve.hpp>
 #include <pmacc/traits/GetCTName.hpp>
 
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/mpl/contains.hpp>
 
 #include <string>
@@ -81,7 +81,7 @@ class Particles : public ParticlesBase<
         SuperCellSize,
         T_Attributes,
         T_Flags,
-        typename bmpl::if_<
+        bmp11::mp_if<
             // check if alias boundaryCondition is defined for the species
             bmpl::contains<
                 T_Flags,
@@ -102,7 +102,7 @@ class Particles : public ParticlesBase<
                 pmacc::particles::policies::ExchangeParticles,
                 particles::boundary::CallPluginsAndDeleteParticles
             >
-        >::type
+        >
     >,
     MappingDesc,
     DeviceHeap
@@ -115,7 +115,7 @@ public:
         SuperCellSize,
         T_Attributes,
         T_Flags,
-        typename bmpl::if_<
+        bmp11::mp_if<
             // check if alias boundaryCondition is defined for the species
             bmpl::contains<
                 T_Flags,
@@ -136,7 +136,7 @@ public:
                 pmacc::particles::policies::ExchangeParticles,
                 particles::boundary::CallPluginsAndDeleteParticles
             >
-        >::type
+        >
     > SpeciesParticleDescription;
     typedef ParticlesBase<SpeciesParticleDescription, picongpu::MappingDesc, DeviceHeap> ParticlesBaseType;
     typedef typename ParticlesBaseType::FrameType FrameType;

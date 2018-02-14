@@ -31,7 +31,7 @@
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/insert.hpp>
 #include <boost/mpl/equal_to.hpp>
-#include <boost/mpl/if.hpp>
+#include <boost/mp11/utility.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 #include "picongpu/fields/currentDeposition/ZigZag/EvalAssignmentFunction.hpp"
 
@@ -72,14 +72,11 @@ struct EvalAssignmentFunctionOfDirection
          * else
          * particle assignment shape
          */
-        using Shape = typename bmpl::if_<
-            bmpl::equal_to<
-                ShapeComponent,
-                CurrentDirection
-            >,
+        using Shape = bmp11::mp_if_c<
+            ShapeComponent::value == CurrentDirection::value
             typename T_Shape::CloudShape,
             T_Shape
-        >::type;
+        >;
 
         using GridPoint = typename GridPointVec::template at< component >::type;
         currentSolverZigZag::EvalAssignmentFunction< Shape, GridPoint > AssignmentFunction;

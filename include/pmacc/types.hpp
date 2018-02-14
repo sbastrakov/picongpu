@@ -72,10 +72,14 @@
 #include <stdexcept>
 
 
+/// Fix
+namespace boost { namespace mp11 {} }
+
 namespace pmacc
 {
 
 namespace bmpl = boost::mpl;
+namespace bmp11 = boost::mp11;
 namespace bfs = boost::filesystem;
 
 //short name for access verbose types of PMacc

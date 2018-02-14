@@ -33,6 +33,7 @@
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/accumulate.hpp>
 #include <boost/mpl/less.hpp>
+#include <boost/mp11/utility.hpp>
 #include "pmacc/math/Vector.hpp"
 #include "pmacc/types.hpp"
 
@@ -373,11 +374,11 @@ template<typename T_Vec, typename T_ComponentPos, typename T_Value>
 struct AssignIfInRange
 {
     typedef bmpl::integral_c<size_t,T_Vec::dim> VectorDim;
-    typedef typename bmpl::if_<
-    bmpl::less<T_ComponentPos, VectorDim>,
+    typedef bmp11::mp_if<
+        bmpl::less<T_ComponentPos, VectorDim>,
         typename pmacc::math::CT::Assign<T_Vec,T_ComponentPos,T_Value>::type,
         T_Vec
-        >::type type;
+    > type;
 };
 
 //________________________At_c____________________________

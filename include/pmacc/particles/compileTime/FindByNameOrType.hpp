@@ -30,6 +30,7 @@
 #include <boost/mpl/empty.hpp>
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/front.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 
@@ -77,7 +78,7 @@ namespace compileTime
             HasTypeOrName< bmpl::_1 >
         >::type;
 
-        using type = typename bmpl::if_<
+        using type = typename bmp11::mp_if<
             bmpl::empty< FilteredSeq >,
             bmpl::apply<
                 KeyNotFoundPolicy,
@@ -85,7 +86,7 @@ namespace compileTime
                 T_Identifier
             >,
             bmpl::front< FilteredSeq >
-        >::type::type;
+        >::type;
     };
 
     template<
