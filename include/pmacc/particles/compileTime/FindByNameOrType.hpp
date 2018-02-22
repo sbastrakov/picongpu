@@ -26,12 +26,10 @@
 
 #include <boost/mpl/placeholders.hpp>
 #include <boost/mpl/copy_if.hpp>
-#include <boost/type_traits/is_same.hpp>
-#include <boost/mpl/empty.hpp>
-#include <boost/mpl/or.hpp>
 #include <boost/mpl/front.hpp>
+#include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
-#include <boost/type_traits/is_same.hpp>
 
 
 namespace pmacc
@@ -61,17 +59,33 @@ namespace compileTime
         template< typename T_Value >
         struct HasTypeOrName
         {
-            using type = bmpl::or_<
-                boost::is_same<
+            using type = bmp11::mp_or<
+                bmp11::mp_same<
                     T_Identifier,
                     T_Value
                 >,
-                boost::is_same<
+                bmp11::mp_same<
                     pmacc::traits::GetCTName_t< T_Value >,
                     T_Identifier
                 >
             >;
         };
+        //template< typename T_Value >
+        //using HasTypeOrName = bmp11::mp_or<
+        //    bmp11::mp_same<
+        //        T_Identifier,
+        //        T_Value
+        //    >,
+        //    bmp11::mp_same<
+        //        pmacc::traits::GetCTName_t< T_Value >,
+        //        T_Identifier
+        //    >
+        //>;
+
+        //using FilteredSeq = bmp11::mp_copy_if<
+        //    T_MPLSeq,
+        //    HasTypeOrName
+        //>;
 
         using FilteredSeq = typename bmpl::copy_if<
             T_MPLSeq,
@@ -79,8 +93,8 @@ namespace compileTime
         >::type;
 
         using type = typename bmp11::mp_if<
-            bmpl::empty< FilteredSeq >,
-            bmpl::apply<
+            bmp11::mp_empty< FilteredSeq >,
+            typename bmpl::apply<
                 KeyNotFoundPolicy,
                 T_MPLSeq,
                 T_Identifier
