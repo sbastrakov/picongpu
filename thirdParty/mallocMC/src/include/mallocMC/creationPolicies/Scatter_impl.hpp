@@ -39,7 +39,7 @@
 #include <string>
 #include <cassert>
 #include <stdexcept>
-#include <boost/mpl/bool.hpp>
+#include <boost/mp11/integral.hpp>
 
 #include "../mallocMC_utils.hpp"
 #include "Scatter.hpp"
@@ -79,7 +79,7 @@ namespace ScatterKernelDetail{
       typedef T_Config  HeapProperties;
       typedef T_Hashing HashingProperties;
       struct  Properties : HeapProperties, HashingProperties{};
-      typedef boost::mpl::bool_<true>  providesAvailableSlots;
+      typedef boost::mp11::mp_true providesAvailableSlots;
 
     private:
       typedef boost::uint32_t uint32;

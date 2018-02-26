@@ -45,7 +45,7 @@ to the policy class:
 ```c++
 // configure the AlignmentPolicy "Shrink"
 struct ShrinkConfig : mallocMC::AlignmentPolicies::Shrink<>::Properties {
-  typedef boost::mpl::int_<16> dataAlignment;
+  typedef boost::mp11::mp_int<16> dataAlignment;
 };
 ```
 

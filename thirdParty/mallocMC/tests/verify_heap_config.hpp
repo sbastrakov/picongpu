@@ -28,8 +28,7 @@
 
 #pragma once
 
-#include <boost/mpl/int.hpp>
-#include <boost/mpl/bool.hpp>
+#include <boost/mp11/integral.hpp>
 
 // basic files for mallocMC
 #include "src/include/mallocMC/mallocMC_hostclass.hpp"
@@ -44,18 +43,18 @@
 
 // configurate the CreationPolicy "Scatter"
 struct ScatterConfig{
-    typedef boost::mpl::int_<4096>  pagesize;
-    typedef boost::mpl::int_<8>     accessblocks;
-    typedef boost::mpl::int_<16>    regionsize;
-    typedef boost::mpl::int_<2>     wastefactor;
-    typedef boost::mpl::bool_<false> resetfreedpages;
+    typedef boost::mp11::mp_int<4096> pagesize;
+    typedef boost::mp11::mp_int<8>    accessblocks;
+    typedef boost::mp11::mp_int<16>   regionsize;
+    typedef boost::mp11::mp_int<2>    wastefactor;
+    typedef boost::mp11::mp_false     resetfreedpages;
 };
 
 struct ScatterHashParams{
-    typedef boost::mpl::int_<38183> hashingK;
-    typedef boost::mpl::int_<17497> hashingDistMP;
-    typedef boost::mpl::int_<1>     hashingDistWP;
-    typedef boost::mpl::int_<1>     hashingDistWPRel;
+    typedef boost::mp11::mp_int<38183> hashingK;
+    typedef boost::mp11::mp_int<17497> hashingDistMP;
+    typedef boost::mp11::mp_int<1>     hashingDistWP;
+    typedef boost::mp11::mp_int<1>     hashingDistWPRel;
 };
 
 // configure the DistributionPolicy "XMallocSIMD"
@@ -65,7 +64,7 @@ struct DistributionConfig{
 
 // configure the AlignmentPolicy "Shrink"
 struct AlignmentConfig{
-  typedef boost::mpl::int_<16> dataAlignment;
+  typedef boost::mp11::mp_int<16> dataAlignment;
 };
 
 // Define a new allocator and call it ScatterAllocator

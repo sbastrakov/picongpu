@@ -33,14 +33,14 @@
 
 #pragma once
 
-#include <boost/mpl/int.hpp>
+#include <boost/mp11/integral.hpp>
 
 namespace mallocMC{
 namespace DistributionPolicies{
     
   namespace XMallocSIMDConf{
     struct DefaultXMallocConfig{
-      typedef boost::mpl::int_<4096>     pagesize;
+      typedef boost::mp11::mp_int<4096> pagesize;
     };  
   }
 
