@@ -35,7 +35,7 @@ namespace traits
  * @tparam T_Key a class which is used as identifier
  *
  * This struct must define
- * ::type (boost::mpl::bool_<>)
+ * ::type (boost::mp11::mp_bool<>)
  */
 template<typename T_Object, typename T_Key>
 struct HasIdentifier
@@ -54,6 +54,9 @@ struct HasIdentifier
         false && ( sizeof(T_Object) != 0 )
     );
 };
+
+template<typename T_Object, typename T_Key>
+using HasIdentifier_t = typename HasIdentifier<T_Object, T_Key>::type;
 
 template<typename T_Object, typename T_Key>
 bool hasIdentifier(const T_Object& obj,const T_Key& key)

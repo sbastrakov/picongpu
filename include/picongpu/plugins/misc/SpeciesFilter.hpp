@@ -81,15 +81,15 @@ namespace speciesFilter
     /** evaluate if the filter and species combination is valid
      *
      * @tparam T_SpeciesFilter SpeciesFilter, type of the filter and species
-     * @return ::type boost::mpl::bool_<>, if the species is eligible for the filter
+     * @return ::type boost::mp1::mp_bool<>, if the species is eligible for the filter
      */
     template< typename T_SpeciesFilter >
     struct IsEligible
     {
-        using type = typename particles::traits::SpeciesEligibleForSolver<
+        using type = particles::traits::SpeciesEligibleForSolver<
             typename T_SpeciesFilter::Species,
             typename T_SpeciesFilter::Filter
-        >::type;
+        >;
     };
 } // namespace speciesFilter
 

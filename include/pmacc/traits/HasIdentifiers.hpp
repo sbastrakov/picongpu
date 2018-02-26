@@ -22,9 +22,7 @@
 #pragma once
 
 #include "pmacc/traits/HasIdentifier.hpp"
-#include <boost/mpl/transform.hpp>
-#include <boost/mpl/accumulate.hpp>
-#include <boost/mpl/and.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace pmacc
@@ -34,14 +32,11 @@ namespace traits
 
     /** Checks if an object has all specified identifiers
      *
-     * Individual identifiers checks are logically connected via
-     * boost::mpl::and_ .
-     *
      * @tparam T_Object any object (class or typename)
      * @tparam T_SeqKeys a sequence of identifiers
      *
      * This struct must define
-     * ::type (boost::mpl::bool_<>)
+     * ::type (boost::mp11::mp_bool<>)
      */
     template<
         typename T_Object,
@@ -49,22 +44,13 @@ namespace traits
     >
     struct HasIdentifiers
     {
-        using SeqHasIdentifiers = typename bmpl::transform<
+        using type = bmp11::mp_all_of_q<
             T_SeqKeys,
-            HasIdentifier<
-                T_Object,
-                bmpl::_1
+            bmp11::mp_bind_front<
+                HasIdentifier_t,
+                T_Object
             >
-        >::type;
-
-        using type = typename bmpl::accumulate<
-            SeqHasIdentifiers,
-            bmpl::bool_< true >,
-            bmpl::and_<
-                bmpl::_1,
-                bmpl::_2
-            >
-        >::type;
+        >;
     };
 
     template<

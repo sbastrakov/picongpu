@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <boost/mpl/bool.hpp>
+#include <boost/mp11/integral.hpp>
 
 
 namespace picongpu
@@ -30,7 +30,7 @@ namespace traits
 {
     /** Check if species fulfills requirements of a solver
      *
-     * Defines a boost::mpl::bool_ true type is the particle species as all
+     * Defines a boost::mp11::mp_bool with value true is the particle species as all
      * requirements fulfilled for a solver.
      *
      * @tparam T_Species Species to check
@@ -42,7 +42,7 @@ namespace traits
     >
     struct SpeciesEligibleForSolver
     {
-        using type = boost::mpl::bool_< true >;
+        using type = boost::mp11::mp_true;
     };
 
 } // namespace traits

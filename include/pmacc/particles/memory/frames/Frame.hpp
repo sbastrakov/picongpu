@@ -49,6 +49,7 @@
 
 #include "pmacc/particles/ParticleDescription.hpp"
 #include <boost/mpl/string.hpp>
+#include <boost/mp11/algorithm.hpp>
 
 namespace pmacc
 {
@@ -183,7 +184,7 @@ public:
      */
     typedef typename GetKeyFromAlias<ValueTypeSeq, T_IdentifierName>::type SolvedAliasName;
 
-    typedef bmpl::contains<ValueTypeSeq, SolvedAliasName> type;
+    using type = bmpl::contains<ValueTypeSeq, SolvedAliasName>;
 };
 
 template<typename T_IdentifierName,

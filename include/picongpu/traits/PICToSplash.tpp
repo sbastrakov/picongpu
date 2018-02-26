@@ -24,6 +24,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include <boost/mp11/function.hpp>
+#include <boost/mp11/integral.hpp>
 #include <boost/mp11/utility.hpp>
 #include <boost/type_traits.hpp>
 
@@ -97,7 +98,7 @@ namespace traits
                         bmp11::mp_if<
                             typename bmp11::mp_or<
                                 boost::is_same<uint64_t, uint64_cu>,
-                                bmpl::bool_<sizeof(uint64_cu) != sizeof(uint64_t)>
+                                bmp11::mp_bool<sizeof(uint64_cu) != sizeof(uint64_t)>
                             >,
                             uint64_cu_unused_splash,
                             uint64_cu
