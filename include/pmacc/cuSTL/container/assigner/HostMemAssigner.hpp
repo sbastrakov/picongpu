@@ -26,7 +26,6 @@
 #include <pmacc/cuSTL/algorithm/functor/AssignValue.hpp>
 
 #include <boost/mpl/placeholders.hpp>
-#include <boost/mpl/int.hpp>
 
 #include <stdint.h>
 

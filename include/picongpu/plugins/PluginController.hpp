@@ -125,11 +125,11 @@ private:
             bmpl::apply1<
                 typename pmacc::math::CT::At<
                     T_TupleVector,
-                    bmpl::int_< plugin >
+                    bmp11::mp_int< plugin >
                 >::type,
                 typename pmacc::math::CT::At<
                     T_TupleVector,
-                    bmpl::int_< species >
+                    bmp11::mp_int< species >
                 >::type
             >
         {
@@ -144,11 +144,11 @@ private:
         {
             using Species = typename pmacc::math::CT::At<
                 T_TupleVector,
-                bmpl::int_< species >
+                bmp11::mp_int< species >
             >::type;
             using Solver = typename pmacc::math::CT::At<
                 T_TupleVector,
-                bmpl::int_< plugin >
+                bmp11::mp_int< plugin >
             >::type;
 
             using type = typename particles::traits::SpeciesEligibleForSolver<

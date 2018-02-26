@@ -28,6 +28,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/utility/result_of.hpp>
+#include <boost/mp11/integral.hpp>
 
 
 namespace pmacc
@@ -211,7 +212,7 @@ namespace math
             MapTuple(
                 typename bmpl::at<
                     Map,
-                    bmpl::int_< T_i >
+                    bmp11::mp_int< T_i >
                 >::type::first
             )
         >::type
@@ -220,7 +221,7 @@ namespace math
             return ( *this )[
                 typename bmpl::at<
                     Map,
-                    bmpl::int_< T_i >
+                    bmp11::mp_int< T_i >
                 >::type::first( )
             ];
         }
@@ -231,7 +232,7 @@ namespace math
             const MapTuple(
                 typename bmpl::at<
                     Map,
-                    bmpl::int_< T_i >
+                    bmp11::mp_int< T_i >
                 >::type::first
             )
         >::type
@@ -240,7 +241,7 @@ namespace math
             return ( *this )[
                 typename bmpl::at<
                     Map,
-                    bmpl::int_< T_i >
+                    bmp11::mp_int< T_i >
                 >::type::first( )
             ];
         }

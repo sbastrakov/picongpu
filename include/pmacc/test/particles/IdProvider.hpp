@@ -31,7 +31,6 @@
 
 #include <boost/mpl/list.hpp>
 #include <boost/mpl/for_each.hpp>
-#include <boost/mpl/int.hpp>
 #include <boost/test/unit_test.hpp>
 #include <set>
 #include <algorithm>

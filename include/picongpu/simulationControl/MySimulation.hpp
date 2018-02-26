@@ -28,6 +28,7 @@
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/mpl/count.hpp>
+#include <boost/mp11/integral.hpp>
 
 #include <pmacc/types.hpp>
 #include <pmacc/simulationControl/SimulationHelper.hpp>
@@ -84,7 +85,6 @@
 #include "picongpu/particles/traits/HasIonizersWithRNG.hpp"
 #include <pmacc/particles/IdProvider.hpp>
 
-#include <boost/mpl/int.hpp>
 #include <memory>
 
 
@@ -613,7 +613,7 @@ public:
             VectorSpeciesWithCurrentSolver,
             ComputeCurrent<
                 bmpl::_1,
-                bmpl::int_<CORE + BORDER>
+                bmp11::mp_int<CORE + BORDER>
             >
         > computeCurrent;
         computeCurrent( currentStep );

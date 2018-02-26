@@ -72,6 +72,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/integral.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/type_traits.hpp>
 
@@ -234,11 +235,11 @@ public:
             using type = plugins::misc::SpeciesFilter<
                 typename pmacc::math::CT::At<
                     T_TupleVector,
-                    bmpl::int_<0>
+                    bmp11::mp_int<0>
                 >::type,
                 typename pmacc::math::CT::At<
                     T_TupleVector,
-                    bmpl::int_<1>
+                    bmp11::mp_int<1>
                 >::type
             >;
         };

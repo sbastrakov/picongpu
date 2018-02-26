@@ -29,7 +29,7 @@
 #include <boost/mpl/plus.hpp>
 #include <boost/mpl/min_max.hpp>
 #include <boost/mpl/times.hpp>
-#include <boost/mpl/int.hpp>
+#include <boost/mp11/integral.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/accumulate.hpp>
 #include <boost/mpl/less.hpp>
@@ -47,6 +47,7 @@ namespace CT
 {
 
 namespace mpl = boost::mpl;
+namespace mp11 = boost::mp11;
 
 namespace detail
 {
@@ -111,12 +112,13 @@ struct TypeSelector<mpl::integral_c<T, value > >
 template<>
 struct TypeSelector<mpl::na>
 {
-    typedef mpl::int_<0> type;
+    typedef mp11::mp_int<0> type;
 };
 
 }
 
 namespace mpl = boost::mpl;
+namespace mp11 = boost::mp11;
 
 template<typename Arg0 = mpl::na,
 typename Arg1 = mpl::na,
@@ -278,7 +280,7 @@ struct dot
     typedef typename mul<Lhs, Rhs>::type MulResult;
     typedef typename mpl::accumulate<
     typename MulResult::mplVector,
-    mpl::int_<0>,
+    mp11::mp_int<0>,
     mpl::plus<mpl::_1, mpl::_2>
     >::type type;
 };
@@ -289,9 +291,10 @@ template<typename T_Vec>
 struct volume
 {
     typedef typename mpl::accumulate<
-    typename T_Vec::mplVector,
-    mpl::int_<1>,
-    mpl::times<mpl::_1, mpl::_2>
+        typename T_Vec::mplVector,
+        ///mp11::mp_int<1>,
+        mpl::int_<1>,
+        mpl::times<mpl::_1, mpl::_2>
     >::type type;
 };
 
@@ -403,7 +406,7 @@ struct At_c
  * defines a public type as result
  *
  * @tparam T_Vec input CT::Vector
- * @tparam T_Idx integral type index of the component (e.g. boost::mpl::int_<2>)
+ * @tparam T_Idx integral type index of the component (e.g. boost::mp11::mp_int<2>)
  */
 template<typename T_Vec, typename T_Idx>
 struct At

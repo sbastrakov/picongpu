@@ -28,7 +28,7 @@
 #include <boost/mpl/empty.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/front.hpp>
-#include <boost/mpl/int.hpp>
+#include <boost/mp11/integral.hpp>
 #include <boost/mpl/minus.hpp>
 #include <boost/mpl/integral_c.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -94,17 +94,17 @@ public:
     typename mpl::at_c<TypeList, i>::type&
     at_c()
     {
-        return this->at(mpl::int_<i>());
+        return this->at(mp11::mp_int<i>::value);
     }
     template<int i>
     HDINLINE
     const typename mpl::at_c<TypeList, i>::type&
     at_c() const
     {
-        return this->at(mpl::int_<i>());
+        return this->at(mp11::mp_int<i>::value);
     }
 
-    HDINLINE Value& at(mpl::int_<0>)
+    HDINLINE Value& at(mp11::mp_int<0>)
     {
         return value;
     }
@@ -113,7 +113,7 @@ public:
         return value;
     }
 
-    HDINLINE const Value& at(mpl::int_<0>) const
+    HDINLINE const Value& at(mp11::mp_int<0>) const
     {
         return value;
     }
@@ -127,7 +127,7 @@ public:
     typename mpl::at<TypeList, Idx>::type&
     at(Idx)
     {
-        return base::at(typename mpl::minus<Idx, mpl::int_<1> >::type());
+        return base::at(typename mpl::minus<Idx, mp11::mp_int<1> >::type());
     }
 
     template<typename Idx>
@@ -135,7 +135,7 @@ public:
     const typename mpl::at<TypeList, Idx>::type&
     at(Idx) const
     {
-        return base::at(typename mpl::minus<Idx, mpl::int_<1> >::type());
+        return base::at(typename mpl::minus<Idx, mp11::mp_int<1> >::type());
     }
 };
 

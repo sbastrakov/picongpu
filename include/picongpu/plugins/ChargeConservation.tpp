@@ -241,7 +241,7 @@ void ChargeConservation::notify(uint32_t currentStep)
         EligibleSpecies,
         picongpu::detail::ComputeChargeDensity<
             bmpl::_1,
-            bmpl::int_< CORE + BORDER >
+            bmp11::mp_int< CORE + BORDER >
         >,
         bmpl::_1
     > computeChargeDensity;

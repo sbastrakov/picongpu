@@ -33,10 +33,10 @@
 #include "pmacc/types.hpp"
 
 #include <boost/mpl/void.hpp>
-#include <boost/mpl/int.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/placeholders.hpp>
 #include <boost/mpl/vector.hpp>
+#include <boost/mp11/integral.hpp>
 
 #include <stdint.h>
 
@@ -66,7 +66,7 @@ template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocato
                                   typename Assigner = bmpl::vector<bmpl::_1, bmpl::_2> >
 class CartBuffer : public
     /* "Curiously recurring template pattern" */
-    bmpl::apply<Assigner, bmpl::int_<T_dim>, CartBuffer<Type, T_dim, Allocator, Copier, Assigner> >::type
+    bmpl::apply<Assigner, bmp11::mp_int<T_dim>, CartBuffer<Type, T_dim, Allocator, Copier, Assigner> >::type
 {
 public:
     typedef Type type;

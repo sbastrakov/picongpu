@@ -38,9 +38,9 @@
 #include <pmacc/traits/GetNumWorkers.hpp>
 
 #include <boost/mpl/min_max.hpp>
-#include <boost/mpl/int.hpp>
 #include <boost/mpl/accumulate.hpp>
 #include <boost/mpl/and.hpp>
+#include <boost/mp11/integral.hpp>
 
 #include <string>
 #include <utility>
@@ -259,7 +259,7 @@ namespace picongpu
          *        is a conservative work around until #469 is implemented */
         typedef typename bmpl::accumulate<
             typename SuperCellSize::mplVector,
-            bmpl::int_<0>,
+            bmp11::mp_int<0>,
             bmpl::max<bmpl::_1, bmpl::_2>
             >::type SuperCellsLongestEdge;
         static constexpr uint32_t maxShared = 32*1024; /* 32 KB */
