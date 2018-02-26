@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include <boost/mpl/int.hpp>
-#include <boost/mpl/bool.hpp>
+#include <boost/mp11/integral.hpp>
 #include <mallocMC/mallocMC.hpp>
 
 namespace picongpu
@@ -32,18 +31,18 @@ namespace picongpu
     struct DeviceHeapConfig
     {
         /* 2MiB page can hold around 256 particle frames */
-        using pagesize = boost::mpl::int_< 2 * 1024 * 1024 >;
+        using pagesize = boost::mp11::mp_int< 2 * 1024 * 1024 >;
         /* accessblocks, regionsize and wastefactor are not conclusively
          * investigated and might be performance sensitive for multiple
          * particle species with heavily varying attributes (frame sizes)
          */
-        using accessblocks = boost::mpl::int_< 4 >;
-        using regionsize = boost::mpl::int_< 8 >;
-        using wastefactor = boost::mpl::int_< 2 >;
+        using accessblocks = boost::mp11::mp_int< 4 >;
+        using regionsize = boost::mp11::mp_int< 8 >;
+        using wastefactor = boost::mp11::mp_int< 2 >;
         /* resetfreedpages is used to minimize memory fragmentation with
          * varying frame sizes
          */
-        using resetfreedpages = boost::mpl::bool_< true >;
+        using resetfreedpages = boost::mp11::mp_true;
     };
 
     /* Define a new allocator and call it ScatterAllocator
