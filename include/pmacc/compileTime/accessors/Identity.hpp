@@ -23,7 +23,7 @@
 #pragma once
 
 #include "pmacc/types.hpp"
-#include <boost/mpl/identity.hpp>
+#include <boost/mp11/utility.hpp>
 
 namespace pmacc
 {
@@ -38,8 +38,8 @@ namespace accessors
  * \tparam T in type
  *
  */
-template<typename T=bmpl::_1>
-struct Identity : bmpl::identity<T>
+template< typename T = bmpl::_1 >
+struct Identity : bmp11::mp_identity< T >
 {
 
 };
