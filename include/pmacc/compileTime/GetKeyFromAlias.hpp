@@ -42,7 +42,7 @@ namespace pmacc
  * \tparam T_MPLSeq Sequence of keys to search
  * \tparam T_Key Key or alias of a key in the sequence
  * \tparam T_KeyNotFoundPolicy Binary meta-function that is called like (T_MPLSeq, T_Key)
- *         when T_Key is not found in the sequence. Default is to return bmp11::mp_void
+ *         when T_Key is not found in the sequence. Default is to return bmp11::mp_void<>
  */
 template<typename T_MPLSeq,
          typename T_Key,
@@ -64,13 +64,13 @@ private:
         >::type FullMap;
     /* search for given key,
      * - we get the real type if key found
-     * - else we get boost::mp11::mp_void
+     * - else we get boost::mp11::mp_void<>
      */
     typedef typename bmp1::at<FullMap, T_Key>::type MapType;
 public:
     /* Check for KeyNotFound and calculate final type. (Uses lazy evaluation) */
     typedef typename bmp11::mp_if<
-        bmp11::mp_same<MapType, bmp11::mp_void>,
+        bmp11::mp_same<MapType, bmp11::mp_void<> >,
         KeyNotFoundPolicy<T_MPLSeq, T_Key>,
         bmp11::mp_identity<MapType>
     >::type type;

@@ -31,20 +31,20 @@ namespace result_of
 
 template<
     typename _Functor,
-    typename Arg0 = mp11::mp_void,
-    typename Arg1 = mp11::mp_void,
-    typename Arg2 = mp11::mp_void,
-    typename Arg3 = mp11::mp_void,
-    typename Arg4 = mp11::mp_void,
-    typename Arg5 = mp11::mp_void,
-    typename Arg6 = mp11::mp_void,
-    typename Arg7 = mp11::mp_void,
-    typename Arg8 = mp11::mp_void,
-    typename Arg9 = mp11::mp_void,
-    typename Arg10 = mp11::mp_void,
-    typename Arg11 = mp11::mp_void,
-    typename Arg12 = mp11::mp_void,
-    typename dummy = mp11::mp_void
+    typename Arg0 = boost::mp11::mp_void<>,
+    typename Arg1 = boost::mp11::mp_void<>,
+    typename Arg2 = boost::mp11::mp_void<>,
+    typename Arg3 = boost::mp11::mp_void<>,
+    typename Arg4 = boost::mp11::mp_void<>,
+    typename Arg5 = boost::mp11::mp_void<>,
+    typename Arg6 = boost::mp11::mp_void<>,
+    typename Arg7 = boost::mp11::mp_void<>,
+    typename Arg8 = boost::mp11::mp_void<>,
+    typename Arg9 = boost::mp11::mp_void<>,
+    typename Arg10 = boost::mp11::mp_void<>,
+    typename Arg11 = boost::mp11::mp_void<>,
+    typename Arg12 = boost::mp11::mp_void<>,
+    typename dummy = boost::mp11::mp_void<>
 >
 struct Functor
 {

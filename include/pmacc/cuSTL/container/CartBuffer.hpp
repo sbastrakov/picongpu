@@ -62,7 +62,7 @@ namespace bmpl = boost::mpl;
  *
  */
 template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocator,
-                                  typename Copier = mp11::mp_void,
+                                  typename Copier = mp11::mp_void<>,
                                   typename Assigner = bmpl::vector<bmpl::_1, bmpl::_2> >
 class CartBuffer : public
     /* "Curiously recurring template pattern" */
