@@ -24,8 +24,6 @@
 #include <pmacc/random/distributions/Normal.hpp>
 #include <pmacc/nvidia/functors/Add.hpp>
 
-#include <boost/mpl/integral_c.hpp>
-
 
 namespace picongpu
 {

@@ -21,10 +21,11 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <boost/mpl/integral_c.hpp>
 #include "pmacc/math/Vector.hpp"
 #include "pmacc/traits/Limits.hpp"
+
+#include <boost/mp11/integral.hpp>
+
 
 namespace pmacc
 {
@@ -46,9 +47,9 @@ namespace CT
 template<int x = traits::limits::Max<int>::value,
          int y = traits::limits::Max<int>::value,
          int z = traits::limits::Max<int>::value>
-struct Int: public CT::Vector<mpl::integral_c<int, x>,
-                              mpl::integral_c<int, y>,
-                              mpl::integral_c<int, z> >
+struct Int: public CT::Vector<bmp11::mp_int<x>,
+                              bmp11::mp_int<y>,
+                              bmp11::mp_int<z> >
 {};
 
 template<>
@@ -56,12 +57,12 @@ struct Int<> : public CT::Vector<>
 {};
 
 template<int x>
-struct Int<x> : public CT::Vector<mpl::integral_c<int, x> >
+struct Int<x> : public CT::Vector<bmp11::mp_int<x> >
 {};
 
 template<int x, int y>
-struct Int<x, y> : public CT::Vector<mpl::integral_c<int, x>,
-                                     mpl::integral_c<int, y> >
+struct Int<x, y> : public CT::Vector<bmp11::mp_int<x>,
+                                     bmp11::mp_int<y> >
 {};
 
 

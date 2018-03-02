@@ -34,6 +34,7 @@
 #include <boost/mp11/utility.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 #include "picongpu/fields/currentDeposition/ZigZag/EvalAssignmentFunction.hpp"
+#include <type_traits>
 
 
 namespace picongpu
@@ -210,8 +211,8 @@ struct ZigZag
             // set evaluation direction to the support of the cloud particle shape function
             using Supports_direction = typename pmacc::math::CT::AssignIfInRange<
                 typename Supports_full::This,
-                bmpl::integral_c< uint32_t, dir >,
-                bmpl::integral_c< int, supp_dir >
+                std::integral_constant< uint32_t, dir >,
+                std::integral_constant< int, supp_dir >
             >::type;
 
             /* shift coordinate system to
@@ -231,7 +232,7 @@ struct ZigZag
             /* set grid points for the evaluation direction*/
             using Size = typename pmacc::math::CT::AssignIfInRange<
                 typename Size_full::This,
-                bmpl::integral_c< uint32_t, dir >,
+                std::integral_constant< uint32_t, dir >,
                 boost::mpl::range_c< int, dir_begin, dir_end >
             >::type::mplVector;
 

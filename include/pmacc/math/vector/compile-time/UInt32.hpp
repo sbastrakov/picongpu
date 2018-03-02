@@ -21,10 +21,12 @@
 
 #pragma once
 
-#include <stdint.h>
 #include "pmacc/math/Vector.hpp"
-#include <boost/mpl/integral_c.hpp>
 #include "pmacc/traits/Limits.hpp"
+
+#include <stdint.h>
+#include <type_traits>
+
 
 namespace pmacc
 {
@@ -46,9 +48,9 @@ namespace CT
 template<uint32_t x = traits::limits::Max<uint32_t>::value,
          uint32_t y = traits::limits::Max<uint32_t>::value,
          uint32_t z = traits::limits::Max<uint32_t>::value>
-struct UInt32 : public CT::Vector<mpl::integral_c<uint32_t, x>,
-                                                   mpl::integral_c<uint32_t, y>,
-                                                   mpl::integral_c<uint32_t, z> >
+struct UInt32 : public CT::Vector<std::integral_constant<uint32_t, x>,
+                                  std::integral_constant<uint32_t, y>,
+                                  std::integral_constant<uint32_t, z> >
 {};
 
 template<>
@@ -56,12 +58,12 @@ struct UInt32<> : public CT::Vector<>
 {};
 
 template<uint32_t x>
-struct UInt32<x> : public CT::Vector< mpl::integral_c<uint32_t, x> >
+struct UInt32<x> : public CT::Vector<std::integral_constant<uint32_t, x> >
 {};
 
 template<uint32_t x, uint32_t y>
-struct UInt32<x, y> : public CT::Vector<mpl::integral_c<uint32_t, x>,
-                                                mpl::integral_c<uint32_t, y> >
+struct UInt32<x, y> : public CT::Vector<std::integral_constant<uint32_t, x>,
+                                        std::integral_constant<uint32_t, y> >
 {};
 
 

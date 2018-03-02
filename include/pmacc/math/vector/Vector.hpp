@@ -29,7 +29,6 @@
 #include "pmacc/types.hpp"
 #include "pmacc/algorithms/math.hpp"
 
-#include <boost/mpl/size.hpp>
 #include <boost/call_traits.hpp>
 #include <iostream>
 #include <type_traits>

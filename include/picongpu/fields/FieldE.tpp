@@ -50,6 +50,7 @@
 
 #include <list>
 #include <memory>
+#include <type_traits>
 
 
 namespace picongpu
@@ -245,8 +246,8 @@ void FieldE::laserManipulation( uint32_t currentStep )
 
         using LaserPlaneSizeInSuperCells = typename pmacc::math::CT::AssignIfInRange<
                 typename SuperCellSize::vector_type,
-                bmpl::integral_c< uint32_t, 1 >, /* y direction */
-                bmpl::integral_c< int, laserInitCellsInY >
+                std::integral_constant< uint32_t, 1 >, /* y direction */
+                std::integral_constant< int, laserInitCellsInY >
         >::type;
 
         DataSpace<simDim> gridBlocks = fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ) / SuperCellSize::toRT();

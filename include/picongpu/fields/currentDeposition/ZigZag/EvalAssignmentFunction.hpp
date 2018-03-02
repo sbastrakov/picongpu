@@ -30,6 +30,7 @@
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/back_inserter.hpp>
+#include <boost/mp11/integral.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 
 namespace picongpu
@@ -68,7 +69,7 @@ struct EvalAssignmentFunction
  * - Odd Support:  parPos [-0.5;0.5)
  */
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c<int, 0> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmp11::mp_int<0> >
 {
     typedef picongpu::particles::shapes::P4S ParticleAssign;
 
@@ -81,7 +82,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c<int, 1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmp11::mp_int<1> >
 {
     typedef picongpu::particles::shapes::P4S ParticleAssign;
 
@@ -93,7 +94,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c<int, -1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmp11::mp_int<-1> >
 {
     typedef picongpu::particles::shapes::P4S ParticleAssign;
 
@@ -105,7 +106,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c<int, 2> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmp11::mp_int<2> >
 {
     typedef picongpu::particles::shapes::P4S ParticleAssign;
 
@@ -117,7 +118,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c<int, -2> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmp11::mp_int<-2> >
 {
     typedef picongpu::particles::shapes::P4S ParticleAssign;
 
@@ -129,7 +130,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::P4S, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c<int, 0> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmp11::mp_int<0> >
 {
     typedef picongpu::particles::shapes::TSC ParticleAssign;
 
@@ -143,7 +144,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c<int, 1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmp11::mp_int<1> >
 {
     typedef picongpu::particles::shapes::TSC ParticleAssign;
 
@@ -157,7 +158,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c<int, -1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmp11::mp_int<-1> >
 {
     typedef picongpu::particles::shapes::TSC ParticleAssign;
 
@@ -170,7 +171,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::TSC, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c<int, 0> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmp11::mp_int<0> >
 {
     typedef picongpu::particles::shapes::PCS ParticleAssign;
 
@@ -184,7 +185,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c<int, 1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmp11::mp_int<1> >
 {
     typedef picongpu::particles::shapes::PCS ParticleAssign;
 
@@ -198,7 +199,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c<int, 2> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmp11::mp_int<2> >
 {
     typedef picongpu::particles::shapes::PCS ParticleAssign;
 
@@ -212,7 +213,7 @@ struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c
 };
 
 template<>
-struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmpl::integral_c<int, -1> >
+struct EvalAssignmentFunction<picongpu::particles::shapes::PCS, bmp11::mp_int<-1> >
 {
     typedef picongpu::particles::shapes::PCS ParticleAssign;
 

@@ -28,7 +28,8 @@
 #include <pmacc/algorithms/ForEach.hpp>
 
 #include <boost/mpl/range_c.hpp>
-#include <boost/mpl/integral_c.hpp>
+
+#include <type_traits>
 
 
 namespace picongpu
@@ -38,8 +39,8 @@ namespace detail
 
     /** damp each field component at exchange the border
      *
-     * @tparam T_NumWorkers, boost::mpl::integral_c number of workers
-     * @tparam T_Axis, boost::mpl::integral_c axis of the coordinate system
+     * @tparam T_NumWorkers, std::integral_constant number of workers
+     * @tparam T_Axis, std::integral_constant axis of the coordinate system
      *                 (0 = x, 1 = y, 2 = z)
      */
     template<
@@ -202,7 +203,7 @@ namespace detail
             pmacc::algorithms::forEach::ForEach<
                 SimulationDimensions,
                 picongpu::detail::AbsorbInOneDirection<
-                    boost::mpl::integral_c<
+                    std::integral_constant<
                         uint32_t,
                         T_numWorkers
                     >,

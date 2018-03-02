@@ -36,6 +36,9 @@
 #include <boost/mpl/empty.hpp>
 #include <boost/type_traits/is_same.hpp>
 
+#include <type_traits>
+
+
 namespace pmacc
 {
 namespace bmpl = boost::mpl;
@@ -67,7 +70,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef T_TmpResult TmpResult;
 
     static constexpr uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
-    typedef typename bmpl::at<MplSeq, bmpl::integral_c<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
+    typedef typename bmpl::at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
     typedef bmpl::empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
@@ -80,7 +83,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     /** Assign to each element in a sequence of CT::Vector(s) a type at a given
     *  component position
     *
-    * @tparam T_ComponentPos position of the component to be changed (type must be bmpl::integral_c<uint32_t,X>)
+    * @tparam T_ComponentPos position of the component to be changed (type must be std::integral_constant<uint32_t,X>)
     * @tparam T_Element value (type) which should replace the component at position T_Component
     *                   in the CT::Vector elements
     */
@@ -106,7 +109,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef typename bmpl::transform<
         TmpVector,
         AssignToAnyElementInVector<
-            bmpl::integral_c<uint32_t, rangeVectorSize - 1 >,
+            std::integral_constant<uint32_t, rangeVectorSize - 1 >,
             bmpl::_1
         >
     >::type NestedSeq;
@@ -144,7 +147,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, true >
  * AllCombinations<T_MplSeq>::type = [(1,1,4),(1,1,3),(2,1,4),(2,1,3)]
  *
  * @tparam T_MplSeq N-dimensional sequence with input values
- *                  or single type (e.g. `bmpl::integral_c<uint32_t,5>`)
+ *                  or single type (e.g. `std::integral_constant<uint32_t,5>`)
  *                  (if `T_MplSeq` is only one type it will be transformed to a sequence)
  * @typedef AllCombinations<T_MplSeq>::type
  *          MplSequence of N-tuples
@@ -157,7 +160,7 @@ struct AllCombinations
     typedef typename MakeSeq<T_MplSeq>::type MplSeq;
 
     static constexpr uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
-    typedef typename bmpl::at<MplSeq, bmpl::integral_c<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
+    typedef typename bmpl::at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
     typedef bmpl::empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
@@ -173,7 +176,7 @@ struct AllCombinations
     typedef math::CT::Vector<> EmptyVector;
     typedef typename bmpl::transform<
     TmpVector,
-    pmacc::math::CT::Assign<EmptyVector, bmpl::integral_c<uint32_t, rangeVectorSize - 1 >, bmpl::_1>
+    pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmpl::_1>
     >::type FirstList;
 
     /* result type: MplSequence of N-tuples */

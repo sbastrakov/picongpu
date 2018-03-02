@@ -29,6 +29,8 @@
 #include "pmacc/dataManagement/DataConnector.hpp"
 #include "pmacc/mappings/simulation/ResourceMonitor.hpp"
 
+#include <type_traits>
+
 
 namespace pmacc
 {
@@ -70,7 +72,7 @@ namespace pmacc
     template <typename T_Species, typename T_MappingDesc, typename T_ParticleFilter>
     std::vector<size_t> ResourceMonitor<T_DIM>::getParticleCounts(T_MappingDesc &cellDescription, T_ParticleFilter & parFilter)
     {
-        typedef bmpl::integral_c<unsigned, T_DIM> dim;
+        typedef std::integral_constant<unsigned, T_DIM> dim;
         std::vector<size_t> particleCounts;
         algorithms::forEach::ForEach<T_Species, MyCountParticles<dim, bmpl::_1> > countParticles;
         countParticles(forward(particleCounts), forward(cellDescription), forward(parFilter));

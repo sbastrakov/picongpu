@@ -24,8 +24,6 @@
 
 #include <pmacc/random/distributions/Uniform.hpp>
 
-#include <boost/mpl/integral_c.hpp>
-
 
 namespace picongpu
 {

@@ -25,8 +25,6 @@
 
 #include <pmacc/traits/HasIdentifier.hpp>
 
-#include <boost/mpl/integral_c.hpp>
-
 
 namespace picongpu
 {

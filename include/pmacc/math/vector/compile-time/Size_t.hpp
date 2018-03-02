@@ -21,10 +21,11 @@
 
 #pragma once
 
-#include <stdint.h>
 #include "pmacc/math/Vector.hpp"
-#include <boost/mpl/integral_c.hpp>
 #include "pmacc/traits/Limits.hpp"
+
+#include <type_traits>
+
 
 namespace pmacc
 {
@@ -46,9 +47,9 @@ namespace CT
 template<size_t x = traits::limits::Max<size_t>::value,
          size_t y = traits::limits::Max<size_t>::value,
          size_t z = traits::limits::Max<size_t>::value>
-struct Size_t : public CT::Vector<mpl::integral_c<size_t, x>,
-                              mpl::integral_c<size_t, y>,
-                              mpl::integral_c<size_t, z> >
+struct Size_t : public CT::Vector<std::integral_constant<size_t, x>,
+                              std::integral_constant<size_t, y>,
+                              std::integral_constant<size_t, z> >
 {};
 
 template<>
@@ -56,12 +57,12 @@ struct Size_t<> : public CT::Vector<>
 {};
 
 template<size_t x>
-struct Size_t<x> : public CT::Vector<mpl::integral_c<size_t, x> >
+struct Size_t<x> : public CT::Vector<std::integral_constant<size_t, x> >
 {};
 
 template<size_t x, size_t y>
-struct Size_t<x, y> : public CT::Vector<mpl::integral_c<size_t, x>,
-                                    mpl::integral_c<size_t, y> >
+struct Size_t<x, y> : public CT::Vector<std::integral_constant<size_t, x>,
+                                    std::integral_constant<size_t, y> >
 {};
 
 } // CT

@@ -26,8 +26,6 @@
 
 #include <pmacc/nvidia/rng/distributions/Uniform_float.hpp>
 
-#include <boost/mpl/integral_c.hpp>
-
 
 namespace picongpu
 {

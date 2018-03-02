@@ -49,6 +49,7 @@
 #include "pmacc/particles/memory/dataTypes/ListPointer.hpp"
 
 #include <memory>
+#include <type_traits>
 
 namespace pmacc
 {
@@ -78,7 +79,7 @@ public:
                 X,
                 StaticArray<
                     typename traits::Resolve<X>::type::type,
-                    bmpl::integral_c<uint32_t, T_size>
+                    std::integral_constant<uint32_t, T_size>
                 >
             > type;
         };

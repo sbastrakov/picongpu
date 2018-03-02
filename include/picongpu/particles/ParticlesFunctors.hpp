@@ -40,7 +40,6 @@
 #include <pmacc/particles/traits/ResolveAliasFromSpecies.hpp>
 #include "picongpu/particles/flylite/IFlyLite.hpp"
 
-#include <boost/mpl/plus.hpp>
 #include <boost/mpl/accumulate.hpp>
 
 #include <memory>

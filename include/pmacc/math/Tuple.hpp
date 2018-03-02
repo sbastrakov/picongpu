@@ -30,13 +30,15 @@
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mpl/minus.hpp>
-#include <boost/mpl/integral_c.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_binary_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/repeat_from_to.hpp>
 #include <boost/static_assert.hpp>
+
+#include <type_traits>
+
 
 namespace pmacc
 {
@@ -108,16 +110,8 @@ public:
     {
         return value;
     }
-    HDINLINE Value& at(mpl::integral_c<int, 0>)
-    {
-        return value;
-    }
 
     HDINLINE const Value& at(mp11::mp_int<0>) const
-    {
-        return value;
-    }
-    HDINLINE const Value& at(mpl::integral_c<int, 0>) const
     {
         return value;
     }
