@@ -21,12 +21,13 @@
 
 #pragma once
 
+#include <pmacc/compileTime/AllCombinations.hpp>
 #include <pmacc/types.hpp>
 #include <pmacc/math/vector/Int.hpp>
 
-#include <boost/mpl/range_c.hpp>
-#include <boost/mpl/vector.hpp>
-#include <pmacc/compileTime/AllCombinations.hpp>
+#include <boost/mp11/bind.hpp>
+#include <boost/mp11/integer_sequence.hpp>
+
 
 namespace picongpu
 {
@@ -97,10 +98,10 @@ struct ShiftCoordinateSystem
          *  and does not waste registers */
         const uint32_t dim = T_Vector::dim;
 
-        typedef boost::mpl::vector1 < boost::mpl::range_c<uint32_t, 0, dim > > Size;
-        typedef typename AllCombinations<Size>::type CombiTypes;
+        using Size = bmp11::make_integer_sequence<uint32_t, dim>;
+        using CombiTypes = AllCombinations<Size>::type;
 
-        ForEach<CombiTypes, AssignToDim<bmpl::_1, T_supports> > shift;
+        ForEach<CombiTypes, AssignToDim<bmp11::_1, T_supports> > shift;
         shift(forward(cursor), forward(vector), fieldPos);
 
     }
