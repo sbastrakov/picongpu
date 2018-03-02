@@ -179,7 +179,7 @@ private:
     typedef pmacc::Frame<T_CreatePairOperator, T_ParticleDescription> FrameType;
 public:
     typedef typename FrameType::ValueTypeSeq ValueTypeSeq;
-    /* if T_IdentifierName is void_ than we have no T_IdentifierName in our Sequence.
+    /* if T_IdentifierName is mp_void than we have no T_IdentifierName in our Sequence.
      * check is also valid if T_Key is a alias
      */
     typedef typename GetKeyFromAlias<ValueTypeSeq, T_IdentifierName>::type SolvedAliasName;

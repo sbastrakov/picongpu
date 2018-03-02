@@ -24,7 +24,8 @@
 #include "pmacc/math/vector/Size_t.hpp"
 #include "pmacc/types.hpp"
 
-#include <boost/mpl/void.hpp>
+#include <boost/mp11/function.hpp>
+
 
 namespace pmacc
 {
@@ -35,8 +36,6 @@ namespace kernel
 namespace detail
 {
 
-namespace mpl = boost::mpl;
-
 /** The SphericMapper maps from cuda blockIdx and/or threadIdx to the cell index
  * \tparam dim dimension
  * \tparam BlockSize compile-time vector of the cuda block size (optional)
@@ -44,7 +43,7 @@ namespace mpl = boost::mpl;
  *
  * If BlockSize is given the cuda variable blockDim is not used which is faster.
  */
-template<int dim, typename BlockSize = mpl::void_, typename dummy = mpl::void_>
+template<int dim, typename BlockSize = mp11::mp_void, typename dummy = mp11::mp_void>
 struct SphericMapper;
 
 /* Compile-time BlockSize */
@@ -179,7 +178,7 @@ struct SphericMapper<3, BlockSize>
 /* Runtime BlockSize */
 
 template<>
-struct SphericMapper<1, mpl::void_>
+struct SphericMapper<1, mp11::mp_void>
 {
     static constexpr int dim = 1;
 
@@ -224,7 +223,7 @@ struct SphericMapper<1, mpl::void_>
 };
 
 template<>
-struct SphericMapper<2, mpl::void_>
+struct SphericMapper<2, mp11::mp_void>
 {
     static constexpr int dim = 2;
 
@@ -270,7 +269,7 @@ struct SphericMapper<2, mpl::void_>
 };
 
 template<>
-struct SphericMapper<3, mpl::void_>
+struct SphericMapper<3, mp11::mp_void>
 {
     static constexpr int dim = 3;
 

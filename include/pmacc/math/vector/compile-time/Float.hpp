@@ -21,10 +21,10 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <boost/mpl/void.hpp>
+#include <boost/mp11/function.hpp>
 
-namespace mpl = boost::mpl;
+#include <stdint.h>
+
 
 namespace pmacc
 {
@@ -33,9 +33,11 @@ namespace math
 namespace CT
 {
 
-template<typename X = mpl::void_,
-         typename Y = mpl::void_,
-         typename Z = mpl::void_>
+template<
+    typename X = mp11::mp_void,
+    typename Y = mp11::mp_void,
+    typename Z = mp11::mp_void
+>
 struct Float
 {
     typedef X x;
@@ -48,21 +50,27 @@ struct Float
 template<>
 struct Float<> {};
 
-template<typename X>
-struct Float<X>
+template< typename X >
+struct Float< X >
 {
     typedef X x;
 
     static constexpr int dim = 1;
 };
 
-template<typename X, typename Y>
-struct Float<X, Y>
+template<
+    typename X,
+    typename Y
+>
+struct Float<
+    X,
+    Y
+>
 {
     typedef X x;
     typedef Y y;
 
-    static constexpr int dim = 2u;
+    static constexpr int dim = 2;
 };
 
 } // CT

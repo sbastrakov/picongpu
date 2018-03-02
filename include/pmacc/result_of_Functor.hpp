@@ -21,28 +21,31 @@
 
 #pragma once
 
-#include <boost/mpl/void.hpp>
+#include <boost/mp11/function.hpp>
 
-namespace mpl = boost::mpl;
 
 namespace pmacc
 {
 namespace result_of
 {
-template<typename _Functor, typename Arg0 = mpl::void_,
-                            typename Arg1 = mpl::void_,
-                            typename Arg2 = mpl::void_,
-                            typename Arg3 = mpl::void_,
-                            typename Arg4 = mpl::void_,
-                            typename Arg5 = mpl::void_,
-                            typename Arg6 = mpl::void_,
-                            typename Arg7 = mpl::void_,
-                            typename Arg8 = mpl::void_,
-                            typename Arg9 = mpl::void_,
-                            typename Arg10 = mpl::void_,
-                            typename Arg11 = mpl::void_,
-                            typename Arg12 = mpl::void_,
-                            typename dummy = mpl::void_>
+
+template<
+    typename _Functor,
+    typename Arg0 = mp11::mp_void,
+    typename Arg1 = mp11::mp_void,
+    typename Arg2 = mp11::mp_void,
+    typename Arg3 = mp11::mp_void,
+    typename Arg4 = mp11::mp_void,
+    typename Arg5 = mp11::mp_void,
+    typename Arg6 = mp11::mp_void,
+    typename Arg7 = mp11::mp_void,
+    typename Arg8 = mp11::mp_void,
+    typename Arg9 = mp11::mp_void,
+    typename Arg10 = mp11::mp_void,
+    typename Arg11 = mp11::mp_void,
+    typename Arg12 = mp11::mp_void,
+    typename dummy = mp11::mp_void
+>
 struct Functor
 {
     typedef typename _Functor::result_type type;

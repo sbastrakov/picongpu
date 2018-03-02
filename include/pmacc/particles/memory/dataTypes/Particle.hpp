@@ -192,7 +192,7 @@ private:
     typedef typename ParticleType::ValueTypeSeq ValueTypeSeq;
 public:
     /* If T_Key can not be found in the T_ValueTypeSeq of this Particle class,
-     * SolvedAliasName will be void_.
+     * SolvedAliasName will be mp_void.
      * Look-up is also valid if T_Key is an alias.
      */
     typedef typename GetKeyFromAlias<

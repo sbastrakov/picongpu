@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <boost/mpl/void.hpp>
 #include "pmacc/math/vector/Int.hpp"
 #include "pmacc/types.hpp"
 #include <boost/type_traits/add_const.hpp>

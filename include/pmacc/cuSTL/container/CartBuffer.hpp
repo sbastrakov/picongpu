@@ -32,7 +32,7 @@
 #include "pmacc/math/vector/UInt32.hpp"
 #include "pmacc/types.hpp"
 
-#include <boost/mpl/void.hpp>
+#include <boost/mp11/function.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/placeholders.hpp>
 #include <boost/mpl/vector.hpp>
@@ -62,7 +62,7 @@ namespace bmpl = boost::mpl;
  *
  */
 template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocator,
-                                  typename Copier = mpl::void_,
+                                  typename Copier = mp11::mp_void,
                                   typename Assigner = bmpl::vector<bmpl::_1, bmpl::_2> >
 class CartBuffer : public
     /* "Curiously recurring template pattern" */

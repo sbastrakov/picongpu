@@ -24,6 +24,9 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
+#include <boost/mp11/function.hpp>
+
+
 namespace pmacc
 {
 namespace errorHandlerPolicies
@@ -46,7 +49,7 @@ struct ThrowValueNotFound
          * `sizeof(ANY_TYPE) != 0` is always true and defers the evaluation.
          */
         PMACC_CASSERT_MSG_TYPE(value_not_found_in_seq, T_Value, false && ( sizeof(T_MPLSeq) != 0 ) );
-        typedef bmpl::void_ type;
+        typedef bmp11::mp_void type;
     };
 };
 
