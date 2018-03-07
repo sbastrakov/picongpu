@@ -37,7 +37,6 @@
 #include <pmacc/traits/HasFlag.hpp>
 #include <pmacc/traits/GetNumWorkers.hpp>
 
-#include <boost/mpl/min_max.hpp>
 #include <boost/mpl/accumulate.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
@@ -262,8 +261,8 @@ namespace picongpu
         typedef typename bmpl::accumulate<
             typename SuperCellSize::mplVector,
             bmp11::mp_int<0>,
-            bmpl::max<bmp11::_1, bmp11::_2>
-            >::type SuperCellsLongestEdge;
+            bmp11::mp_max<bmp11::_1, bmp11::_2>
+        >::type SuperCellsLongestEdge;
         static constexpr uint32_t maxShared = 32*1024; /* 32 KB */
         static constexpr uint32_t num_pbins = maxShared/(sizeof(float_PS)*SuperCellsLongestEdge::value);
 
