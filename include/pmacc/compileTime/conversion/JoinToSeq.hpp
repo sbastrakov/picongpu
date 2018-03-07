@@ -22,32 +22,31 @@
 
 #pragma once
 
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/copy.hpp>
-#include <boost/mpl/back_inserter.hpp>
-#include <boost/mpl/front_inserter.hpp>
+#include <boost/mp11/list.hpp>
+
 #include "pmacc/compileTime/conversion/ToSeq.hpp"
+
 
 namespace pmacc
 {
 
-/** Join both input types to one boost mpl sequence
+/** Join both input types to one boost mp11 list
  *
- * @tparam T_1 a boost mpl sequence or single type
- * @tparam T_2 a boost mpl sequence or single type
+ * @tparam T_1 a boost mp11 list or single type
+ * @tparam T_2 a boost mp11 list or single type
  */
 
-template<typename T_1, typename T_2 = bmpl::vector0<> >
+template<typename T_1, typename T_2 = bmp11::mp_list<> >
 struct JoinToSeq
 {
 private:
-    typedef typename ToSeq<T_1 >::type Seq1;
-    typedef typename ToSeq<T_2 >::type Seq2;
+    using Seq1 = typename ToSeq<T_1 >::type;
+    using Seq2 = typename ToSeq<T_2 >::type;
 public:
-    typedef typename bmpl::copy<
-    Seq2,
-    bmpl::back_inserter< Seq1>
-    >::type type;
+    using type = bmp11::mp_append<
+        Seq1,
+        Seq2
+    >;
 };
 
 } //namespace pmacc
