@@ -34,6 +34,8 @@
 #include "picongpu/traits/SplashToPIC.hpp"
 #include "picongpu/traits/PICToSplash.hpp"
 
+#include <boost/mp11/list.hpp>
+
 #include <string>
 #include <sstream>
 #include <list>
@@ -51,7 +53,7 @@ namespace writeMeta
      *
      * @tparam numSpecies count of defined species
      */
-    template< uint32_t numSpecies = bmpl::size<VectorAllSpecies>::type::value >
+    template< uint32_t numSpecies = bmp11::mp_size<VectorAllSpecies>::value >
     struct OfAllSpecies
     {
         /** write meta data for species

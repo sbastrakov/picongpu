@@ -623,7 +623,7 @@ public:
 #endif
 
 #if  (ENABLE_CURRENT == 1)
-        if(bmpl::size<VectorSpeciesWithCurrentSolver>::type::value > 0)
+        if(bmp11::mp_size<VectorSpeciesWithCurrentSolver>::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
 

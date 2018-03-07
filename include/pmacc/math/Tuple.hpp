@@ -25,7 +25,6 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/pop_front.hpp>
 #include <boost/mpl/at.hpp>
-#include <boost/mpl/size.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -71,7 +70,7 @@ class Tuple<TypeList, false>
     : public Tuple<typename mpl::pop_front<TypeList>::type>
 {
 public:
-    static constexpr int dim = mpl::size<TypeList>::type::value;
+    static constexpr int dim = mp11::mp_size<TypeList>::value;
     typedef TypeList TypeList_;
 private:
     typedef Tuple<typename mpl::pop_front<TypeList>::type> base;

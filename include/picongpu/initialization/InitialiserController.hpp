@@ -35,6 +35,7 @@
 #include <pmacc/assert.hpp>
 
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace picongpu
@@ -145,7 +146,7 @@ public:
                                      (laserProfile::WAVE_LENGTH / CELL_HEIGHT);
             const int localNrOfCells = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().productOfComponents();
             log<picLog::PHYSICS >("macro particles per gpu: %1%") %
-                                 (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (bmpl::size<VectorAllSpecies>::type::value));
+                                 (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (bmp11::mp_size<VectorAllSpecies>::value));
             log<picLog::PHYSICS >("typical macro particle weighting: %1%") % (particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
 
 

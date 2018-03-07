@@ -26,7 +26,6 @@
 
 #include <boost/mpl/map.hpp>
 #include <boost/mpl/copy.hpp>
-#include <boost/mpl/size.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mpl/insert.hpp>

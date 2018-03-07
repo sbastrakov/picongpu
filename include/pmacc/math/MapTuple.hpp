@@ -29,6 +29,7 @@
 #include <boost/mpl/pair.hpp>
 #include <boost/utility/result_of.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace pmacc
@@ -114,7 +115,7 @@ namespace math
     {
 
         typedef T_Map Map;
-        static constexpr int dim = bmpl::size< Map >::type::value;
+        static constexpr int dim = bmp11::mp_size< Map >::value;
         typedef InheritLinearly<
             T_Map,
             T_PodType
