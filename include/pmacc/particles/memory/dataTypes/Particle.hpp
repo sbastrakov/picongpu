@@ -45,8 +45,8 @@
 #include <boost/mpl/contains.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/copy_if.hpp>
-#include <boost/mpl/not.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/integral.hpp>
 
 
 namespace pmacc
@@ -270,7 +270,7 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
     /* create sequences with disjunct attributes from `DestTypeSeq` */
     typedef typename bmpl::copy_if<
             DestTypeSeq,
-            bmpl::not_<bmpl::contains<SrcTypeSeq, bmp11::_1> >,
+            bmp11::mp_not<bmpl::contains<SrcTypeSeq, bmp11::_1> >,
             bmpl::back_inserter< bmpl::vector0<> >
             >::type UniqueInDestTypeSeq;
 

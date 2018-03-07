@@ -55,8 +55,8 @@ class TFieldSource
 {
     public:
         static const size_t feature_dim = 3;
-        static const bool has_guard = bmpl::not_<boost::is_same<FieldType, FieldJ > >::value;
-        static const bool persistent = bmpl::not_<boost::is_same<FieldType, FieldJ > >::value;
+        static const bool has_guard = bmp11::mp_not<boost::is_same<FieldType, FieldJ > >::value;
+        static const bool persistent = bmp11::mp_not<boost::is_same<FieldType, FieldJ > >::value;
         typename FieldType::DataBoxType shifted;
         MappingDesc *cellDescription;
         bool movingWindow;
