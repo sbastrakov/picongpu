@@ -36,7 +36,6 @@
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
-#include <boost/mpl/find.hpp>
 #include <boost/type_traits.hpp>
 
 

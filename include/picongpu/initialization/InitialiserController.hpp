@@ -34,7 +34,6 @@
 #include "picongpu/initialization/IInitPlugin.hpp"
 #include <pmacc/assert.hpp>
 
-#include <boost/mpl/find.hpp>
 #include <boost/mp11/bind.hpp>
 
 

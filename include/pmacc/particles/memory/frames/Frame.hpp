@@ -36,7 +36,6 @@
 #include "pmacc/compileTime/conversion/SeqToMap.hpp"
 #include "pmacc/compileTime/conversion/OperateOnSeq.hpp"
 #include <boost/utility/result_of.hpp>
-#include <boost/mpl/find.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 #include "pmacc/compileTime/GetKeyFromAlias.hpp"
