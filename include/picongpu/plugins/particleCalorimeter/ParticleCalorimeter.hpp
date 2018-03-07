@@ -44,7 +44,7 @@
 
 #include <splash/splash.h>
 #include <boost/filesystem.hpp>
-#include <boost/mpl/and.hpp>
+#include <boost/mp11/function.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <string>
@@ -608,7 +608,7 @@ namespace traits
             massRatio<>
         >::type;
 
-        using type = typename bmpl::and_<
+        using type = bmp11::mp_and<
             SpeciesHasIdentifiers,
             SpeciesHasFlags
         >;

@@ -39,8 +39,8 @@
 
 #include <boost/mpl/min_max.hpp>
 #include <boost/mpl/accumulate.hpp>
-#include <boost/mpl/and.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/function.hpp>
 #include <boost/mp11/integral.hpp>
 
 #include <string>
@@ -415,7 +415,7 @@ namespace traits
             chargeRatio<>
         >::type;
 
-        using type = typename bmpl::and_<
+        using type = bmp11::mp_and<
             SpeciesHasIdentifiers,
             SpeciesHasMass,
             SpeciesHasCharge

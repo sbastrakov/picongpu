@@ -31,7 +31,7 @@
 #include <pmacc/traits/HasIdentifiers.hpp>
 #include <pmacc/traits/HasFlag.hpp>
 
-#include <boost/mpl/and.hpp>
+#include <boost/mp11/function.hpp>
 
 #include <string>
 #include <iostream>
@@ -322,7 +322,7 @@ namespace traits
             chargeRatio<>
         >::type;
 
-        using type = typename bmpl::and_<
+        using type = bmp11::mp_and<
             SpeciesHasIdentifiers,
             SpeciesHasMass,
             SpeciesHasCharge

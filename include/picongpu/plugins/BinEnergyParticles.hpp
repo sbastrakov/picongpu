@@ -48,8 +48,8 @@
 
 #include "common/txtFileHandling.hpp"
 
-#include <boost/mpl/and.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/function.hpp>
 
 #include <string>
 #include <iostream>
@@ -736,7 +736,7 @@ namespace traits
             massRatio<>
         >::type;
 
-        using type = typename bmpl::and_<
+        using type = bmp11::mp_and<
             SpeciesHasIdentifiers,
             SpeciesHasFlags
         >;
