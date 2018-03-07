@@ -29,7 +29,7 @@
 #include "picongpu/particles/traits/GetIonizerList.hpp"
 
 #include <boost/type_traits/integral_constant.hpp>
-#include <boost/mpl/contains.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 
@@ -74,10 +74,10 @@ namespace traits
         >::type;
 
         // check if at least one RNG is needed
-        using type = typename boost::mpl::contains<
+        using type = boost::mp11::mp_contains<
             AllIonizersUsingRNG,
             boost::true_type
-        >::type;
+        >;
     };
 
 } // namespace traits

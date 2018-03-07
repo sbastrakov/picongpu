@@ -43,7 +43,6 @@
 #include "pmacc/traits/HasIdentifier.hpp"
 #include "pmacc/traits/HasFlag.hpp"
 #include "pmacc/traits/GetFlagType.hpp"
-#include <boost/mpl/contains.hpp>
 
 #include "pmacc/particles/ParticleDescription.hpp"
 #include <boost/mpl/string.hpp>
@@ -184,7 +183,7 @@ public:
      */
     typedef typename GetKeyFromAlias<ValueTypeSeq, T_IdentifierName>::type SolvedAliasName;
 
-    using type = bmpl::contains<ValueTypeSeq, SolvedAliasName>;
+    using type = bmp11::mp_contains<ValueTypeSeq, SolvedAliasName>;
 };
 
 template<typename T_IdentifierName,

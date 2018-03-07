@@ -23,10 +23,11 @@
 
 #include "pmacc/types.hpp"
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/is_sequence.hpp>
-#include <boost/mpl/contains.hpp>
+
 
 namespace pmacc
 {
@@ -45,7 +46,7 @@ struct RemoveFromSeq
     template<typename T_Value>
     struct hasId
     {
-        typedef bmpl::contains<T_MPLSeqObjectsToRemove,T_Value> type;
+        using type = bmp11::mp_contains<T_MPLSeqObjectsToRemove, T_Value>;
     };
 
     typedef typename bmpl::remove_if< T_MPLSeqSrc, hasId<bmp11::_1> >::type type;

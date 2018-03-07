@@ -38,8 +38,8 @@
 #include <pmacc/traits/Resolve.hpp>
 #include <pmacc/traits/GetCTName.hpp>
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/utility.hpp>
-#include <boost/mpl/contains.hpp>
 
 #include <string>
 #include <sstream>
@@ -83,7 +83,7 @@ class Particles : public ParticlesBase<
         T_Flags,
         bmp11::mp_if<
             // check if alias boundaryCondition is defined for the species
-            bmpl::contains<
+            bmp11::mp_contains<
                 T_Flags,
                 typename GetKeyFromAlias<
                     T_Flags,
@@ -117,7 +117,7 @@ public:
         T_Flags,
         bmp11::mp_if<
             // check if alias boundaryCondition is defined for the species
-            bmpl::contains<
+            bmp11::mp_contains<
                 T_Flags,
                 typename GetKeyFromAlias<
                     T_Flags,

@@ -42,9 +42,9 @@
 #include <boost/type_traits.hpp>
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/is_sequence.hpp>
-#include <boost/mpl/contains.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/copy_if.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
 
@@ -202,7 +202,7 @@ public:
         T_Key
     >::type SolvedAliasName;
 
-    typedef bmpl::contains<ValueTypeSeq, SolvedAliasName> type;
+    using type = bmp11::mp_contains<ValueTypeSeq, SolvedAliasName>;
 };
 
 template<
@@ -258,19 +258,19 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
     typedef typename Src::ValueTypeSeq SrcTypeSeq;
 
     /* create attribute list with a subset of common attributes in two sequences
-     * bmpl::contains has lower complexity than traits::HasIdentifier
+     * bmp11::mp_contains has lower complexity than traits::HasIdentifier
      * and was used for this reason
      */
     typedef typename bmpl::copy_if<
             DestTypeSeq,
-            bmpl::contains<SrcTypeSeq, bmp11::_1>,
+            bmp11::mp_contains<SrcTypeSeq, bmp11::_1>,
             bmpl::back_inserter< bmpl::vector0<> >
             >::type CommonTypeSeq;
 
     /* create sequences with disjunct attributes from `DestTypeSeq` */
     typedef typename bmpl::copy_if<
             DestTypeSeq,
-            bmp11::mp_not<bmpl::contains<SrcTypeSeq, bmp11::_1> >,
+            bmp11::mp_not<bmp11::mp_contains<SrcTypeSeq, bmp11::_1> >,
             bmpl::back_inserter< bmpl::vector0<> >
             >::type UniqueInDestTypeSeq;
 
