@@ -29,7 +29,7 @@
 #include <boost/mpl/begin.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/front.hpp>
-#include <boost/mpl/empty.hpp>
+#include <boost/mp11/list.hpp>
 
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20
 
@@ -49,7 +49,7 @@ class LinearInheritFork : public Base1, public Base2
  *
  * Create a fork and inherit from head and combined classes from Vec
  */
-template <class Head, class Vec,bool isVectorEmpty=bmpl::empty<Vec>::value>
+template <class Head, class Vec,bool isVectorEmpty=bmp11::mp_empty<Vec>::value>
 struct TypelistLinearInherit;
 
 template <class Head, class Vec>

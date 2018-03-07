@@ -25,10 +25,10 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/pop_front.hpp>
 #include <boost/mpl/at.hpp>
-#include <boost/mpl/empty.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_binary_params.hpp>
@@ -60,7 +60,7 @@ namespace math
 
 namespace mpl = boost::mpl;
 
-template<typename TypeList, bool ListEmpty = mpl::empty<TypeList>::type::value>
+template<typename TypeList, bool ListEmpty = mp11::mp_empty<TypeList>::value>
 class Tuple;
 
 template<typename TypeList>

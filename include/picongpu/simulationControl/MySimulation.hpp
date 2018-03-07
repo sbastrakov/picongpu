@@ -28,7 +28,6 @@
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/mpl/count.hpp>
-#include <boost/mp11/integral.hpp>
 
 #include <pmacc/types.hpp>
 #include <pmacc/simulationControl/SimulationHelper.hpp>
@@ -86,6 +85,8 @@
 #include <pmacc/particles/IdProvider.hpp>
 
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp>
 
 #include <memory>
 
@@ -328,13 +329,13 @@ public:
         dc.share( std::shared_ptr< ISimulationData >( rngFactory ) );
 
         // Initialize synchrotron functions, if there are synchrotron photon species
-        if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
+        if(!bmp11::mp_empty<AllSynchrotronPhotonsSpecies>::value)
         {
             this->synchrotronFunctions.init();
         }
 #if( PMACC_CUDA_ENABLED == 1 )
         // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
-        if(!bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value)
+        if(!bmp11::mp_empty<AllBremsstrahlungPhotonsSpecies>::value)
         {
             ForEach<
                 AllBremsstrahlungPhotonsSpecies,

@@ -33,8 +33,8 @@
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
-#include <boost/mpl/empty.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 #include <type_traits>
@@ -58,7 +58,7 @@ namespace detail
  */
 template<typename T_MplSeq,
 typename T_TmpResult = bmpl::vector0<>,
-bool T_isEmpty = bmpl::empty<T_MplSeq>::value
+bool T_isEmpty = bmp11::mp_empty<T_MplSeq>::value
 >
 struct AllCombinations;
 
@@ -72,7 +72,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
 
     static constexpr uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
     typedef typename bmpl::at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
-    typedef bmpl::empty<LastElement> IsLastElementEmpty;
+    typedef bmp11::mp_empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
 
@@ -162,7 +162,7 @@ struct AllCombinations
 
     static constexpr uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
     typedef typename bmpl::at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
-    typedef bmpl::empty<LastElement> IsLastElementEmpty;
+    typedef bmp11::mp_empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
