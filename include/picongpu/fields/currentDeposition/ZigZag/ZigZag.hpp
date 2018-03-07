@@ -24,7 +24,7 @@
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include "picongpu/algorithms/FieldToParticleInterpolation.hpp"
 #include "picongpu/algorithms/ShiftCoordinateSystem.hpp"
-#include <boost/mpl/for_each.hpp>
+
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>

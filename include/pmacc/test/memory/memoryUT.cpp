@@ -28,7 +28,7 @@
 
 // BOOST
 #include <boost/test/unit_test.hpp>
-#include <boost/mpl/for_each.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
 
@@ -80,7 +80,7 @@ std::vector<size_t> getElementsPerDim(){
  * Definition of a list of dimension types. This
  * List is used to test memory operations in
  * each dimension setup automatically. For this
- * purpose boost::mpl::for_each is used.
+ * purpose boost::mp11::mp_for_each is used.
  */
 using Dims = boost::mp11::mp_list<boost::mp11::mp_int<DIM1>,
                            boost::mp11::mp_int<DIM2>,

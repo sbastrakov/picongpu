@@ -61,6 +61,6 @@ struct ResetTest {
 };
 
 BOOST_AUTO_TEST_CASE( reset ){
-    ::boost::mpl::for_each< Dims >( ResetTest() );
+    ::boost::mp11::mp_for_each< Dims >( ResetTest() );
 
 }

@@ -66,6 +66,6 @@ struct setValueTest
 
 BOOST_AUTO_TEST_CASE( setValue )
 {
-    ::boost::mpl::for_each< Dims >( setValueTest() );
+    ::boost::mp11::mp_for_each< Dims >( setValueTest() );
 
 }

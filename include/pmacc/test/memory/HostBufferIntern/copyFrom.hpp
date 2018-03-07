@@ -73,6 +73,6 @@ struct CopyFromTest {
 };
 
 BOOST_AUTO_TEST_CASE( copyFrom ){
-    ::boost::mpl::for_each< Dims >( CopyFromTest() );
+    ::boost::mp11::mp_for_each< Dims >( CopyFromTest() );
 
 }
