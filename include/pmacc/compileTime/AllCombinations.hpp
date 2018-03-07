@@ -76,11 +76,6 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
 
-    /* copy last given sequence to a mpl::vector to be sure that we can later on
-     * call mp11::mp_transform even if the input sequence is mpl::range_c
-     */
-    typedef typename bmpl::copy<LastElementAsSequence, bmpl::back_inserter< bmpl::vector0<> > >::type TmpVector;
-
     /** Assign to each element in a sequence of CT::Vector(s) a type at a given
     *  component position
     *
@@ -108,7 +103,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     };
 
     using NestedSeq = bmp11::mp_transform<
-        TmpVector,
+        LastElementAsSequence,
         AssignToAnyElementInVector<
             std::integral_constant<uint32_t, rangeVectorSize - 1 >,
             bmp11::_1
@@ -166,17 +161,11 @@ struct AllCombinations
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
-    /* copy last given sequence to a mpl::vector to be sure that we can later on
-     * call mp11::mp_transform even if the input sequence is mpl::range_c
-     */
-    typedef typename bmpl::copy<LastElementAsSequence, bmpl::back_inserter< bmpl::vector0<> > >::type TmpVector;
-
-
 
     /* transform all elements in the vector to math::CT::vector<> */
     typedef math::CT::Vector<> EmptyVector;
     using FirstList = bmp11::mp_transform<
-        TmpVector,
+        LastElementAsSequence,
         pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>
     >;
 

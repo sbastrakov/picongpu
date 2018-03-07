@@ -27,8 +27,8 @@
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/algorithms/ForEach.hpp>
 
-#include <boost/mpl/range_c.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/integer_sequence.hpp>
 
 #include <type_traits>
 
@@ -189,16 +189,9 @@ namespace detail
             DataSpace< simDim > const relExchangeDir =
                 Mask::getRelativeDirections< simDim >( mapper.getExchangeType( ) );
 
-            /* create a sequence with int values [0;simDim)
-             * MakeSeq_t allows to use the result of mpl::range_c
-             * within the PMacc ForEach
-             */
-            using SimulationDimensions = MakeSeq_t<
-                boost::mpl::range_c<
-                    int,
-                    0,
-                    int( simDim )
-                >
+            using SimulationDimensions = mp11::make_integer_sequence<
+                int,
+                int( simDim )
             >;
 
             pmacc::algorithms::forEach::ForEach<

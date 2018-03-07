@@ -25,13 +25,16 @@
 #include "picongpu/algorithms/FieldToParticleInterpolation.hpp"
 #include "picongpu/algorithms/ShiftCoordinateSystem.hpp"
 
-#include <boost/mpl/range_c.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/insert.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/function.hpp>
+#include <boost/mp11/integer_sequence.hpp>
+#include <boost/mp11/integral.hpp>
 #include <boost/mp11/utility.hpp>
+
 #include <pmacc/compileTime/AllCombinations.hpp>
 #include "picongpu/fields/currentDeposition/ZigZag/EvalAssignmentFunction.hpp"
 #include <type_traits>
@@ -115,7 +118,7 @@ struct AssignChargeToCell
         using CurrentComponent = T_CurrentComponent;
 
         // evaluate shape in direction [0;simDim)
-        using ShapeComponentsRange = boost::mpl::range_c< int, 0, simDim >;
+        using ShapeComponentsRange = boost::mp11::make_integer_sequence< int, simDim >;
         // this transformation is needed to use boost::ml::accumulate on ComponentsRange
         using ShapeComponents = typename MakeSeq< ShapeComponentsRange >::type;
 
@@ -223,17 +226,39 @@ struct ZigZag
             const fieldSolver::numericalCellType::traits::FieldPosition<FieldJ> fieldPosJ;
             ShiftCoordinateSystem<Supports_direction>()(cursor, pos, fieldPosJ()[dir]);
 
+            // integer sequence [begin, end)
+            using SequenceDim = boost::mp11::mp_transform<
+                boost::mp11::mp_plus<
+                    boost::mp11::_1,
+                    boost::mp11::mp_int< begin >
+                >
+                boost::mp11::make_integer_sequence<
+                    int,
+                    end - begin
+                >,
+            >
             /* define grid points where we evaluate the shape function*/
             using Size_full = typename pmacc::math::CT::make_Vector<
                 simDim,
-                boost::mpl::range_c< int, begin, end >
+                SequenceDim
             >::type;
 
+            // integer sequence [dir_begin, dir_end)
+            using SequenceDir = boost::mp11::mp_transform<
+                boost::mp11::mp_plus<
+                    boost::mp11::_1,
+                    boost::mp11::mp_int< dir_begin >
+                >
+                boost::mp11::make_integer_sequence<
+                    int,
+                    dir_end - dir_begin
+                >,
+            >
             /* set grid points for the evaluation direction*/
             using Size = typename pmacc::math::CT::AssignIfInRange<
                 typename Size_full::This,
                 std::integral_constant< uint32_t, dir >,
-                boost::mpl::range_c< int, dir_begin, dir_end >
+                SequenceDir
             >::type::mplVector;
 
             /* calculate the current for every cell (grid point)*/
@@ -330,7 +355,7 @@ struct ZigZag
             auto cursorJ = dataBoxJ.shift(precisionCast<int>(I[parId])).toCursor();
 
             // the current has three components
-            using ComponentsRange = boost::mpl::range_c< int, 0, 3 >;
+            using ComponentsRange = boost::mp11::make_integer_sequence< int, 3 >;
             // this transformation is needed to use boost::ml::accumulate on ComponentsRange
             using Components = typename MakeSeq< ComponentsRange >::type;
 
