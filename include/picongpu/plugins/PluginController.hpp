@@ -78,6 +78,7 @@
 #include "picongpu/plugins/ISimulationPlugin.hpp"
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 #include <list>
@@ -203,10 +204,10 @@ private:
         >
     >::type;
 
-    using FieldPlugins = typename bmpl::transform<
+    using FieldPlugins = bmp11::mp_transform<
         CombinedUnspecializedFieldPlugins,
         typename TupleSpeciesPlugin::Apply< bmp11::_1 >
-    >::type;
+    >;
 
 
     /* define species plugins */
@@ -241,10 +242,10 @@ private:
         typename TupleSpeciesPlugin::IsEligible< bmp11::_1 >
     >::type;
 
-    using SpeciesPlugins = typename bmpl::transform<
+    using SpeciesPlugins = bmp11::mp_transform<
         CombinedUnspecializedSpeciesPluginsEligible,
         typename TupleSpeciesPlugin::Apply< bmp11::_1 >
-    >::type;
+    >;
 
     /* create sequence with all fully specialized plugins */
     using AllPlugins = MakeSeq_t<

@@ -32,6 +32,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/pop_back.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
@@ -77,7 +78,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
 
     /* copy last given sequence to a mpl::vector to be sure that we can later on
-     * call mpl::transform even if the input sequence is mpl::range_c
+     * call mp11::mp_transform even if the input sequence is mpl::range_c
      */
     typedef typename bmpl::copy<LastElementAsSequence, bmpl::back_inserter< bmpl::vector0<> > >::type TmpVector;
 
@@ -97,23 +98,23 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         typedef TmpResult InVector;
         typedef T_Element Element;
 
-        typedef typename bmpl::transform<
-                InVector,
-                pmacc::math::CT::Assign<
-                    bmp11::_1,
-                    T_ComponentPos,
-                    Element
-                >
-            >::type type;
+        using type = bmp11::mp_transform<
+            InVector,
+            pmacc::math::CT::Assign<
+                bmp11::_1,
+                T_ComponentPos,
+                Element
+            >
+        >;
     };
 
-    typedef typename bmpl::transform<
+    using NestedSeq = bmp11::mp_transform<
         TmpVector,
         AssignToAnyElementInVector<
             std::integral_constant<uint32_t, rangeVectorSize - 1 >,
             bmp11::_1
         >
-    >::type NestedSeq;
+    >;
 
     typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
 
@@ -167,7 +168,7 @@ struct AllCombinations
 
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
     /* copy last given sequence to a mpl::vector to be sure that we can later on
-     * call mpl::transform even if the input sequence is mpl::range_c
+     * call mp11::mp_transform even if the input sequence is mpl::range_c
      */
     typedef typename bmpl::copy<LastElementAsSequence, bmpl::back_inserter< bmpl::vector0<> > >::type TmpVector;
 
@@ -175,10 +176,10 @@ struct AllCombinations
 
     /* transform all elements in the vector to math::CT::vector<> */
     typedef math::CT::Vector<> EmptyVector;
-    typedef typename bmpl::transform<
-    TmpVector,
-    pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>
-    >::type FirstList;
+    using FirstList = bmp11::mp_transform<
+        TmpVector,
+        pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>
+    >;
 
     /* result type: MplSequence of N-tuples */
     typedef typename detail::AllCombinations<ShrinkedRangeVector, FirstList>::type ResultIfNotEmpty;

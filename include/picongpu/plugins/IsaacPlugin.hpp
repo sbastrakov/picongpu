@@ -36,7 +36,7 @@
 #include <boost/fusion/include/list_fwd.hpp>
 #include <boost/fusion/include/as_list.hpp>
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/transform.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
 
@@ -208,7 +208,7 @@ class IsaacPlugin : public ILightweightPlugin
 public:
     typedef boost::mp11::mp_int< simDim > SimDim;
     static const size_t textureDim = 1024;
-    using SourceList = bmpl::transform<boost::fusion::result_of::as_list< Fields_Seq >::type,Transformoperator<bmp11::_1>>::type;
+    using SourceList = bmp11::mp_transform<boost::fusion::result_of::as_list< Fields_Seq >::type,Transformoperator<bmp11::_1>>;
     using VisualizationType = IsaacVisualization
     <
         cupla::AccHost,

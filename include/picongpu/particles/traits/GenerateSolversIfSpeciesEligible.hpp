@@ -25,7 +25,7 @@
 
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/copy_if.hpp>
-#include <boost/mpl/transform.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 
@@ -82,10 +82,10 @@ namespace traits
             >
         >::type;
 
-        using type = typename bmpl::transform<
+        using type = bmp11::mp_transform<
             SeqEligibleSpecies,
             Op< bmp11::_1 >
-        >::type;
+        >;
     };
 } // namespace traits
 } // namespace particles

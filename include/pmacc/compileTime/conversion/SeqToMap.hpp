@@ -27,7 +27,7 @@
 #include <boost/mpl/map.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/size.hpp>
-#include <boost/mpl/transform.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mpl/insert.hpp>
 #include <boost/type_traits.hpp>
@@ -59,11 +59,11 @@ struct SeqToMap
 
     typedef T_MPLSeq MPLSeq;
     typedef bmpl::inserter< bmpl::map<>, bmpl::insert<bmp11::_1, bmp11::_2> > Map_inserter;
-    typedef typename bmpl::transform<
-            MPLSeq,
-            Op<bmp11::_1> ,
-            Map_inserter
-            >::type type;
+    using type = bmp11::mp_transform<
+        MPLSeq,
+        Op<bmp11::_1> ,
+        Map_inserter
+    >;
 };
 
 }//namespace pmacc

@@ -26,7 +26,7 @@
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/transform.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mpl/insert.hpp>
 
@@ -60,10 +60,10 @@ struct ResolveAliases
         typedef typename GetKeyFromAlias<MPLSeqLookup, T_Identifier, AliasNotFoundPolicy>::type type;
     };
 
-    typedef typename bmpl::transform<
+    using type = bmp11::mp_transform<
         MPLSeq,
         GetKeyFromAliasAccessor<bmp11::_1>
-    >::type type;
+    >;
 };
 
 }//namespace pmacc

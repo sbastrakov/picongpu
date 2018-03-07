@@ -26,9 +26,9 @@
 #include "pmacc/forward.hpp"
 
 #include <boost/mpl/apply.hpp>
-#include <boost/mpl/transform.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/deref.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/type_traits.hpp>
 
@@ -151,10 +151,10 @@ namespace detail
         {
         };
 
-        typedef typename bmpl::transform<
+        using SolvedFunctors = bmp11::mp_transform<
             T_MPLSeq,
             ReplacePlaceholder< bmp11::_1 >
-        >::type SolvedFunctors;
+        >;
 
         typedef typename boost::mpl::begin< SolvedFunctors >::type begin;
         typedef typename boost::mpl::end< SolvedFunctors >::type end;

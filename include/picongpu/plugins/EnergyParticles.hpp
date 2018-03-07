@@ -43,6 +43,7 @@
 #include <pmacc/traits/HasFlag.hpp>
 #include <pmacc/algorithms/ForEach.hpp>
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>
 
@@ -321,13 +322,13 @@ namespace picongpu
 
             // find all valid filter for the current used species
             using EligibleFilters = typename MakeSeqFromNestedSeq<
-                typename bmpl::transform<
+                bmp11::mp_transform<
                     particles::filter::AllParticleFilters,
                     particles::traits::GenerateSolversIfSpeciesEligible<
                         bmp11::_1,
                         ParticlesType
                     >
-                >::type
+                >
             >::type;
 
             //! periodicity of computing the particle energy

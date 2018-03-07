@@ -66,6 +66,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
 
@@ -173,10 +174,10 @@ public:
             >
          >::type;
 
-        using AllSpeciesFilter = typename bmpl::transform<
+        using AllSpeciesFilter = bmp11::mp_transform<
             AllParticlesTimesAllFilters,
             CreateSpeciesFilter< bmp11::_1 >
-        >::type;
+        >;
 
         using AllEligibleSpeciesSources = typename bmpl::copy_if<
             AllSpeciesFilter,
