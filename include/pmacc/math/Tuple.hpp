@@ -29,7 +29,6 @@
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/integral.hpp>
-#include <boost/mpl/minus.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_binary_params.hpp>
@@ -121,7 +120,7 @@ public:
     typename mpl::at<TypeList, Idx>::type&
     at(Idx)
     {
-        return base::at(typename mpl::minus<Idx, mp11::mp_int<1> >::type());
+        return base::at(mp11::mp_int<Idx::value - 1>);
     }
 
     template<typename Idx>
@@ -129,7 +128,7 @@ public:
     const typename mpl::at<TypeList, Idx>::type&
     at(Idx) const
     {
-        return base::at(typename mpl::minus<Idx, mp11::mp_int<1> >::type());
+        return base::at(mp11::mp_int<Idx::value - 1>);
     }
 };
 
