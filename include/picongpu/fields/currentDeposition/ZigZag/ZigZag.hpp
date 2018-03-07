@@ -30,7 +30,6 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/insert.hpp>
-#include <boost/mpl/equal_to.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/utility.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
