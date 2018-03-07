@@ -25,9 +25,9 @@
 #include "pmacc/particles/boostExtension/InheritLinearly.hpp"
 
 #include <boost/mpl/map.hpp>
-#include <boost/mpl/at.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/utility/result_of.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
 
@@ -129,10 +129,10 @@ namespace math
         >
         struct result< T_F( T_Key ) >
         {
-            typedef typename bmpl::at<
+            using type = bmp11::mp_at<
                 Map,
                 T_Key
-            >::type& type;
+            >&;
         };
 
         template<
@@ -141,10 +141,10 @@ namespace math
         >
         struct result< const T_F( T_Key ) >
         {
-            typedef const typename bmpl::at<
+            using type = const bmp11::mp_at<
                 Map,
                 T_Key
-            >::type& type;
+            >&;
         };
 
         /** access a datum with a key
@@ -166,10 +166,10 @@ namespace math
                     T_PodType<
                         bmpl::pair<
                             T_Key,
-                            typename bmpl::at<
+                            bmp11::mp_at<
                                 Map,
                                 T_Key
-                            >::type
+                            >
                         >
                     >*
                 >( this ) )
@@ -189,10 +189,10 @@ namespace math
                         const T_PodType<
                             bmpl::pair<
                                 T_Key,
-                                typename bmpl::at<
+                                bmp11::mp_at<
                                     Map,
                                     T_Key
-                                >::type
+                                >
                             >
                         >*
                     >( this )
@@ -211,19 +211,19 @@ namespace math
         HDINLINE
         typename boost::result_of<
             MapTuple(
-                typename bmpl::at<
+                bmp11::mp_at<
                     Map,
                     bmp11::mp_int< T_i >
-                >::type::first
+                >::first
             )
         >::type
         at( )
         {
             return ( *this )[
-                typename bmpl::at<
+                bmp11::mp_at<
                     Map,
                     bmp11::mp_int< T_i >
-                >::type::first( )
+                >::first( )
             ];
         }
 
@@ -231,19 +231,19 @@ namespace math
         HDINLINE
         typename boost::result_of<
             const MapTuple(
-                typename bmpl::at<
+                bmp11::mp_at<
                     Map,
                     bmp11::mp_int< T_i >
-                >::type::first
+                >::first
             )
         >::type
         at( ) const
         {
             return ( *this )[
-                typename bmpl::at<
+                bmp11::mp_at<
                     Map,
                     bmp11::mp_int< T_i >
-                >::type::first( )
+                >::first( )
             ];
         }
         /** @} */

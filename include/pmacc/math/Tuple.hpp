@@ -24,8 +24,8 @@
 #include "pmacc/types.hpp"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/pop_front.hpp>
-#include <boost/mpl/at.hpp>
 #include <boost/mpl/front.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -91,14 +91,14 @@ public:
 
     template<int i>
     HDINLINE
-    typename mpl::at_c<TypeList, i>::type&
+    mp11::mp_at_c<TypeList, i>&
     at_c()
     {
         return this->at(mp11::mp_int<i>::value);
     }
     template<int i>
     HDINLINE
-    const typename mpl::at_c<TypeList, i>::type&
+    const mp11::mp_at_c<TypeList, i>&
     at_c() const
     {
         return this->at(mp11::mp_int<i>::value);
@@ -116,7 +116,7 @@ public:
 
     template<typename Idx>
     HDINLINE
-    typename mpl::at<TypeList, Idx>::type&
+    mp11::mp_at<TypeList, Idx>&
     at(Idx)
     {
         return base::at(mp11::mp_int<Idx::value - 1>);
@@ -124,7 +124,7 @@ public:
 
     template<typename Idx>
     HDINLINE
-    const typename mpl::at<TypeList, Idx>::type&
+    const mp11::mp_at<TypeList, Idx>&
     at(Idx) const
     {
         return base::at(mp11::mp_int<Idx::value - 1>);
@@ -152,7 +152,7 @@ namespace result_of
 template<typename TTuple, int i>
 struct at_c
 {
-    typedef typename mpl::at_c<typename TTuple::TypeList_, i>::type type;
+    using type = mp11::mp_at_c<typename TTuple::TypeList_, i>;
 };
 } // result_of
 

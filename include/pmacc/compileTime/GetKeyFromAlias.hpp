@@ -27,7 +27,6 @@
 #include "pmacc/compileTime/conversion/TypeToPair.hpp"
 #include "pmacc/compileTime/errorHandlerPolicies/ReturnType.hpp"
 
-#include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mp11/function.hpp>

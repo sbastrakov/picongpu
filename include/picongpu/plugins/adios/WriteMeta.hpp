@@ -30,6 +30,7 @@
 #include "picongpu/traits/SIBaseUnits.hpp"
 #include "picongpu/traits/PICToAdios.hpp"
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/list.hpp>
 
 #include <string>
@@ -63,7 +64,7 @@ namespace writeMeta
         ) const
         {
             // assume all boundaries are like the first species for openPMD 1.0.0
-            GetStringProperties<bmpl::at_c<VectorAllSpecies, 0>::type> particleBoundaryProp;
+            GetStringProperties<bmp11::mp_at_c<VectorAllSpecies, 0>> particleBoundaryProp;
             std::list<std::string> listParticleBoundary;
             std::list<std::string> listParticleBoundaryParam;
             for( uint32_t i = NumberOfExchanges<simDim>::value - 1; i > 0; --i )
