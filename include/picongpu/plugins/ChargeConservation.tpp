@@ -44,6 +44,8 @@
 
 #include "common/txtFileHandling.hpp"
 
+#include <boost/mp11/bind.hpp>
+
 #include <sstream>
 
 
@@ -229,7 +231,7 @@ void ChargeConservation::notify(uint32_t currentStep)
     using EligibleSpecies = typename bmpl::copy_if<
         VectorAllSpecies,
         particles::traits::SpeciesEligibleForSolver<
-            bmpl::_1,
+            bmp11::_1,
             ChargeConservation
         >
     >::type;
@@ -240,10 +242,10 @@ void ChargeConservation::notify(uint32_t currentStep)
     ForEach<
         EligibleSpecies,
         picongpu::detail::ComputeChargeDensity<
-            bmpl::_1,
+            bmp11::_1,
             bmp11::mp_int< CORE + BORDER >
         >,
-        bmpl::_1
+        bmp11::_1
     > computeChargeDensity;
     computeChargeDensity(forward(fieldTmp.get()), currentStep);
 

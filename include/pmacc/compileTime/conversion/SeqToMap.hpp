@@ -22,18 +22,16 @@
 #pragma once
 
 #include "pmacc/types.hpp"
+#include "pmacc/compileTime/accessors/Identity.hpp"
 
 #include <boost/mpl/map.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/transform.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/insert.hpp>
-
 #include <boost/type_traits.hpp>
 
-
-#include "pmacc/compileTime/accessors/Identity.hpp"
 
 namespace pmacc
 {
@@ -60,10 +58,10 @@ struct SeqToMap
     };
 
     typedef T_MPLSeq MPLSeq;
-    typedef bmpl::inserter< bmpl::map<>, bmpl::insert<bmpl::_1, bmpl::_2> > Map_inserter;
+    typedef bmpl::inserter< bmpl::map<>, bmpl::insert<bmp11::_1, bmp11::_2> > Map_inserter;
     typedef typename bmpl::transform<
             MPLSeq,
-            Op<bmpl::_1> ,
+            Op<bmp11::_1> ,
             Map_inserter
             >::type type;
 };

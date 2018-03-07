@@ -47,6 +47,7 @@
 #include "picongpu/fields/LaserPhysics.hpp"
 
 #include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <list>
 #include <memory>
@@ -70,13 +71,13 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
     typedef bmpl::accumulate<
         VectorSpeciesWithInterpolation,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmpl::_1, GetLowerMargin< GetInterpolation<bmpl::_2> > >
+        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >
         >::type LowerMarginInterpolation;
 
     typedef bmpl::accumulate<
         VectorSpeciesWithInterpolation,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmpl::_1, GetUpperMargin< GetInterpolation<bmpl::_2> > >
+        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >
         >::type UpperMarginInterpolation;
 
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
@@ -101,13 +102,13 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
     typedef bmpl::accumulate<
         VectorSpeciesWithPusherAndInterpolation,
         LowerMarginInterpolationAndSolver,
-        pmacc::math::CT::max<bmpl::_1, GetLowerMarginPusher<bmpl::_2> >
+        pmacc::math::CT::max<bmp11::_1, GetLowerMarginPusher<bmp11::_2> >
         >::type LowerMargin;
 
     typedef bmpl::accumulate<
         VectorSpeciesWithPusherAndInterpolation,
         UpperMarginInterpolationAndSolver,
-        pmacc::math::CT::max<bmpl::_1, GetUpperMarginPusher<bmpl::_2> >
+        pmacc::math::CT::max<bmp11::_1, GetUpperMarginPusher<bmp11::_2> >
         >::type UpperMargin;
 
     const DataSpace<simDim> originGuard( LowerMargin( ).toRT( ) );

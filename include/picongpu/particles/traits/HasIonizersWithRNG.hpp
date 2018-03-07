@@ -30,7 +30,7 @@
 
 #include <boost/type_traits/integral_constant.hpp>
 #include <boost/mpl/contains.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -61,7 +61,7 @@ namespace traits
         using AllUsedIonizers = typename pmacc::MakeSeqFromNestedSeq<
             typename pmacc::OperateOnSeq<
                 VectorSpeciesWithIonizer,
-                GetIonizerList< bmpl::_1 >
+                GetIonizerList< bmp11::_1 >
             >::type
         >::type;
 
@@ -70,7 +70,7 @@ namespace traits
          */
         using AllIonizersUsingRNG = typename pmacc::OperateOnSeq<
             AllUsedIonizers,
-            picongpu::traits::UsesRNG< bmpl::_1 >
+            picongpu::traits::UsesRNG< bmp11::_1 >
         >::type;
 
         // check if at least one RNG is needed

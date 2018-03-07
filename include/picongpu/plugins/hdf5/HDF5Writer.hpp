@@ -66,6 +66,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
 
 #include <boost/type_traits.hpp>
@@ -174,12 +175,12 @@ public:
 
         using AllSpeciesFilter = typename bmpl::transform<
             AllParticlesTimesAllFilters,
-            CreateSpeciesFilter< bmpl::_1 >
+            CreateSpeciesFilter< bmp11::_1 >
         >::type;
 
         using AllEligibleSpeciesSources = typename bmpl::copy_if<
             AllSpeciesFilter,
-            plugins::misc::speciesFilter::IsEligible< bmpl::_1 >
+            plugins::misc::speciesFilter::IsEligible< bmp11::_1 >
         >::type;
 
         using AllFieldSources = FileOutputFields;
@@ -192,13 +193,13 @@ public:
         {
             ForEach<
                 AllEligibleSpeciesSources,
-                plugins::misc::AppendName< bmpl::_1 >
+                plugins::misc::AppendName< bmp11::_1 >
             > getEligibleDataSourceNames;
             getEligibleDataSourceNames( forward( allowedDataSources ) );
 
             ForEach<
                 AllFieldSources,
-                plugins::misc::AppendName< bmpl::_1 >
+                plugins::misc::AppendName< bmp11::_1 >
             > appendFieldSourceNames;
             appendFieldSourceNames( forward( allowedDataSources ) );
 
@@ -473,11 +474,11 @@ public:
         ThreadParams *params = &mThreadParams;
 
         /* load all fields */
-        ForEach<FileCheckpointFields, LoadFields<bmpl::_1> > forEachLoadFields;
+        ForEach<FileCheckpointFields, LoadFields<bmp11::_1> > forEachLoadFields;
         forEachLoadFields(params);
 
         /* load all particles */
-        ForEach<FileCheckpointParticles, LoadSpecies<bmpl::_1> > forEachLoadSpecies;
+        ForEach<FileCheckpointParticles, LoadSpecies<bmp11::_1> > forEachLoadSpecies;
         forEachLoadSpecies(params, restartChunkSize);
 
         IdProvider<simDim>::State idProvState;
@@ -669,7 +670,7 @@ private:
         log<picLog::INPUT_OUTPUT > ("HDF5: (begin) writing fields.");
         if (threadParams->isCheckpoint)
         {
-            ForEach<FileCheckpointFields, WriteFields<bmpl::_1> > forEachWriteFields;
+            ForEach<FileCheckpointFields, WriteFields<bmp11::_1> > forEachWriteFields;
             forEachWriteFields(threadParams);
         }
         else
@@ -682,7 +683,7 @@ private:
             {
                 ForEach<
                     FileOutputFields,
-                    WriteFields< bmpl::_1 >
+                    WriteFields< bmp11::_1 >
                 > forEachWriteFields;
                 forEachWriteFields(threadParams);
             }
@@ -690,7 +691,7 @@ private:
             ForEach<
                 typename Help::AllFieldSources,
                 CallWriteFields<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(
                 vectorOfDataSourceNames,
@@ -706,7 +707,7 @@ private:
             ForEach<
                 FileCheckpointParticles,
                 WriteSpecies<
-                    plugins::misc::UnfilteredSpecies< bmpl::_1 >
+                    plugins::misc::UnfilteredSpecies< bmp11::_1 >
                 >
             > writeSpecies;
             writeSpecies(threadParams, domainOffset);
@@ -723,7 +724,7 @@ private:
                 ForEach<
                     FileOutputParticles,
                     WriteSpecies<
-                        plugins::misc::UnfilteredSpecies< bmpl::_1 >
+                        plugins::misc::UnfilteredSpecies< bmp11::_1 >
                     >
                 > writeSpecies;
                 writeSpecies(threadParams, domainOffset);
@@ -732,7 +733,7 @@ private:
             ForEach<
                 typename Help::AllEligibleSpeciesSources,
                 CallWriteSpecies<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(
                 vectorOfDataSourceNames,

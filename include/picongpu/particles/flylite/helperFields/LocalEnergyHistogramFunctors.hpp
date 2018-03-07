@@ -29,6 +29,8 @@
 #include <pmacc/algorithms/ForEach.hpp>
 #include <pmacc/forward.hpp>
 
+#include <boost/mp11/bind.hpp>
+
 #include <string>
 #include <memory>
 
@@ -152,7 +154,7 @@ namespace detail
             eneHistLocal->getGridBuffer().getDeviceBuffer().setValue( float_X( 0.0 ) );
 
             // add local energy histogram of each species in list
-            ForEach< SpeciesList, detail::AddSingleEnergyHistogram< bmpl::_1 > > addSingleEnergyHistogram;
+            ForEach< SpeciesList, detail::AddSingleEnergyHistogram< bmp11::_1 > > addSingleEnergyHistogram;
             addSingleEnergyHistogram( currentStep, forward( eneHistLocal ), minEnergy, maxEnergy );
 
             /* note: for average != supercell the BORDER region would need to be

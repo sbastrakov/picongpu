@@ -22,10 +22,14 @@
 
 #pragma once
 
-#include <boost/mpl/vector.hpp>
+
 #include "pmacc/compileTime/conversion/ToSeq.hpp"
 #include "pmacc/compileTime/conversion/JoinToSeq.hpp"
+
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/fold.hpp>
+#include <boost/mpl/vector.hpp>
+
 
 namespace pmacc
 {
@@ -47,7 +51,7 @@ public:
     typedef typename bmpl::fold<
       Seq,
       bmpl::vector0<>,
-      JoinToSeq<bmpl::_1,bmpl::_2>
+      JoinToSeq<bmp11::_1, bmp11::_2>
     >::type type;
 };
 

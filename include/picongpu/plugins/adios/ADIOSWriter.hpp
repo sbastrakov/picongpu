@@ -75,6 +75,7 @@
 #include <boost/mp11/integral.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/mp11/bind.hpp>
 
 #if !defined(_WIN32)
 #include <unistd.h>
@@ -253,12 +254,12 @@ public:
 
         using AllSpeciesFilter = typename bmpl::transform<
             AllParticlesTimesAllFilters,
-            CreateSpeciesFilter< bmpl::_1 >
+            CreateSpeciesFilter< bmp11::_1 >
         >::type;
 
         using AllEligibleSpeciesSources = typename bmpl::copy_if<
             AllSpeciesFilter,
-            plugins::misc::speciesFilter::IsEligible< bmpl::_1 >
+            plugins::misc::speciesFilter::IsEligible< bmp11::_1 >
         >::type;
 
         using AllFieldSources = FileOutputFields;
@@ -271,13 +272,13 @@ public:
         {
             ForEach<
                 AllEligibleSpeciesSources,
-                plugins::misc::AppendName< bmpl::_1 >
+                plugins::misc::AppendName< bmp11::_1 >
             > getEligibleDataSourceNames;
             getEligibleDataSourceNames( forward( allowedDataSources ) );
 
             ForEach<
                 AllFieldSources,
-                plugins::misc::AppendName< bmpl::_1 >
+                plugins::misc::AppendName< bmp11::_1 >
             > appendFieldSourceNames;
             appendFieldSourceNames( forward( allowedDataSources ) );
 
@@ -1043,11 +1044,11 @@ public:
         mThreadParams.localWindowToDomainOffset = DataSpace<simDim>::create(0);
 
         /* load all fields */
-        ForEach<FileCheckpointFields, LoadFields<bmpl::_1> > forEachLoadFields;
+        ForEach<FileCheckpointFields, LoadFields<bmp11::_1> > forEachLoadFields;
         forEachLoadFields(&mThreadParams);
 
         /* load all particles */
-        ForEach<FileCheckpointParticles, LoadSpecies<bmpl::_1> > forEachLoadSpecies;
+        ForEach<FileCheckpointParticles, LoadSpecies<bmp11::_1> > forEachLoadSpecies;
         forEachLoadSpecies(&mThreadParams, restartChunkSize);
 
         IdProvider<simDim>::State idProvState;
@@ -1132,7 +1133,7 @@ private:
              * can not say at this point if this time step will need all of them
              * for sure (checkpoint) or just some user-defined species (dump)
              */
-            ForEach<FileCheckpointParticles, CopySpeciesToHost<bmpl::_1> > copySpeciesToHost;
+            ForEach<FileCheckpointParticles, CopySpeciesToHost<bmp11::_1> > copySpeciesToHost;
             copySpeciesToHost();
             lastSpeciesSyncStep = currentStep;
 #if( PMACC_CUDA_ENABLED == 1 )
@@ -1384,7 +1385,7 @@ private:
         {
             ForEach<
                 FileCheckpointFields,
-                CollectFieldsSizes< bmpl::_1 >
+                CollectFieldsSizes< bmp11::_1 >
             > forEachCollectFieldsSizes;
             forEachCollectFieldsSizes(threadParams);
         }
@@ -1394,7 +1395,7 @@ private:
             {
                 ForEach<
                     FileOutputFields,
-                    CollectFieldsSizes< bmpl::_1 >
+                    CollectFieldsSizesb< bmp11::_1 >
                 > forEachCollectFieldsSizes;
                 forEachCollectFieldsSizes(threadParams);
             }
@@ -1403,7 +1404,7 @@ private:
             ForEach<
                 typename Help::AllFieldSources,
                 CallCollectFieldsSizes<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(vectorOfDataSourceNames, forward(threadParams));
         }
@@ -1426,7 +1427,7 @@ private:
             ForEach<
                 FileCheckpointParticles,
                 ADIOSCountParticles<
-                    plugins::misc::UnfilteredSpecies< bmpl::_1 >
+                    plugins::misc::UnfilteredSpecies< bmp11::_1 >
                 >
             > adiosCountParticles;
             adiosCountParticles( forward(threadParams) );
@@ -1440,7 +1441,7 @@ private:
                 ForEach<
                     FileOutputParticles,
                     ADIOSCountParticles<
-                        plugins::misc::UnfilteredSpecies< bmpl::_1 >
+                        plugins::misc::UnfilteredSpecies< bmp11::_1 >
                     >
                 > adiosCountParticles;
                 adiosCountParticles( threadParams );
@@ -1450,7 +1451,7 @@ private:
             ForEach<
                 typename Help::AllEligibleSpeciesSources,
                 CallCountParticles<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(vectorOfDataSourceNames, forward(threadParams));
         }
@@ -1496,7 +1497,7 @@ private:
         {
             ForEach<
                 FileCheckpointFields,
-                GetFields< bmpl::_1 >
+                GetFields< bmp11::_1 >
             > forEachGetFields;
             forEachGetFields(threadParams);
         }
@@ -1506,7 +1507,7 @@ private:
             {
                 ForEach<
                     FileOutputFields,
-                    GetFields< bmpl::_1 >
+                    GetFields< bmp11::_1 >
                 > forEachGetFields;
                 forEachGetFields(threadParams);
             }
@@ -1515,7 +1516,7 @@ private:
             ForEach<
                 typename Help::AllFieldSources,
                 CallGetFields<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(vectorOfDataSourceNames, forward(threadParams));
         }
@@ -1528,7 +1529,7 @@ private:
             ForEach<
                 FileCheckpointParticles,
                 WriteSpecies<
-                    plugins::misc::SpeciesFilter< bmpl::_1 >
+                    plugins::misc::SpeciesFilter< bmp11::_1 >
                 >
             > writeSpecies;
             writeSpecies(threadParams, particleOffset);
@@ -1542,7 +1543,7 @@ private:
                 ForEach<
                     FileOutputParticles,
                     WriteSpecies<
-                        plugins::misc::UnfilteredSpecies< bmpl::_1 >
+                        plugins::misc::UnfilteredSpecies< bmp11::_1 >
                     >
                 > writeSpecies;
                 writeSpecies( forward(threadParams), particleOffset );
@@ -1552,7 +1553,7 @@ private:
             ForEach<
                 typename Help::AllEligibleSpeciesSources,
                 CallWriteSpecies<
-                    bmpl::_1
+                    bmp11::_1
                 >
             >{}(vectorOfDataSourceNames, forward(threadParams), particleOffset);
         }

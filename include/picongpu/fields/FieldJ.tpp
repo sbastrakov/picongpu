@@ -44,6 +44,7 @@
 #include <pmacc/traits/GetNumWorkers.hpp>
 
 #include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <iostream>
 #include <memory>
@@ -69,13 +70,13 @@ fieldJ( cellDescription.getGridLayout( ) ), fieldJrecv( nullptr )
     typedef bmpl::accumulate<
         AllSpeciesWithCurrent,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmpl::_1, GetLowerMargin< GetCurrentSolver<bmpl::_2> > >
+        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetCurrentSolver<bmp11::_2> > >
         >::type LowerMarginShapes;
 
     typedef bmpl::accumulate<
         AllSpeciesWithCurrent,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmpl::_1, GetUpperMargin< GetCurrentSolver<bmpl::_2> > >
+        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetCurrentSolver<bmp11::_2> > >
         >::type UpperMarginShapes;
 
     /* margins are always positive, also for lower margins

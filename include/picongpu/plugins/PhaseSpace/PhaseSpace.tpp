@@ -35,6 +35,8 @@
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/cuSTL/algorithm/functor/Add.hpp>
 
+#include <boost/mp11/bind.hpp>
+
 #include <vector>
 #include <algorithm>
 
@@ -239,7 +241,7 @@ namespace picongpu
 
         ForEach<
             typename Help::EligibleFilters,
-            plugins::misc::ExecuteIfNameIsEqual< bmpl::_1 >
+            plugins::misc::ExecuteIfNameIsEqual< bmp11::_1 >
         >{ }(
             m_help->filter.get( m_id ),
             currentStep,

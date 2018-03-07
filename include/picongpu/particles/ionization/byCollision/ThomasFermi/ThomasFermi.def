@@ -21,6 +21,9 @@
 
 #include <pmacc/types.hpp>
 
+#include <boost/mp11/bind.hpp>
+
+
 namespace picongpu
 {
 namespace particles
@@ -35,7 +38,7 @@ namespace ionization
      *         cannot be known in list of particle species' flags
      *         \see speciesDefinition.param
      */
-    template<typename T_IonizationAlgorithm, typename T_DestSpecies, typename T_SrcSpecies = bmpl::_1>
+    template<typename T_IonizationAlgorithm, typename T_DestSpecies, typename T_SrcSpecies = bmp11::_1>
     struct ThomasFermi_Impl;
 
     /** Thomas-Fermi impact ionization model

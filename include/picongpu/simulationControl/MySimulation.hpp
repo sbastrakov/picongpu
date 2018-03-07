@@ -85,6 +85,8 @@
 #include "picongpu/particles/traits/HasIonizersWithRNG.hpp"
 #include <pmacc/particles/IdProvider.hpp>
 
+#include <boost/mp11/bind.hpp>
+
 #include <memory>
 
 
@@ -336,7 +338,7 @@ public:
         {
             ForEach<
                 AllBremsstrahlungPhotonsSpecies,
-                particles::bremsstrahlung::FillScaledSpectrumMap< bmpl::_1 >
+                particles::bremsstrahlung::FillScaledSpectrumMap< bmp11::_1 >
             > fillScaledSpectrumMap;
             fillScaledSpectrumMap(forward(this->scaledBremsstrahlungSpectrumMap));
 
@@ -358,15 +360,15 @@ public:
 
         ForEach<
             AllFlyLiteIons,
-            particles::CallPopulationKineticsInit< bmpl::_1 >,
-            bmpl::_1
+            particles::CallPopulationKineticsInit< bmp11::_1 >,
+            bmp11::_1
         > initPopulationKinetics;
         initPopulationKinetics(
             gridSizeLocal
         );
 
         // Allocate and initialize particle species with all left-over memory below
-        ForEach< VectorAllSpecies, particles::CreateSpecies<bmpl::_1> > createSpeciesMemory;
+        ForEach< VectorAllSpecies, particles::CreateSpecies<bmp11::_1> > createSpeciesMemory;
         createSpeciesMemory( deviceHeap, cellDescription );
 
         size_t freeGpuMem(0);
@@ -398,7 +400,7 @@ public:
         MallocMCBuffer<DeviceHeap>* mallocMCBuffer = new MallocMCBuffer<DeviceHeap>(deviceHeap);
         dc.share( std::shared_ptr< ISimulationData >( mallocMCBuffer ) );
 #endif
-        ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1> > logMemoryStatisticsForSpecies;
+        ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmp11::_1> > logMemoryStatisticsForSpecies;
         logMemoryStatisticsForSpecies( deviceHeap );
 
         Environment<>::get().MemoryInfo().getMemoryInfo(&freeGpuMem);
@@ -476,7 +478,7 @@ public:
             else
             {
                 initialiserController->init();
-                ForEach< particles::InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
+                ForEach< particles::InitPipeline, particles::CallFunctor<bmp11::_1> > initSpecies;
                 initSpecies( step );
             }
         }
@@ -520,7 +522,7 @@ public:
                     momentumPrev1,
                     momentum
                 >,
-                bmpl::_1
+                bmp11::_1
             >
         > copyMomentumPrev1;
         copyMomentumPrev1( currentStep );
@@ -532,7 +534,7 @@ public:
             VectorAllSpecies,
             ionizers<>
         >::type;
-        ForEach< VectorSpeciesWithIonizers, particles::CallIonization< bmpl::_1 > > particleIonization;
+        ForEach< VectorSpeciesWithIonizers, particles::CallIonization< bmp11::_1 > > particleIonization;
         particleIonization( cellDescription, currentStep );
 
         /* FLYlite population kinetics for atomic physics */
@@ -543,8 +545,8 @@ public:
 
         ForEach<
             AllFlyLiteIons,
-            particles::CallPopulationKinetics< bmpl::_1 >,
-            bmpl::_1
+            particles::CallPopulationKinetics< bmp11::_1 >,
+            bmp11::_1
         > populationKinetics;
         populationKinetics( currentStep );
 
@@ -554,7 +556,7 @@ public:
 
         ForEach<
             AllSynchrotronPhotonsSpecies,
-            particles::CallSynchrotronPhotons< bmpl::_1 >
+            particles::CallSynchrotronPhotons< bmp11::_1 >
         > synchrotronRadiation;
         synchrotronRadiation( cellDescription, currentStep, this->synchrotronFunctions );
 
@@ -567,7 +569,7 @@ public:
         >::type VectorSpeciesWithBremsstrahlung;
         ForEach<
             VectorSpeciesWithBremsstrahlung,
-            particles::CallBremsstrahlung< bmpl::_1 >
+            particles::CallBremsstrahlung< bmp11::_1 >
         > particleBremsstrahlung;
         particleBremsstrahlung(
             cellDescription,
@@ -612,7 +614,7 @@ public:
         ForEach<
             VectorSpeciesWithCurrentSolver,
             ComputeCurrent<
-                bmpl::_1,
+                bmp11::_1,
                 bmp11::mp_int<CORE + BORDER>
             >
         > computeCurrent;
@@ -705,7 +707,7 @@ public:
 
         fieldB->reset(currentStep);
         fieldE->reset(currentStep);
-        ForEach< VectorAllSpecies, particles::CallReset< bmpl::_1 > > callReset;
+        ForEach< VectorAllSpecies, particles::CallReset< bmp11::_1 > > callReset;
         callReset( currentStep );
 
         dc.releaseData( FieldE::getName() );
@@ -721,7 +723,7 @@ public:
             log<picLog::SIMULATION_STATE > ("slide in step %1%") % currentStep;
             resetAll(currentStep);
             initialiserController->slide(currentStep);
-            ForEach< particles::InitPipeline, particles::CallFunctor< bmpl::_1 > > initSpecies;
+            ForEach< particles::InitPipeline, particles::CallFunctor< bmp11::_1 > > initSpecies;
             initSpecies( currentStep );
         }
     }

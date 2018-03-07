@@ -21,7 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -40,7 +40,7 @@ namespace misc
      */
     template<
         typename T_Distribution,
-        typename T_SpeciesType = boost::mpl::_1
+        typename T_SpeciesType = boost::mp11::_1
     >
     struct Rng;
 

@@ -24,6 +24,8 @@
 #include "picongpu/particles/traits/GetInterpolation.hpp"
 #include "picongpu/particles/traits/GetPusher.hpp"
 
+#include <boost/mp11/bind.hpp>
+
 
 namespace picongpu
 {
@@ -34,14 +36,14 @@ template<typename T_Species>
 struct GetMarginPusher
 {
     typedef pmacc::math::CT::add<
-        GetLowerMargin< GetInterpolation< bmpl::_1 > >,
-        GetLowerMargin< GetPusher< bmpl::_1 > >
+        GetLowerMargin< GetInterpolation< bmp11::_1 > >,
+        GetLowerMargin< GetPusher< bmp11::_1 > >
     > AddLowerMargins;
     typedef typename bmpl::apply<AddLowerMargins, T_Species>::type LowerMargin;
 
     typedef pmacc::math::CT::add<
-        GetUpperMargin< GetInterpolation< bmpl::_1 > >,
-        GetUpperMargin< GetPusher< bmpl::_1 > >
+        GetUpperMargin< GetInterpolation< bmp11::_1 > >,
+        GetUpperMargin< GetPusher< bmp11::_1 > >
     > AddUpperMargins;
     typedef typename bmpl::apply<AddUpperMargins, T_Species>::type UpperMargin;
 };

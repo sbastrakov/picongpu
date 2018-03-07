@@ -23,7 +23,7 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/contains.hpp>
@@ -48,7 +48,7 @@ struct RemoveFromSeq
         typedef bmpl::contains<T_MPLSeqObjectsToRemove,T_Value> type;
     };
 
-    typedef typename bmpl::remove_if< T_MPLSeqSrc, hasId<bmpl::_> >::type type;
+    typedef typename bmpl::remove_if< T_MPLSeqSrc, hasId<bmp11::_1> >::type type;
 };
 
 }//namespace pmacc

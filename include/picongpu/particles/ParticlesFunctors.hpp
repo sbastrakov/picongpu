@@ -41,6 +41,7 @@
 #include "picongpu/particles/flylite/IFlyLite.hpp"
 
 #include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <memory>
 
@@ -311,7 +312,7 @@ struct PushAllSpecies
             VectorAllSpecies,
             particlePusher<>
         >::type VectorSpeciesWithPusher;
-        ForEach< VectorSpeciesWithPusher, particles::PushSpecies< bmpl::_1 > > pushSpecies;
+        ForEach< VectorSpeciesWithPusher, particles::PushSpecies< bmp11::_1 > > pushSpecies;
         pushSpecies( currentStep, eventInt, forward(updateEventList) );
 
         /* join all push events */
@@ -323,7 +324,7 @@ struct PushAllSpecies
         }
 
         /* call communication for all species */
-        ForEach< VectorSpeciesWithPusher, particles::CommunicateSpecies< bmpl::_1> > communicateSpecies;
+        ForEach< VectorSpeciesWithPusher, particles::CommunicateSpecies< bmp11::_1> > communicateSpecies;
         communicateSpecies( forward(updateEventList), forward(commEventList) );
 
         /* join all communication events */
@@ -430,7 +431,7 @@ struct CallIonization
         using hasIonizers = typename HasFlag< FrameType, ionizers<> >::type;
         if (hasIonizers::value)
         {
-            ForEach< SelectIonizerList, CallIonizationScheme< SpeciesType, bmpl::_1 > > particleIonization;
+            ForEach< SelectIonizerList, CallIonizationScheme< SpeciesType, bmp11::_1 > > particleIonization;
             particleIonization( cellDesc, currentStep );
         }
     }

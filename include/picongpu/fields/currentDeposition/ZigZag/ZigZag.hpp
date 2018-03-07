@@ -31,6 +31,7 @@
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/insert.hpp>
 #include <boost/mpl/equal_to.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mp11/utility.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 #include "picongpu/fields/currentDeposition/ZigZag/EvalAssignmentFunction.hpp"
@@ -120,7 +121,7 @@ struct AssignChargeToCell
         using ShapeComponents = typename MakeSeq< ShapeComponentsRange >::type;
 
         ForEach<ShapeComponents,
-            EvalAssignmentFunctionOfDirection<bmpl::_1, CurrentComponent, GridPointVec, Shape>
+            EvalAssignmentFunctionOfDirection<bmp11::_1, CurrentComponent, GridPointVec, Shape>
             > evalShape;
         float_X j = flux;
         /* N=simDim-1
@@ -241,7 +242,7 @@ struct ZigZag
             ForEach<
                 CombiTypes,
                 AssignChargeToCell<
-                    bmpl::_1,
+                    bmp11::_1,
                     ParticleShape,
                     CurrentComponent
                 >
@@ -337,7 +338,7 @@ struct ZigZag
             // calculate x,y,z component of the current
             ForEach<
                 Components,
-                AssignOneDirection< bmpl::_1 >
+                AssignOneDirection< bmp11::_1 >
             > callAssignOneDirection;
             callAssignOneDirection(acc, forward(cursorJ), inCellPos, flux);
         }

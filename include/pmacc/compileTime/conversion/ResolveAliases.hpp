@@ -27,8 +27,9 @@
 
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/transform.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/insert.hpp>
+
 
 namespace pmacc
 {
@@ -61,7 +62,7 @@ struct ResolveAliases
 
     typedef typename bmpl::transform<
         MPLSeq,
-        GetKeyFromAliasAccessor<bmpl::_1>
+        GetKeyFromAliasAccessor<bmp11::_1>
     >::type type;
 };
 

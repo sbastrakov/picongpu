@@ -26,6 +26,7 @@
 #include <pmacc/compileTime/conversion/OperateOnSeq.hpp>
 
 #include <boost/mpl/apply.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -60,7 +61,7 @@ namespace traits
         using type = typename pmacc::OperateOnSeq<
             FoundIonizerList,
             bmpl::apply1<
-                bmpl::_1,
+                bmp11::_1,
                 SpeciesType
             >,
             pmacc::compileTime::accessors::Type<>

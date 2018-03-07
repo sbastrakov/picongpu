@@ -21,10 +21,13 @@
 
 #pragma once
 
+
 #include "pmacc/types.hpp"
 #include "pmacc/traits/HasFlag.hpp"
+
 #include <boost/mpl/copy_if.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
+
 
 namespace pmacc
 {
@@ -52,7 +55,7 @@ struct FilterByFlag
             Flag>::type type;
     };
 
-    typedef typename bmpl::copy_if<MPLSeq, HasFlag<bmpl::_> >::type type;
+    typedef typename bmpl::copy_if<MPLSeq, HasFlag<bmp11::_1> >::type type;
 };
 
 }//namespace traits

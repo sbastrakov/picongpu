@@ -28,6 +28,7 @@
 #include <pmacc/algorithms/ForEach.hpp>
 
 #include <boost/mpl/range_c.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <type_traits>
 
@@ -207,7 +208,7 @@ namespace detail
                         uint32_t,
                         T_numWorkers
                     >,
-                    boost::mpl::_1
+                    boost::mp11::_1
                 >
             > absorbeInOneDirection;
 

@@ -28,7 +28,7 @@
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/transform.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/type_traits.hpp>
 
@@ -60,7 +60,7 @@ struct OperateOnSeq
     typedef bmpl::back_inserter< bmpl::vector<> > Inserter;
     typedef typename bmpl::transform<
             MPLSeq,
-            Op<bmpl::_1>,
+            Op<bmp11::_1>,
             Inserter
             >::type type;
 };

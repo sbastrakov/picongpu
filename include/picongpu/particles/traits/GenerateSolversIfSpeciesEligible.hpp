@@ -26,6 +26,7 @@
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/transform.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -76,14 +77,14 @@ namespace traits
         using SeqEligibleSpecies = typename bmpl::copy_if<
             SeqSpecies,
             particles::traits::SpeciesEligibleForSolver<
-                bmpl::_1,
+                bmp11::_1,
                 T_Eligible
             >
         >::type;
 
         using type = typename bmpl::transform<
             SeqEligibleSpecies,
-            Op< bmpl::_1 >
+            Op< bmp11::_1 >
         >::type;
     };
 } // namespace traits

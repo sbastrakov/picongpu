@@ -27,6 +27,7 @@
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
 #include <boost/mpl/apply.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -54,7 +55,7 @@ namespace particles
      */
     template<
         typename T_Manipulator,
-        typename T_SpeciesType = bmpl::_1,
+        typename T_SpeciesType = bmp11::_1,
         typename T_Filter = filter::All
     >
     struct Manipulate

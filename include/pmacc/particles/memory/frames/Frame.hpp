@@ -50,6 +50,8 @@
 #include "pmacc/particles/ParticleDescription.hpp"
 #include <boost/mpl/string.hpp>
 #include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/bind.hpp>
+
 
 namespace pmacc
 {
@@ -79,7 +81,7 @@ protected pmath::MapTuple<typename SeqToMap<typename T_ParticleDescription::Valu
 public InheritLinearly<
     typename OperateOnSeq<
         typename T_ParticleDescription::FrameExtensionList,
-        bmpl::apply1<bmpl::_1, Frame<T_CreatePairOperator,T_ParticleDescription> >
+        bmpl::apply1<bmp11::_1, Frame<T_CreatePairOperator,T_ParticleDescription> >
     >::type
 >
 {

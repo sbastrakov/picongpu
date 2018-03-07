@@ -29,6 +29,8 @@
 #include "pmacc/dataManagement/DataConnector.hpp"
 #include "pmacc/mappings/simulation/ResourceMonitor.hpp"
 
+#include <boost/mpl/vector.hpp>
+
 #include <type_traits>
 
 
@@ -74,7 +76,7 @@ namespace pmacc
     {
         typedef std::integral_constant<unsigned, T_DIM> dim;
         std::vector<size_t> particleCounts;
-        algorithms::forEach::ForEach<T_Species, MyCountParticles<dim, bmpl::_1> > countParticles;
+        algorithms::forEach::ForEach<T_Species, MyCountParticles<dim, bmp11::_1> > countParticles;
         countParticles(forward(particleCounts), forward(cellDescription), forward(parFilter));
         return particleCounts;
     }

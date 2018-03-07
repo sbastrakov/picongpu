@@ -30,6 +30,8 @@
 #include <pmacc/algorithms/ForEach.hpp>
 #include <pmacc/forward.hpp>
 
+#include <boost/mp11/bind.hpp>
+
 #include <string>
 #include <memory>
 
@@ -126,7 +128,7 @@ namespace detail
             fieldTmp->getGridBuffer().getDeviceBuffer().setValue( DensityValueType::create(0.0) );
 
             // add density of each species in list to FieldTmp
-            ForEach< SpeciesList, detail::AddSingleDensity< bmpl::_1 > > addSingleDensity;
+            ForEach< SpeciesList, detail::AddSingleDensity< bmp11::_1 > > addSingleDensity;
             addSingleDensity( currentStep, forward( fieldTmp ) );
 
             /* create valid density in the BORDER region

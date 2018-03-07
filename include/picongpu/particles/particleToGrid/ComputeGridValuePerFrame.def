@@ -39,7 +39,7 @@
 
 #include <pmacc/compileTime/conversion/ToSeq.hpp>
 
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <vector>
 
@@ -212,7 +212,7 @@ namespace detail
 
         using type = typename traits::GenerateSolversIfSpeciesEligible<
             CreateFieldTmpOperation<
-                bmpl::_1,
+                bmp11::_1,
                 DerivedAttribute
             >,
             SeqSpecies,

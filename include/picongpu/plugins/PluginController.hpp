@@ -78,6 +78,8 @@
 #include "picongpu/plugins/ISimulationPlugin.hpp"
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
 
+#include <boost/mp11/bind.hpp>
+
 #include <list>
 
 
@@ -188,7 +190,7 @@ private:
     /* define field plugins */
     using UnspecializedFieldPlugins = bmpl::vector<
 #if( PMACC_CUDA_ENABLED == 1 )
-        SliceFieldPrinterMulti< bmpl::_1 >
+        SliceFieldPrinterMulti< bmp11::_1 >
 #endif
     >;
 
@@ -203,26 +205,26 @@ private:
 
     using FieldPlugins = typename bmpl::transform<
         CombinedUnspecializedFieldPlugins,
-        typename TupleSpeciesPlugin::Apply< bmpl::_1 >
+        typename TupleSpeciesPlugin::Apply< bmp11::_1 >
     >::type;
 
 
     /* define species plugins */
     using UnspecializedSpeciesPlugins = bmpl::vector <
-        plugins::multi::Master< EnergyParticles<bmpl::_1> >,
-        plugins::multi::Master< BinEnergyParticles<bmpl::_1> >,
-        CountParticles<bmpl::_1>,
-        PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+        plugins::multi::Master< EnergyParticles<bmp11::_1> >,
+        plugins::multi::Master< BinEnergyParticles<bmp11::_1> >,
+        CountParticles<bmp11::_1>,
+        PngPlugin< Visualisation<bmp11::_1, PngCreator> >
 #if(ENABLE_HDF5 == 1)
-        , Radiation<bmpl::_1>
-        , ParticleCalorimeter<bmpl::_1>
-        , plugins::multi::Master< PhaseSpace<particles::shapes::Counter::ChargeAssignment, bmpl::_1> >
+        , Radiation<bmp11::_1>
+        , ParticleCalorimeter<bmp11::_1>
+        , plugins::multi::Master< PhaseSpace<particles::shapes::Counter::ChargeAssignment, bmp11::_1> >
 #endif
 #if( PMACC_CUDA_ENABLED == 1 )
-        , PositionsParticles<bmpl::_1>
-        , plugins::particleMerging::ParticleMerger<bmpl::_1>
+        , PositionsParticles<bmp11::_1>
+        , plugins::particleMerging::ParticleMerger<bmp11::_1>
 #   if(ENABLE_HDF5 == 1)
-        , PerSuperCell<bmpl::_1>
+        , PerSuperCell<bmp11::_1>
 #   endif
 #endif
     >;
@@ -236,12 +238,12 @@ private:
 
     using CombinedUnspecializedSpeciesPluginsEligible = typename bmpl::copy_if<
         CombinedUnspecializedSpeciesPlugins,
-        typename TupleSpeciesPlugin::IsEligible< bmpl::_1 >
+        typename TupleSpeciesPlugin::IsEligible< bmp11::_1 >
     >::type;
 
     using SpeciesPlugins = typename bmpl::transform<
         CombinedUnspecializedSpeciesPluginsEligible,
-        typename TupleSpeciesPlugin::Apply< bmpl::_1 >
+        typename TupleSpeciesPlugin::Apply< bmp11::_1 >
     >::type;
 
     /* create sequence with all fully specialized plugins */
@@ -256,7 +258,7 @@ private:
      */
     virtual void init()
     {
-        ForEach<AllPlugins, PushBack<bmpl::_1> > pushBack;
+        ForEach<AllPlugins, PushBack<bmp11::_1> > pushBack;
         pushBack(forward(plugins));
     }
 

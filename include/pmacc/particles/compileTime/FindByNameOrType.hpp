@@ -24,10 +24,10 @@
 #include "pmacc/traits/GetCTName.hpp"
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
-#include <boost/mpl/placeholders.hpp>
 #include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
 
@@ -89,7 +89,7 @@ namespace compileTime
 
         using FilteredSeq = typename bmpl::copy_if<
             T_MPLSeq,
-            HasTypeOrName< bmpl::_1 >
+            HasTypeOrName< bmp11::_1 >
         >::type;
 
         using type = typename bmp11::mp_if<

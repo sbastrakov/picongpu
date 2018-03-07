@@ -42,6 +42,8 @@
 #include <pmacc/traits/GetNumWorkers.hpp>
 
 #include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/bind.hpp>
+
 #include <string>
 #include <memory>
 
@@ -88,13 +90,13 @@ namespace picongpu
         typedef bmpl::accumulate<
             VectorSpeciesWithInterpolation,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmpl::_1, GetLowerMargin< GetInterpolation<bmpl::_2> > >
+            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >
         >::type SpeciesLowerMargin;
 
         typedef bmpl::accumulate<
             FieldTmpSolvers,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmpl::_1, GetLowerMargin< bmpl::_2 > >
+            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< bmp11::_2 > >
         >::type FieldTmpLowerMargin;
 
         typedef pmacc::math::CT::max<
@@ -116,13 +118,13 @@ namespace picongpu
         typedef bmpl::accumulate<
             VectorSpeciesWithInterpolation,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmpl::_1, GetUpperMargin< GetInterpolation<bmpl::_2> > >
+            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >
         >::type SpeciesUpperMargin;
 
         typedef bmpl::accumulate<
             FieldTmpSolvers,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmpl::_1, GetUpperMargin< bmpl::_2 > >
+            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< bmp11::_2 > >
         >::type FieldTmpUpperMargin;
 
         typedef pmacc::math::CT::max<

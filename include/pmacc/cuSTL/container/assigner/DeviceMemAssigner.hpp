@@ -32,18 +32,17 @@
 #include <pmacc/cuSTL/algorithm/functor/AssignValue.hpp>
 
 #include <boost/math/common_factor_rt.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <stdint.h>
+
 
 namespace pmacc
 {
 namespace assigner
 {
 
-namespace bmpl = boost::mpl;
-
-template<typename T_Dim = bmpl::_1, typename T_CartBuffer = bmpl::_2>
+template<typename T_Dim = bmp11::_1, typename T_CartBuffer = bmp11::_2>
 struct DeviceMemAssigner
 {
     static constexpr int dim = T_Dim::value;

@@ -19,15 +19,16 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 
 
 #include "pmacc/compileTime/accessors/Identity.hpp"
+
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/inherit.hpp>
 #include <boost/mpl/inherit_linearly.hpp>
-#include <boost/mpl/placeholders.hpp>
+#include <boost/mp11/bind.hpp>
+
 
 namespace pmacc
 {
@@ -47,8 +48,8 @@ namespace detail
         typename bmpl::inherit_linearly<
             T_Sequence,
             bmpl::inherit<
-                bmpl::_1,
-                T_Accessor< bmpl::_2 >
+                bmp11::_1,
+                T_Accessor< bmp11::_2 >
             >
         >::type;
 

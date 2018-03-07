@@ -35,6 +35,9 @@
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/mappings/threads/WorkerCfg.hpp>
 
+#include <boost/mp11/bind.hpp>
+
+
 namespace picongpu
 {
 
@@ -321,7 +324,7 @@ namespace picongpu
 
                                 algorithms::forEach::ForEach<
                                     ParticleCleanedAttrList,
-                                    SetAttributeToDefault< bmpl::_1 >
+                                    SetAttributeToDefault< bmp11::_1 >
                                 > setToDefault;
                                 setToDefault( forward( particle ) );
                             }

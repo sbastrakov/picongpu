@@ -32,6 +32,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/pop_back.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mp11/utility.hpp>
 #include <boost/mpl/empty.hpp>
 #include <boost/type_traits/is_same.hpp>
@@ -99,7 +100,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         typedef typename bmpl::transform<
                 InVector,
                 pmacc::math::CT::Assign<
-                    bmpl::_1,
+                    bmp11::_1,
                     T_ComponentPos,
                     Element
                 >
@@ -110,7 +111,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         TmpVector,
         AssignToAnyElementInVector<
             std::integral_constant<uint32_t, rangeVectorSize - 1 >,
-            bmpl::_1
+            bmp11::_1
         >
     >::type NestedSeq;
 
@@ -176,7 +177,7 @@ struct AllCombinations
     typedef math::CT::Vector<> EmptyVector;
     typedef typename bmpl::transform<
     TmpVector,
-    pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmpl::_1>
+    pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>
     >::type FirstList;
 
     /* result type: MplSequence of N-tuples */

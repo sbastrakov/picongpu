@@ -29,6 +29,7 @@
 
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
+#include <boost/mpl/vector.hpp>
 #include <boost/mp11/function.hpp>
 #include <boost/mp11/utility.hpp>
 
@@ -53,11 +54,11 @@ struct GetKeyFromAlias
 private:
     typedef T_KeyNotFoundPolicy KeyNotFoundPolicy;
     /*create a map where Key is a undeclared alias and value is real type*/
-    typedef typename SeqToMap<T_MPLSeq, TypeToAliasPair<bmpl::_1> >::type AliasMap;
+    typedef typename SeqToMap<T_MPLSeq, TypeToAliasPair<bmp11::_1> >::type AliasMap;
     /*create a map where Key and value is real type*/
-    typedef typename SeqToMap<T_MPLSeq, TypeToPair<bmpl::_1> >::type KeyMap;
+    typedef typename SeqToMap<T_MPLSeq, TypeToPair<bmp11::_1> >::type KeyMap;
     /*combine both maps*/
-    typedef bmpl::inserter< KeyMap, bmpl::insert<bmpl::_1, bmpl::_2> > Map_inserter;
+    typedef bmpl::inserter< KeyMap, bmpl::insert<bmp11::_1, bmp11::_2> > Map_inserter;
     typedef typename bmpl::copy<
         AliasMap,
         Map_inserter

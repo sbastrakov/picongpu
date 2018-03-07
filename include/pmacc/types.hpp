@@ -62,7 +62,6 @@
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20
 #define BOOST_MPL_LIMIT_MAP_SIZE 20
 #include <boost/typeof/std/utility.hpp>
-#include <boost/mpl/placeholders.hpp>
 #include <boost/filesystem.hpp>
 
 // compatibility macros (compiler or C++ standard version specific)

@@ -38,6 +38,7 @@
 #include <boost/mpl/accumulate.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/apply_wrap.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -53,7 +54,7 @@ namespace particles
  *                      - first: storage tuple
  *                      - second: current time step
  */
-template<typename T_Functor = bmpl::_1>
+template<typename T_Functor = bmp11::_1>
 struct CallFunctor
 {
     using Functor = T_Functor;
@@ -88,7 +89,7 @@ struct CallFunctor
 template<
     typename T_DensityFunctor,
     typename T_PositionFunctor,
-    typename T_SpeciesType = bmpl::_1
+    typename T_SpeciesType = bmp11::_1
 >
 struct CreateDensity
 {
@@ -146,7 +147,7 @@ struct CreateDensity
 template<
     typename T_Manipulator,
     typename T_SrcSpeciesType,
-    typename T_DestSpeciesType = bmpl::_1,
+    typename T_DestSpeciesType = bmp11::_1,
     typename T_SrcFilter = filter::All
 >
 struct ManipulateDerive
@@ -206,7 +207,7 @@ struct ManipulateDerive
  */
 template<
     typename T_SrcSpeciesType,
-    typename T_DestSpeciesType = bmpl::_1,
+    typename T_DestSpeciesType = bmp11::_1,
     typename T_Filter = filter::All
 >
 struct Derive : ManipulateDerive<
@@ -234,7 +235,7 @@ struct Derive : ManipulateDerive<
  * @tparam T_SpeciesType type or name as boost::mpl::string of the particle species
  *                       to fill gaps in memory
  */
-template< typename T_SpeciesType = bmpl::_1 >
+template< typename T_SpeciesType = bmp11::_1 >
 struct FillAllGaps
 {
     using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<

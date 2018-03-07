@@ -22,7 +22,8 @@
 #pragma once
 
 #include "pmacc/types.hpp"
-#include <boost/mpl/placeholders.hpp>
+
+#include <boost/mp11/bind.hpp>
 
 
 namespace pmacc
@@ -37,7 +38,7 @@ namespace accessors
      *
      * T must have defined ::type
      */
-    template< typename T = bmpl::_1 >
+    template< typename T = bmp11::_1 >
     struct Type
     {
         using type = typename T::type;

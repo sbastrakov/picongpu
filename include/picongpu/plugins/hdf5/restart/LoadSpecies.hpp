@@ -43,6 +43,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/type_traits/is_same.hpp>
 
@@ -174,16 +175,16 @@ public:
         Hdf5FrameType hostFrame;
         log<picLog::INPUT_OUTPUT > ("HDF5:  malloc mapped memory: %1%") % speciesName;
         /*malloc mapped memory*/
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, MallocMemory<bmpl::_1> > mallocMem;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, MallocMemory<bmp11::_1> > mallocMem;
         mallocMem(forward(hostFrame), totalNumParticles);
 
         log<picLog::INPUT_OUTPUT > ("HDF5:  get mapped memory device pointer: %1%") % speciesName;
         /*load device pointer of mapped memory*/
         Hdf5FrameType deviceFrame;
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, GetDevicePtr<bmpl::_1> > getDevicePtr;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, GetDevicePtr<bmp11::_1> > getDevicePtr;
         getDevicePtr(forward(deviceFrame), forward(hostFrame));
 
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, LoadParticleAttributesFromHDF5<bmpl::_1> > loadAttributes;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, LoadParticleAttributesFromHDF5<bmp11::_1> > loadAttributes;
         loadAttributes(forward(params), forward(hostFrame), speciesSubGroup, particleOffset, totalNumParticles);
 
         if (totalNumParticles != 0)
@@ -200,7 +201,7 @@ public:
             );
 
             /*free host memory*/
-            ForEach<typename Hdf5FrameType::ValueTypeSeq, FreeMemory<bmpl::_1> > freeMem;
+            ForEach<typename Hdf5FrameType::ValueTypeSeq, FreeMemory<bmp11::_1> > freeMem;
             freeMem(forward(hostFrame));
             log<picLog::INPUT_OUTPUT > ("HDF5: ( end ) load species: %1%") % speciesName;
         }

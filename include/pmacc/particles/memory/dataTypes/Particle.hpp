@@ -46,6 +46,8 @@
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/not.hpp>
+#include <boost/mp11/bind.hpp>
+
 
 namespace pmacc
 {
@@ -261,14 +263,14 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
      */
     typedef typename bmpl::copy_if<
             DestTypeSeq,
-            bmpl::contains<SrcTypeSeq, bmpl::_1>,
+            bmpl::contains<SrcTypeSeq, bmp11::_1>,
             bmpl::back_inserter< bmpl::vector0<> >
             >::type CommonTypeSeq;
 
     /* create sequences with disjunct attributes from `DestTypeSeq` */
     typedef typename bmpl::copy_if<
             DestTypeSeq,
-            bmpl::not_<bmpl::contains<SrcTypeSeq, bmpl::_1> >,
+            bmpl::not_<bmpl::contains<SrcTypeSeq, bmp11::_1> >,
             bmpl::back_inserter< bmpl::vector0<> >
             >::type UniqueInDestTypeSeq;
 
@@ -287,12 +289,12 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
     {
         /* assign attributes from src to dest*/
         algorithms::forEach::ForEach<CommonTypeSeq,
-            CopyIdentifier<bmpl::_1> > copy;
+            CopyIdentifier<bmp11::_1> > copy;
         copy(forward(dest), src);
 
         /* set all attributes which are not in src to their default value*/
         algorithms::forEach::ForEach<UniqueInDestTypeSeq,
-            SetAttributeToDefault<bmpl::_1> > setAttributeToDefault;
+            SetAttributeToDefault<bmp11::_1> > setAttributeToDefault;
         setAttributeToDefault(forward(dest));
 
     };

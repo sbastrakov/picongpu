@@ -44,6 +44,7 @@
 #include <pmacc/algorithms/ForEach.hpp>
 
 #include <boost/mpl/and.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <string>
 #include <iostream>
@@ -323,7 +324,7 @@ namespace picongpu
                 typename bmpl::transform<
                     particles::filter::AllParticleFilters,
                     particles::traits::GenerateSolversIfSpeciesEligible<
-                        bmpl::_1,
+                        bmp11::_1,
                         ParticlesType
                     >
                 >::type
@@ -352,7 +353,7 @@ namespace picongpu
 
                 ForEach<
                     EligibleFilters,
-                    plugins::misc::AppendName< bmpl::_1 >
+                    plugins::misc::AppendName< bmp11::_1 >
                 > getEligibleFilterNames;
                 getEligibleFilterNames( forward( allowedFilters ) );
 
@@ -581,7 +582,7 @@ namespace picongpu
 
             ForEach<
                 typename Help::EligibleFilters,
-                plugins::misc::ExecuteIfNameIsEqual< bmpl::_1 >
+                plugins::misc::ExecuteIfNameIsEqual< bmp11::_1 >
             >{ }(
                 m_help->filter.get( m_id ),
                 currentStep,

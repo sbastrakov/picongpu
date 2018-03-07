@@ -45,6 +45,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/type_traits.hpp>
 
 #include <string>
@@ -191,7 +192,7 @@ public:
         Hdf5FrameType hostFrame;
         log<picLog::INPUT_OUTPUT > ("HDF5:  (begin) malloc mapped memory: %1%") % T_SpeciesFilter::getName();
         /*malloc mapped memory*/
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, MallocMemory<bmpl::_1> > mallocMem;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, MallocMemory<bmp11::_1> > mallocMem;
         mallocMem(forward(hostFrame), numParticles);
         log<picLog::INPUT_OUTPUT > ("HDF5:  ( end ) malloc mapped memory: %1%") % T_SpeciesFilter::getName();
 
@@ -201,7 +202,7 @@ public:
             log<picLog::INPUT_OUTPUT > ("HDF5:  (begin) get mapped memory device pointer: %1%") % T_SpeciesFilter::getName();
             /*load device pointer of mapped memory*/
             Hdf5FrameType deviceFrame;
-            ForEach<typename Hdf5FrameType::ValueTypeSeq, GetDevicePtr<bmpl::_1> > getDevicePtr;
+            ForEach<typename Hdf5FrameType::ValueTypeSeq, GetDevicePtr<bmp11::_1> > getDevicePtr;
             getDevicePtr(forward(deviceFrame), forward(hostFrame));
             log<picLog::INPUT_OUTPUT > ("HDF5:  ( end ) get mapped memory device pointer: %1%") % T_SpeciesFilter::getName();
 
@@ -297,7 +298,7 @@ public:
 
         const std::string speciesPath( std::string("particles/") + T_SpeciesFilter::getName() );
 
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, hdf5::ParticleAttribute<bmpl::_1> > writeToHdf5;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, hdf5::ParticleAttribute<bmp11::_1> > writeToHdf5;
         writeToHdf5(
             params,
             forward(hostFrame),
@@ -506,7 +507,7 @@ public:
         log<picLog::INPUT_OUTPUT > ("HDF5:  ( end ) writing particlePatches for %1%") % T_SpeciesFilter::getName();
 
         /*free host memory*/
-        ForEach<typename Hdf5FrameType::ValueTypeSeq, FreeMemory<bmpl::_1> > freeMem;
+        ForEach<typename Hdf5FrameType::ValueTypeSeq, FreeMemory<bmp11::_1> > freeMem;
         freeMem(forward(hostFrame));
         log<picLog::INPUT_OUTPUT > ("HDF5: ( end ) writing species: %1%") % T_SpeciesFilter::getName();
     }

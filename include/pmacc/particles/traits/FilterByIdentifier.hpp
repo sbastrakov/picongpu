@@ -23,8 +23,9 @@
 
 #include "pmacc/types.hpp"
 #include "pmacc/traits/HasIdentifier.hpp"
+
+#include <boost/mp11/bind.hpp>
 #include <boost/mpl/copy_if.hpp>
-#include <boost/mpl/placeholders.hpp>
 
 
 namespace pmacc
@@ -61,7 +62,7 @@ namespace traits
 
         using type = typename bmpl::copy_if<
             MPLSeq,
-            HasIdentifier< bmpl::_ >
+            HasIdentifier< bmp11::_1 >
         >::type;
     };
 

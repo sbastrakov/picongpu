@@ -49,6 +49,7 @@
 #include <boost/mpl/find.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/mp11/bind.hpp>
 
 
 namespace picongpu
@@ -115,7 +116,7 @@ public:
 
         /* malloc host memory */
         log<picLog::INPUT_OUTPUT > ("ADIOS:   (begin) malloc host memory: %1%") % T_SpeciesFilter::getName();
-        ForEach<typename AdiosFrameType::ValueTypeSeq, MallocHostMemory<bmpl::_1> > mallocMem;
+        ForEach<typename AdiosFrameType::ValueTypeSeq, MallocHostMemory<bmp11::_1> > mallocMem;
         mallocMem(forward(hostFrame), totalNumParticles);
         log<picLog::INPUT_OUTPUT > ("ADIOS:   ( end ) malloc host memory: %1%") % T_SpeciesFilter::getName();
 
@@ -173,11 +174,11 @@ public:
             PMACC_ASSERT((uint64_cu) globalParticleOffset == totalNumParticles);
         }
         /* dump to adios file */
-        ForEach<typename AdiosFrameType::ValueTypeSeq, adios::ParticleAttribute<bmpl::_1> > writeToAdios;
+        ForEach<typename AdiosFrameType::ValueTypeSeq, adios::ParticleAttribute<bmp11::_1> > writeToAdios;
         writeToAdios(params, forward(hostFrame), totalNumParticles);
 
         /* free host memory */
-        ForEach<typename AdiosFrameType::ValueTypeSeq, FreeHostMemory<bmpl::_1> > freeMem;
+        ForEach<typename AdiosFrameType::ValueTypeSeq, FreeHostMemory<bmp11::_1> > freeMem;
         freeMem(forward(hostFrame));
         log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) writing species: %1%") % T_SpeciesFilter::getName();
 

@@ -44,6 +44,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/type_traits.hpp>
 
 #include <string>
@@ -132,7 +133,7 @@ public:
         }
 
         /* iterate over all attributes of this species */
-        ForEach<typename AdiosFrameType::ValueTypeSeq, adios::ParticleAttributeSize<bmpl::_1> > attributeSize;
+        ForEach<typename AdiosFrameType::ValueTypeSeq, adios::ParticleAttributeSize<bmp11::_1> > attributeSize;
         attributeSize(params, speciesGroup, myNumParticles, globalNumParticles, myParticleOffset);
 
         /* TODO: constant particle records */

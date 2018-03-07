@@ -49,6 +49,7 @@
 #include "common/txtFileHandling.hpp"
 
 #include <boost/mpl/and.hpp>
+#include <boost/mp11/bind.hpp>
 
 #include <string>
 #include <iostream>
@@ -330,7 +331,7 @@ private:
             typename bmpl::transform<
                 particles::filter::AllParticleFilters,
                 particles::traits::GenerateSolversIfSpeciesEligible<
-                    bmpl::_1,
+                    bmp11::_1,
                     ParticlesType
                 >
             >::type
@@ -372,7 +373,7 @@ private:
         {
             ForEach<
                 EligibleFilters,
-                plugins::misc::AppendName< bmpl::_1 >
+                plugins::misc::AppendName< bmp11::_1 >
             > getEligibleFilterNames;
             getEligibleFilterNames( forward( allowedFilters ) );
 
@@ -661,7 +662,7 @@ private:
 
         ForEach<
             typename Help::EligibleFilters,
-            plugins::misc::ExecuteIfNameIsEqual< bmpl::_1 >
+            plugins::misc::ExecuteIfNameIsEqual< bmp11::_1 >
         >{ }(
             m_help->filter.get( m_id ),
             currentStep,

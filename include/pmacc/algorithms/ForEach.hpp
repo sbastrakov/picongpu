@@ -29,6 +29,7 @@
 #include <boost/mpl/transform.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/deref.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/type_traits.hpp>
 
 
@@ -152,7 +153,7 @@ namespace detail
 
         typedef typename bmpl::transform<
             T_MPLSeq,
-            ReplacePlaceholder< bmpl::_1 >
+            ReplacePlaceholder< bmp11::_1 >
         >::type SolvedFunctors;
 
         typedef typename boost::mpl::begin< SolvedFunctors >::type begin;

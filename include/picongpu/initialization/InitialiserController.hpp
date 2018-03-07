@@ -35,6 +35,8 @@
 #include <pmacc/assert.hpp>
 
 #include <boost/mpl/find.hpp>
+#include <boost/mp11/bind.hpp>
+
 
 namespace picongpu
 {
@@ -103,7 +105,7 @@ public:
      * calculate omega_p for each given species and create a `picLog::PHYSICS`
      * log message
      */
-    template<typename T_Species = bmpl::_1>
+    template<typename T_Species = bmp11::_1>
     struct LogOmegaP
     {
         void operator()()
