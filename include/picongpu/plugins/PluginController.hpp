@@ -80,6 +80,7 @@
 
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/utility.hpp>
 
 #include <list>
 
@@ -237,10 +238,10 @@ private:
         >
     >::type;
 
-    using CombinedUnspecializedSpeciesPluginsEligible = typename bmpl::copy_if<
+    using CombinedUnspecializedSpeciesPluginsEligible = bmp11::mp_copy_if<
         CombinedUnspecializedSpeciesPlugins,
-        typename TupleSpeciesPlugin::IsEligible< bmp11::_1 >
-    >::type;
+        bmp11::mp_identity_t< TupleSpeciesPlugin::IsEligible >
+    >;
 
     using SpeciesPlugins = bmp11::mp_transform<
         CombinedUnspecializedSpeciesPluginsEligible,

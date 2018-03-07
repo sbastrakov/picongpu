@@ -43,7 +43,6 @@
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/mpl/back_inserter.hpp>
-#include <boost/mpl/copy_if.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
@@ -261,18 +260,24 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
      * bmp11::mp_contains has lower complexity than traits::HasIdentifier
      * and was used for this reason
      */
-    typedef typename bmpl::copy_if<
-            DestTypeSeq,
-            bmp11::mp_contains<SrcTypeSeq, bmp11::_1>,
-            bmpl::back_inserter< bmpl::vector0<> >
-            >::type CommonTypeSeq;
+    using CommonTypeSeq = bmp11::mp_copy_if<
+        DestTypeSeq,
+        bmp11::mp_contains<
+            SrcTypeSeq,
+            bmp11::_1
+        >
+    >;
 
     /* create sequences with disjunct attributes from `DestTypeSeq` */
-    typedef typename bmpl::copy_if<
-            DestTypeSeq,
-            bmp11::mp_not<bmp11::mp_contains<SrcTypeSeq, bmp11::_1> >,
-            bmpl::back_inserter< bmpl::vector0<> >
-            >::type UniqueInDestTypeSeq;
+    using UniqueInDestTypeSeq = bmp11::mp_copy_if<
+        DestTypeSeq,
+        bmp11::mp_not<
+            bmp11::mp_contains<
+                SrcTypeSeq,
+                bmp11::_1
+            >
+        >
+    >;
 
     /** Assign particle attributes
      *

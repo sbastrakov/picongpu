@@ -25,8 +25,8 @@
 #include "pmacc/types.hpp"
 #include "pmacc/traits/HasFlag.hpp"
 
-#include <boost/mpl/copy_if.hpp>
-#include <boost/mp11/bind.hpp>
+#include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -55,7 +55,7 @@ struct FilterByFlag
             Flag>::type type;
     };
 
-    typedef typename bmpl::copy_if<MPLSeq, HasFlag<bmp11::_1> >::type type;
+    using type = bmp11::mp_copy_if<MPLSeq, bmp11::mp_identity_t< HasFlag > >;
 };
 
 }//namespace traits

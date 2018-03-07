@@ -24,10 +24,8 @@
 #include "pmacc/traits/GetCTName.hpp"
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
-#include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
 
@@ -70,27 +68,11 @@ namespace compileTime
                 >
             >;
         };
-        //template< typename T_Value >
-        //using HasTypeOrName = bmp11::mp_or<
-        //    bmp11::mp_same<
-        //        T_Identifier,
-        //        T_Value
-        //    >,
-        //    bmp11::mp_same<
-        //        pmacc::traits::GetCTName_t< T_Value >,
-        //        T_Identifier
-        //    >
-        //>;
 
-        //using FilteredSeq = bmp11::mp_copy_if<
-        //    T_MPLSeq,
-        //    HasTypeOrName
-        //>;
-
-        using FilteredSeq = typename bmpl::copy_if<
+        using FilteredSeq = bmp11::mp_copy_if<
             T_MPLSeq,
-            HasTypeOrName< bmp11::_1 >
-        >::type;
+            bmp11::mp_identity_t< HasTypeOrName >
+        >;
 
         using type = typename bmp11::mp_if<
             bmp11::mp_empty< FilteredSeq >,

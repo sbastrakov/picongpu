@@ -44,6 +44,7 @@
 
 #include "common/txtFileHandling.hpp"
 
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 #include <sstream>
@@ -228,13 +229,13 @@ void ChargeConservation::notify(uint32_t currentStep)
     /* reset density values to zero */
     fieldTmp->getGridBuffer().getDeviceBuffer().setValue(FieldTmp::ValueType(0.0));
 
-    using EligibleSpecies = typename bmpl::copy_if<
+    using EligibleSpecies = bmp11::mp_copy_if<
         VectorAllSpecies,
         particles::traits::SpeciesEligibleForSolver<
             bmp11::_1,
             ChargeConservation
         >
-    >::type;
+    >;
 
     // todo: log species that are used / ignored in this plugin with INFO
 

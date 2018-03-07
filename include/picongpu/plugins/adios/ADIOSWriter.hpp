@@ -72,6 +72,7 @@
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/type_traits.hpp>
 
@@ -255,10 +256,10 @@ public:
             CreateSpeciesFilter< bmp11::_1 >
         >;
 
-        using AllEligibleSpeciesSources = typename bmpl::copy_if<
+        using AllEligibleSpeciesSources = bmp11::mp_copy_if<
             AllSpeciesFilter,
-            plugins::misc::speciesFilter::IsEligible< bmp11::_1 >
-        >::type;
+            bmp11::mp_identity_t< plugins::misc::speciesFilter::IsEligible >
+        >;
 
         using AllFieldSources = FileOutputFields;
 

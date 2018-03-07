@@ -24,7 +24,6 @@
 #include <pmacc/compileTime/conversion/ToSeq.hpp>
 
 #include <boost/mpl/apply.hpp>
-#include <boost/mpl/copy_if.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
@@ -74,13 +73,13 @@ namespace traits
         {
         };
 
-        using SeqEligibleSpecies = typename bmpl::copy_if<
+        using SeqEligibleSpecies = bmp11::mp_copy_if<
             SeqSpecies,
             particles::traits::SpeciesEligibleForSolver<
                 bmp11::_1,
                 T_Eligible
             >
-        >::type;
+        >;
 
         using type = bmp11::mp_transform<
             SeqEligibleSpecies,
