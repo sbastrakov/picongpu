@@ -29,11 +29,11 @@
 
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
 
-#include <boost/mpl/list.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/front_inserter.hpp>
+
 
 namespace pmacc
 {

@@ -29,9 +29,9 @@
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/traits/GetNumWorkers.hpp>
 
-#include <boost/mpl/list.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/test/unit_test.hpp>
+
 #include <set>
 #include <algorithm>
 #include <stdint.h>

@@ -28,9 +28,9 @@
 
 // BOOST
 #include <boost/test/unit_test.hpp>
-#include <boost/mpl/list.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp>
 
 // MPI
 #include <mpi.h> /* MPI_Init, MPI_Finalize */
@@ -82,9 +82,9 @@ std::vector<size_t> getElementsPerDim(){
  * each dimension setup automatically. For this
  * purpose boost::mpl::for_each is used.
  */
-typedef ::boost::mpl::list<boost::mp11::mp_int<DIM1>,
+using Dims = boost::mp11::mp_list<boost::mp11::mp_int<DIM1>,
                            boost::mp11::mp_int<DIM2>,
-                           boost::mp11::mp_int<DIM3> > Dims;
+                           boost::mp11::mp_int<DIM3> >;
 
 
 /*******************************************************************************

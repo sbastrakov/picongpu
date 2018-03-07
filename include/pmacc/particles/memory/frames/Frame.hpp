@@ -24,7 +24,6 @@
 #include "pmacc/types.hpp"
 
 #include <boost/mpl/map.hpp>
-#include <boost/mpl/list.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include "pmacc/math/MapTuple.hpp"
 
