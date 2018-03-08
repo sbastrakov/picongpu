@@ -30,7 +30,6 @@
 #include "pmacc/types.hpp"
 
 #include <boost/mpl/copy.hpp>
-#include <boost/mpl/pop_back.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>
@@ -71,10 +70,13 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef T_TmpResult TmpResult;
 
     static constexpr uint32_t rangeVectorSize = bmp11::mp_size<MplSeq>::value;
-    using LastElement = bmp11::mp_at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > >;
+    using LastElement = bmp11::mp_at_c<MplSeq, rangeVectorSize - 1 >;
     typedef bmp11::mp_empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
-    typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
+    using ShrinkedRangeVector = bmp11::mp_take_c<
+        MplSeq,
+        rangeVectorSize - 1
+    >;
 
     /** Assign to each element in a sequence of CT::Vector(s) a type at a given
     *  component position
@@ -156,11 +158,14 @@ struct AllCombinations
     typedef typename MakeSeq<T_MplSeq>::type MplSeq;
 
     static constexpr uint32_t rangeVectorSize = bmp11::mp_size<MplSeq>::value;
-    using LastElement = bmp11::mp_at<MplSeq, std::integral_constant<uint32_t, rangeVectorSize - 1 > >;
+    using LastElement = bmp11::mp_at_c<MplSeq, rangeVectorSize - 1 >;
     typedef bmp11::mp_empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
-    typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
+    using ShrinkedRangeVector = bmp11::mp_take_c<
+        MplSeq
+        rangeVectorSize - 1
+    >;
 
     /* transform all elements in the vector to math::CT::vector<> */
     typedef math::CT::Vector<> EmptyVector;

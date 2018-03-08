@@ -24,7 +24,6 @@
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/deref.hpp>
-#include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/begin.hpp>
 #include <boost/mp11/list.hpp>
 
