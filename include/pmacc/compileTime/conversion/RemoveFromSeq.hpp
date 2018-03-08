@@ -21,12 +21,9 @@
 
 #pragma once
 
-#include "pmacc/types.hpp"
 
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
-#include <boost/mpl/remove_if.hpp>
-#include <boost/mpl/is_sequence.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -38,18 +35,24 @@ namespace pmacc
  * @tparam T_MPLSeqObjectsToRemove sequence with types which shuld be deleted
  */
 template<
-typename T_MPLSeqSrc,
-typename T_MPLSeqObjectsToRemove
+    typename T_MPLSeqSrc,
+    typename T_MPLSeqObjectsToRemove
 >
 struct RemoveFromSeq
 {
-    template<typename T_Value>
+    template< typename T_Value >
     struct hasId
     {
-        using type = bmp11::mp_contains<T_MPLSeqObjectsToRemove, T_Value>;
+        using type = bmp11::mp_contains<
+            T_MPLSeqObjectsToRemove,
+            T_Value
+        >;
     };
 
-    typedef typename bmpl::remove_if< T_MPLSeqSrc, hasId<bmp11::_1> >::type type;
+    using type = bmp11::remove_if<
+        T_MPLSeqSrc,
+        bmp11::mp_identity_t< hasId >
+    >;
 };
 
 }//namespace pmacc
