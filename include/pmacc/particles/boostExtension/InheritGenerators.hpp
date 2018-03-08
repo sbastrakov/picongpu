@@ -24,7 +24,6 @@
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/deref.hpp>
-#include <boost/mpl/pop_front.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/begin.hpp>
 #include <boost/mp11/list.hpp>
@@ -90,9 +89,10 @@ struct TypelistLinearInherit<Head, Vec ,true>
 template <typename vec_>
 struct LinearInherit
 {
-    typedef typename TypelistLinearInherit <
+    using type = typename TypelistLinearInherit <
         bmp11::mp_front<vec_>,
-        typename bmpl::pop_front<vec_>::type >::type type;
+        bmp11::mp_pop_front<vec_>
+    >::type;
 };
 
 }

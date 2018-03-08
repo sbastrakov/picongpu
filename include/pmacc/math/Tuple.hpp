@@ -23,7 +23,6 @@
 
 #include "pmacc/types.hpp"
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/pop_front.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -66,13 +65,13 @@ class Tuple<TypeList, true> {};
 
 template<typename TypeList>
 class Tuple<TypeList, false>
-    : public Tuple<typename mpl::pop_front<TypeList>::type>
+    : public Tuple<mp11::mp_pop_front<TypeList>>
 {
 public:
     static constexpr int dim = mp11::mp_size<TypeList>::value;
     typedef TypeList TypeList_;
 private:
-    typedef Tuple<typename mpl::pop_front<TypeList>::type> base;
+    typedef Tuple<mp11::mp_pop_front<TypeList>> base;
 
     typedef typename mp11::mp_front<TypeList> Value;
     typedef typename boost::remove_reference<Value>::type pureValue;
