@@ -28,7 +28,6 @@
 
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/back_inserter.hpp>
 #include <boost/mp11/integral.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 

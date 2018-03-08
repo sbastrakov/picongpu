@@ -27,7 +27,6 @@
 
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/vector.hpp>
-#include <boost/mpl/back_inserter.hpp>
 #include <boost/mpl/insert.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>

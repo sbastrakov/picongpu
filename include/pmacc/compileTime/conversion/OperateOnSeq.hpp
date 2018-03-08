@@ -22,14 +22,10 @@
 #pragma once
 
 #include "pmacc/compileTime/accessors/Identity.hpp"
-#include "pmacc/types.hpp"
 
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/copy.hpp>
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
-#include <boost/mpl/back_inserter.hpp>
-#include <boost/type_traits.hpp>
+#include <boost/mp11/utility.hpp>
+
 
 namespace pmacc
 {
@@ -41,26 +37,26 @@ namespace pmacc
  * to a mpl pair
  * @tparam T_Accessor an unary lambda operator that is used before the type
  * from the sequence is passed to T_UnaryOperator
- * @return ::type bmpl::vector
+ * @return ::type bmp11::mp_list
  */
-template<typename T_MPLSeq,
-typename T_UnaryOperator,
-typename T_Accessor = compileTime::accessors::Identity<>
+template<
+    typename T_MPLSeq,
+    typename T_UnaryOperator,
+    typename T_Accessor = compileTime::accessors::Identity<>
 >
 struct OperateOnSeq
 {
 
     template<typename X>
-    struct Op :bmpl::apply1<T_UnaryOperator, typename bmpl::apply1<T_Accessor,X>::type >
+    struct Op
     {
+        using type = typename T_Accessor< X >::type;
     };
 
     typedef T_MPLSeq MPLSeq;
-    typedef bmpl::back_inserter< bmpl::vector<> > Inserter;
     using type = bmp11::mp_transform<
         MPLSeq,
-        Op<bmp11::_1>,
-        Inserter
+        bmp11::mp_identity_t< Op >
     >;
 };
 

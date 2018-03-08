@@ -38,7 +38,6 @@
 
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/copy.hpp>
-#include <boost/mpl/back_inserter.hpp>
 
 #include "pmacc/particles/memory/frames/Frame.hpp"
 #include "pmacc/particles/Identifier.hpp"
