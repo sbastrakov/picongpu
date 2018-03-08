@@ -24,7 +24,6 @@
 #include "pmacc/types.hpp"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/pop_front.hpp>
-#include <boost/mpl/front.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -75,7 +74,7 @@ public:
 private:
     typedef Tuple<typename mpl::pop_front<TypeList>::type> base;
 
-    typedef typename mpl::front<TypeList>::type Value;
+    typedef typename mp11::mp_front<TypeList> Value;
     typedef typename boost::remove_reference<Value>::type pureValue;
 
     Value value;

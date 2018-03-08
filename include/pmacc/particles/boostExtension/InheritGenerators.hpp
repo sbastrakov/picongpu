@@ -27,7 +27,6 @@
 #include <boost/mpl/pop_front.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/begin.hpp>
-#include <boost/mpl/front.hpp>
 #include <boost/mp11/list.hpp>
 
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20
@@ -92,7 +91,7 @@ template <typename vec_>
 struct LinearInherit
 {
     typedef typename TypelistLinearInherit <
-        typename bmpl::front<vec_>::type,
+        bmp11::mp_front<vec_>,
         typename bmpl::pop_front<vec_>::type >::type type;
 };
 

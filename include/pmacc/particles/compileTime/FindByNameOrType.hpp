@@ -24,7 +24,6 @@
 #include "pmacc/traits/GetCTName.hpp"
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
-#include <boost/mpl/front.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
@@ -76,12 +75,12 @@ namespace compileTime
 
         using type = typename bmp11::mp_if<
             bmp11::mp_empty< FilteredSeq >,
-            KeyNotFoundPolicy<
+            typename KeyNotFoundPolicy<
                 T_MPLSeq,
                 T_Identifier
-            >,
-            bmpl::front< FilteredSeq >
-        >::type;
+            >::type,
+            bmp11::mp_front< FilteredSeq >
+        >;
     };
 
     template<
