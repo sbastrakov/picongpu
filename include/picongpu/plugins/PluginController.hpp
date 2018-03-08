@@ -126,16 +126,15 @@ private:
          */
         template< typename T_TupleVector >
         struct Apply :
-            bmpl::apply1<
-                typename pmacc::math::CT::At<
-                    T_TupleVector,
-                    bmp11::mp_int< plugin >
-                >::type,
+            typename pmacc::math::CT::At<
+                T_TupleVector,
+                bmp11::mp_int< plugin >
+            >::type <
                 typename pmacc::math::CT::At<
                     T_TupleVector,
                     bmp11::mp_int< species >
                 >::type
-            >
+            >::type
         {
         };
 

@@ -25,11 +25,10 @@
 #include "pmacc/compileTime/accessors/Identity.hpp"
 #include "pmacc/forward.hpp"
 
-#include <boost/mpl/apply.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mpl/deref.hpp>
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
+#include <boost/mp11/utility.hpp>
 #include <boost/type_traits.hpp>
 
 
@@ -116,7 +115,7 @@ namespace detail
      *
      *  \tparam T_MPLSeq A mpl sequence that can be accessed by mpl::begin, mpl::end, mpl::next
      *  \tparam T_Functor An unary lambda functor with a HDINLINE void operator()(...) method
-     *          _1 is substituted by Accessor's result using boost::mpl::apply with elements from T_MPLSeq.
+     *          _1 is substituted by Accessor's result.
      *          The maximum number of parameters for the operator() is limited by
      *          PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
      *  \tparam T_Accessor An unary lambda operation
@@ -126,7 +125,7 @@ namespace detail
      *      Functor = any unary lambda functor
      *      Accessor = lambda operation identity
      *
-     *      definition: F(X) means boost::apply<F,X>
+     *      definition: F(X) means F<X>
      *
      *      call:   ForEach<MPLSeq,Functor,Accessor>()(42);
      *      unrolled code: Functor(Accessor(int))(42);
@@ -141,24 +140,18 @@ namespace detail
     {
 
         template< typename X >
-        struct ReplacePlaceholder : bmpl::apply1<
-            T_Functor,
-            typename bmpl::apply1<
-                T_Accessor,
-                X
-            >::type
-        >
+        struct ReplacePlaceholder
         {
+            using type = T_Functor< typename T_Accessor< X >::type >::type;
         };
 
         using SolvedFunctors = bmp11::mp_transform<
             T_MPLSeq,
-            ReplacePlaceholder< bmp11::_1 >
+            bmp11::mp_identity_t< ReplacePlaceholder >
         >;
 
         typedef typename boost::mpl::begin< SolvedFunctors >::type begin;
         typedef typename boost::mpl::end< SolvedFunctors >::type end;
-
 
         typedef detail::CallFunctorOfIterator<
             begin,

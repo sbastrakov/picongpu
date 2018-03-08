@@ -26,7 +26,6 @@
 #include <pmacc/Environment.hpp>
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
-#include <boost/mpl/apply.hpp>
 #include <boost/mp11/bind.hpp>
 
 
@@ -66,10 +65,7 @@ namespace particles
         >;
         using FrameType = typename SpeciesType::FrameType;
 
-        using SpeciesFunctor = typename bmpl::apply1<
-            T_Manipulator,
-            SpeciesType
-        >::type;
+        using SpeciesFunctor = typename T_Manipulator< SpeciesType >::type;
 
         using FilteredManipulator = manipulators::IUnary<
             SpeciesFunctor,

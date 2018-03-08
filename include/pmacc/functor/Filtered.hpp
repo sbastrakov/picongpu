@@ -155,14 +155,8 @@ namespace acc
         {
             using type = Filtered<
                 T_FilterOperator,
-                typename boost::mpl::apply<
-                    T_Filter,
-                    T_Params ...
-                >::type,
-                typename boost::mpl::apply<
-                    T_Functor,
-                    T_Params ...
-                >::type
+                typename T_Filter< T_Params ... >::type,
+                typename T_Functor< T_Params ... >::type
             >;
         };
 

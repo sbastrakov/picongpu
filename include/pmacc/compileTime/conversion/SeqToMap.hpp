@@ -52,7 +52,7 @@ struct SeqToMap
 {
 
     template<typename X>
-    struct Op :bmpl::apply1<T_UnaryOperator, typename bmpl::apply1<T_Accessor,X>::type >
+    struct Op : typename T_UnaryOperator< typename T_Accessor< X >::type >::type
     {
     };
 

@@ -78,7 +78,7 @@ protected pmath::MapTuple<typename SeqToMap<typename T_ParticleDescription::Valu
 public InheritLinearly<
     typename OperateOnSeq<
         typename T_ParticleDescription::FrameExtensionList,
-        bmpl::apply1<bmp11::_1, Frame<T_CreatePairOperator,T_ParticleDescription> >
+        typename bmp11::_1< Frame<T_CreatePairOperator,T_ParticleDescription> >::type
     >::type
 >
 {

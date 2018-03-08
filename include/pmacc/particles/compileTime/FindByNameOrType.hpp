@@ -76,8 +76,7 @@ namespace compileTime
 
         using type = typename bmp11::mp_if<
             bmp11::mp_empty< FilteredSeq >,
-            typename bmpl::apply<
-                KeyNotFoundPolicy,
+            KeyNotFoundPolicy<
                 T_MPLSeq,
                 T_Identifier
             >,

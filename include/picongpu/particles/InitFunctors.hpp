@@ -36,8 +36,6 @@
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
 #include <boost/mpl/accumulate.hpp>
-#include <boost/mpl/apply.hpp>
-#include <boost/mpl/apply_wrap.hpp>
 #include <boost/mp11/bind.hpp>
 
 
@@ -100,11 +98,11 @@ struct CreateDensity
     using FrameType = typename SpeciesType::FrameType;
 
 
-    typedef typename bmpl::apply1<T_DensityFunctor, SpeciesType>::type UserDensityFunctor;
+    using UserDensityFunctor = typename T_DensityFunctor< SpeciesType >::type ;
     /* add interface for compile time interface validation*/
     using DensityFunctor = densityProfiles::IProfile<UserDensityFunctor>;
 
-    typedef typename bmpl::apply1<T_PositionFunctor, SpeciesType>::type UserPositionFunctor;
+    using UserPositionFunctor = typename T_PositionFunctor< SpeciesType >::type ;
     /* add interface for compile time interface validation*/
     typedef manipulators::IUnary<UserPositionFunctor> PositionFunctor;
 
@@ -163,10 +161,7 @@ struct ManipulateDerive
     >;
     using SrcFrameType = typename SrcSpeciesType::FrameType;
 
-    using DestFunctor = typename bmpl::apply1<
-        T_Manipulator,
-        DestSpeciesType
-    >::type;
+    using DestFunctor = typename T_Manipulator< DestSpeciesType >::type;
 
     /* note: this is a FilteredManipulator with filter::All for
      * destination species, users can filter the destination directly via if's

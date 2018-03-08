@@ -23,9 +23,8 @@
 
 #include <pmacc/compileTime/conversion/ToSeq.hpp>
 
-#include <boost/mpl/apply.hpp>
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace picongpu
@@ -66,11 +65,9 @@ namespace traits
         using Solver = T_Solver;
 
         template< typename T_Species >
-        struct Op : bmpl::apply1<
-            Solver,
-            T_Species
-        >
+        struct Op
         {
+            using type = typename Solver< T_Species >::type;
         };
 
         using SeqEligibleSpecies = bmp11::mp_copy_if<
@@ -83,7 +80,7 @@ namespace traits
 
         using type = bmp11::mp_transform<
             SeqEligibleSpecies,
-            Op< bmp11::_1 >
+            bmp11::mp_identity_t< Op >
         >;
     };
 } // namespace traits

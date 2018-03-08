@@ -39,13 +39,13 @@ struct GetMarginPusher
         GetLowerMargin< GetInterpolation< bmp11::_1 > >,
         GetLowerMargin< GetPusher< bmp11::_1 > >
     > AddLowerMargins;
-    typedef typename bmpl::apply<AddLowerMargins, T_Species>::type LowerMargin;
+    using LowerMargin = typename AddLowerMargins< T_Species >::type;
 
     typedef pmacc::math::CT::add<
         GetUpperMargin< GetInterpolation< bmp11::_1 > >,
         GetUpperMargin< GetPusher< bmp11::_1 > >
     > AddUpperMargins;
-    typedef typename bmpl::apply<AddUpperMargins, T_Species>::type UpperMargin;
+    using UpperMargin = typename AddUpperMargins< T_Species >::type;
 };
 
 template<typename T_Species>
