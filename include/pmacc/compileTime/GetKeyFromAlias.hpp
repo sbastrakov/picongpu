@@ -28,7 +28,6 @@
 #include "pmacc/compileTime/errorHandlerPolicies/ReturnType.hpp"
 
 #include <boost/mpl/copy.hpp>
-#include <boost/mpl/vector.hpp>
 #include <boost/mp11/function.hpp>
 #include <boost/mp11/utility.hpp>
 

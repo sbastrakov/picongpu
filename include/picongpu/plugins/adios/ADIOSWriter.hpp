@@ -65,7 +65,6 @@
 #include <adios_read.h>
 #include <adios_error.h>
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
@@ -245,7 +244,7 @@ public:
         };
 
         using AllParticlesTimesAllFilters = typename AllCombinations<
-            bmpl::vector<
+            bmp11::mp_list<
                 FileOutputParticles,
                 particles::filter::AllParticleFilters
             >

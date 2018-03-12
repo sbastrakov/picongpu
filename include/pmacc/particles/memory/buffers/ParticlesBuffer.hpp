@@ -34,14 +34,10 @@
 
 #include "pmacc/particles/boostExtension/InheritGenerators.hpp"
 #include "pmacc/compileTime/conversion/MakeSeq.hpp"
-
-
-#include <boost/mpl/vector.hpp>
-
 #include "pmacc/particles/memory/frames/Frame.hpp"
 #include "pmacc/particles/Identifier.hpp"
 #include "pmacc/particles/memory/dataTypes/StaticArray.hpp"
-#include <boost/mpl/vector.hpp>
+
 #include <boost/mpl/pair.hpp>
 #include "pmacc/particles/ParticleDescription.hpp"
 #include "pmacc/particles/memory/dataTypes/ListPointer.hpp"

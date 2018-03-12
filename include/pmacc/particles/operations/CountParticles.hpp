@@ -34,6 +34,8 @@
 #include "pmacc/mappings/threads/ForEachIdx.hpp"
 #include "pmacc/mappings/threads/IdxConfig.hpp"
 
+#include <boost/mp11/list.hpp>
+
 
 namespace pmacc
 {
@@ -288,7 +290,7 @@ struct CountParticles
     template<uint32_t AREA, class PBuffer, class CellDesc, class Space, typename T_ParticleFilter>
     static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, const Space& origin, const Space& size, T_ParticleFilter & parFilter)
     {
-        typedef bmpl::vector< typename GetPositionFilter<Space::Dim>::type > usedFilters;
+        typedef bmp11::mp_list< typename GetPositionFilter<Space::Dim>::type > usedFilters;
         typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
         MyParticleFilter filter;
         filter.setStatus(true); /*activeate filter pipline*/

@@ -36,6 +36,7 @@
 #include <pmacc/mappings/threads/WorkerCfg.hpp>
 
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace picongpu
@@ -311,7 +312,7 @@ namespace picongpu
                              */
                             {
                                 using ParticleAttrList = typename FrameType::ValueTypeSeq;
-                                using AttrToIgnore = bmpl::vector4<
+                                using AttrToIgnore = bmp11::mp_list<
                                     position<>,
                                     multiMask,
                                     localCellIdx,

@@ -26,7 +26,6 @@
 #include "picongpu/algorithms/FieldToParticleInterpolation.hpp"
 #include "picongpu/algorithms/ShiftCoordinateSystem.hpp"
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mp11/integral.hpp>
 #include <pmacc/compileTime/AllCombinations.hpp>
 

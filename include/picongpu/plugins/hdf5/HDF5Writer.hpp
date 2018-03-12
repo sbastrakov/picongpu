@@ -59,13 +59,14 @@
 #include <pmacc/math/Vector.hpp>
 
 #include "picongpu/plugins/output/IIOBackend.hpp"
-#include <boost/mpl/vector.hpp>
+
 #include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp
 #include <boost/mp11/utility.hpp>
 
 #include <boost/type_traits.hpp>
@@ -166,7 +167,7 @@ public:
         };
 
         using AllParticlesTimesAllFilters = typename AllCombinations<
-            bmpl::vector<
+            bmp11::mp_list<
                 FileOutputParticles,
                 particles::filter::AllParticleFilters
             >

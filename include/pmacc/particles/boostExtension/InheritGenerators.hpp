@@ -22,7 +22,6 @@
 #pragma once
 
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/deref.hpp>
 #include <boost/mpl/begin.hpp>
 #include <boost/mp11/list.hpp>
@@ -78,10 +77,10 @@ struct TypelistLinearInherit<Head, Vec ,true>
 
 
 /** Create a data structure which inherit linearly
- * \tparam vec_ boost mpl vector with classes
+ * \tparam vec_ boost mp11 mp_list with classes
  *
  * class A<pmacc::NullFrame>;
- * LinearInherit<mpl::vector<A<>,B> >::type return
+ * LinearInherit<mp11::mp_list<A<>,B> >::type return
  *
  * typedef A<B> type;
  */

@@ -32,6 +32,8 @@
 
 #include "picongpu/particles/InitFunctors.hpp"
 
+#include <boost/mp11/list.hpp>
+
 
 namespace picongpu
 {
@@ -42,7 +44,7 @@ namespace particles
      *
      * the functors are called in order (from first to last functor)
      */
-    using InitPipeline = mpl::vector<
+    using InitPipeline = mp11::mp_list<
         // Generate Densities
         CreateDensity<
             densityProfiles::Homogenous,

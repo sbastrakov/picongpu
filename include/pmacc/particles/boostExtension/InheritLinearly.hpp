@@ -24,7 +24,6 @@
 
 #include "pmacc/compileTime/accessors/Identity.hpp"
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/inherit.hpp>
 #include <boost/mpl/inherit_linearly.hpp>
 #include <boost/mp11/bind.hpp>

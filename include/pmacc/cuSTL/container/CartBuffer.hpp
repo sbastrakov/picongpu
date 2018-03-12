@@ -34,8 +34,8 @@
 
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>
-#include <boost/mpl/vector.hpp>
 #include <boost/mp11/integral.hpp>
+#include <boost/mp11/list.hpp>
 
 #include <stdint.h>
 
@@ -62,7 +62,7 @@ namespace bmpl = boost::mpl;
  */
 template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocator,
                                   typename Copier = mp11::mp_void<>,
-                                  typename Assigner = bmpl::vector<bmp11::_1, bmp11::_2> >
+                                  typename Assigner = bmp11::mp_list<bmp11::_1, bmp11::_2> >
 class CartBuffer : public
     /* "Curiously recurring template pattern" */
     typename Assigner< bmp11::mp_int<T_dim>, CartBuffer<Type, T_dim, Allocator, Copier, Assigner> >::type

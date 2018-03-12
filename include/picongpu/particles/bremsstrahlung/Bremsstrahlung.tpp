@@ -34,6 +34,8 @@
 #include <pmacc/algorithms/math/defines/pi.hpp>
 #include <pmacc/mappings/threads/WorkerCfg.hpp>
 
+#include <boost/mp11/list.hpp>
+
 
 namespace picongpu
 {
@@ -281,7 +283,7 @@ void Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::operator(
 {
     auto destPhoton =
         pmacc::particles::operations::deselect<
-            boost::mpl::vector<
+            boost::mp11::mp_list<
                 multiMask,
                 momentum,
                 weighting

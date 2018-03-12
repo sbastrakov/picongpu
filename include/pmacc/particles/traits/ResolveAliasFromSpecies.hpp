@@ -39,7 +39,7 @@ namespace traits
  * Example:
  *
  * \code{.cpp}
- * typedef bmpl::vector<
+ * typedef bmp11::mp_list<
  *   particlePusher<UsedParticlePusher>,
  *   shape<UsedParticleShape>,
  *   interpolation<UsedField2Particle>,

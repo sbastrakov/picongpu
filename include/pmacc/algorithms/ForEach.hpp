@@ -121,7 +121,7 @@ namespace detail
      *  \tparam T_Accessor An unary lambda operation
      *
      * Example:
-     *      MPLSeq = boost::mpl::vector<int,float>
+     *      MPLSeq = boost::mp11::mp_list<int,float>
      *      Functor = any unary lambda functor
      *      Accessor = lambda operation identity
      *

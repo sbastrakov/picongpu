@@ -26,7 +26,7 @@
 #include "picongpu/fields/Fields.def"
 #include "picongpu/particles/particleToGrid/ComputeGridValuePerFrame.def"
 
-#include <boost/mpl/vector.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace picongpu
@@ -94,7 +94,7 @@ namespace picongpu
     /** FileOutputParticles: Groups all Species that shall be dumped **********
      *
      * hint: to disable particle output set to
-     *   using FileOutputParticles = bmpl::vector0< >;
+     *   using FileOutputParticles = bmp11::mp_list< >;
      */
     using FileOutputParticles = VectorAllSpecies;
 

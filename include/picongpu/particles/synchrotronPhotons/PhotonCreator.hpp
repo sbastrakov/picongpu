@@ -46,6 +46,8 @@
 #include <pmacc/memory/boxes/DataBox.hpp>
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
 
+#include <boost/mp11/list.hpp>
+
 
 namespace picongpu
 {
@@ -374,7 +376,7 @@ public:
         namespace parOp = pmacc::particles::operations;
         auto destPhoton =
             parOp::deselect<
-                boost::mpl::vector<
+                boost::mp11::mp_list<
                     multiMask,
                     momentum
                 >

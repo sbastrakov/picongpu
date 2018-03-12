@@ -39,6 +39,8 @@
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 #include <pmacc/mappings/threads/WorkerCfg.hpp>
 
+#include <boost/mp11/list.hpp>
+
 
 namespace picongpu
 {
@@ -250,7 +252,7 @@ namespace ionization
                  * - boundElectrons: because species other than ions or atoms do not have them
                  * (gets AUTOMATICALLY deselected because electrons do not have this attribute)
                  */
-                auto targetElectronClone = partOp::deselect<bmpl::vector2<multiMask, momentum> >(childElectron);
+                auto targetElectronClone = partOp::deselect<bmp11::mp_list<multiMask, momentum> >(childElectron);
 
                 partOp::assign(targetElectronClone, partOp::deselect<particleId>(parentIon));
 

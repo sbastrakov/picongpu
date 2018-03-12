@@ -39,6 +39,8 @@
 
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include "picongpu/particles/Particles.hpp"
+
+#include <boost/mp11/list.hpp>
 #include <boost/mpl/string.hpp>
 
 
@@ -70,7 +72,7 @@ using IonParticleAttributes = MakeSeq_t<
 value_identifier( float_X, MassRatioElectrons, 1.0 );
 value_identifier( float_X, ChargeRatioElectrons, 1.0 );
 
-using ParticleFlagsElectrons = bmpl::vector<
+using ParticleFlagsElectrons = bmp11::mp_list<
     particlePusher< UsedParticlePusher >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >,
@@ -95,7 +97,7 @@ value_identifier( float_X, ChargeRatioHydrogen, -1.0 );
 /* ratio relative to BASE_DENSITY (n_e) */
 value_identifier( float_X, DensityRatioHydrogen, 25. / 158. );
 
-using ParticleFlagsHydrogen = bmpl::vector<
+using ParticleFlagsHydrogen = bmp11::mp_list<
     particlePusher< UsedParticlePusher >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >,
@@ -131,7 +133,7 @@ value_identifier( float_X, ChargeRatioCarbon, -6.0 );
 /* ratio relative to BASE_DENSITY (n_e) */
 value_identifier( float_X, DensityRatioCarbon, 21. / 158. );
 
-using ParticleFlagsCarbon = bmpl::vector<
+using ParticleFlagsCarbon = bmp11::mp_list<
     particlePusher< UsedParticlePusher >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >,
@@ -167,7 +169,7 @@ value_identifier( float_X, ChargeRatioNitrogen, -7.0 );
 /* ratio relative to BASE_DENSITY (n_e) */
 value_identifier( float_X, DensityRatioNitrogen, 1. / 158. );
 
-using ParticleFlagsNitrogen = bmpl::vector<
+using ParticleFlagsNitrogen = bmp11::mp_list<
     particlePusher< UsedParticlePusher >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >,
@@ -196,7 +198,7 @@ using Nitrogen = Particles<
 
 /*--------------------------- Probe Particles -------------------------------*/
 
-using ParticleFlagsProbes = bmpl::vector<
+using ParticleFlagsProbes = bmp11::mp_list<
     particlePusher< particles::pusher::Probe >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >

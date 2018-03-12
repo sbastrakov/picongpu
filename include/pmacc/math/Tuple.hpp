@@ -22,7 +22,7 @@
 #pragma once
 
 #include "pmacc/types.hpp"
-#include <boost/mpl/vector.hpp>
+
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -134,10 +134,10 @@ public:
 #define MAKE_TUPLE(Z, N, _) \
     template<BOOST_PP_ENUM_PARAMS(N, typename Value)> \
     HDINLINE \
-    Tuple<mpl::vector<BOOST_PP_ENUM_PARAMS(N, Value)> > \
+    Tuple<mp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
     make_Tuple(BOOST_PP_ENUM_BINARY_PARAMS(N, Value, value)) \
     { \
-        return Tuple<mpl::vector<BOOST_PP_ENUM_PARAMS(N, Value)> > \
+        return Tuple<mp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
             (BOOST_PP_ENUM_PARAMS(N, value)); \
     }
 

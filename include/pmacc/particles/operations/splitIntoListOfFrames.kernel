@@ -35,6 +35,9 @@
 #include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/traits/GetNumWorkers.hpp"
 
+#include <boost/mp11/list.hpp>
+
+
 namespace pmacc
 {
 namespace particles
@@ -319,7 +322,7 @@ namespace kernel
                         /* copy attributes and activate particle*/
                         auto parDest = destFramePtr[ masterVirtualThreadIdxCtx[ idx ] ][ linearIdx ];
                         auto parDestDeselect = deselect<
-                            bmpl::vector2<
+                            bmp11::mp_list<
                                 localCellIdx,
                                 multiMask
                             >

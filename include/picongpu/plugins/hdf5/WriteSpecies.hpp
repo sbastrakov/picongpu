@@ -38,11 +38,11 @@
 #include <pmacc/traits/HasIdentifier.hpp>
 #include <pmacc/assert.hpp>
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/type_traits.hpp>
 
 #include <string>
@@ -139,7 +139,7 @@ public:
 
 
     /* delete multiMask and localCellIdx in hdf5 particle*/
-    typedef bmpl::vector<multiMask,localCellIdx> TypesToDelete;
+    typedef bmp11::mp_list<multiMask,localCellIdx> TypesToDelete;
     typedef typename RemoveFromSeq<ParticleAttributeList, TypesToDelete>::type ParticleCleanedAttributeList;
 
     /* add totalCellIdx for hdf5 particle*/
@@ -204,7 +204,7 @@ public:
             log<picLog::INPUT_OUTPUT > ("HDF5:  ( end ) get mapped memory device pointer: %1%") % T_SpeciesFilter::getName();
 
             log<picLog::INPUT_OUTPUT > ("HDF5:  (begin) copy particle to host: %1%") % T_SpeciesFilter::getName();
-            typedef bmpl::vector< typename GetPositionFilter<simDim>::type > usedFilters;
+            typedef bmp11::mp_list< typename GetPositionFilter<simDim>::type > usedFilters;
             typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
             MyParticleFilter filter;
             /* activate filter pipeline if moving window is activated */

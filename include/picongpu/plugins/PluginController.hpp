@@ -80,6 +80,7 @@
 
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
 
 #include <list>
@@ -162,7 +163,7 @@ private:
     };
 
     /* define stand alone plugins */
-    using StandAlonePlugins = bmpl::vector<
+    using StandAlonePlugins = bmp11::mp_list<
         Checkpoint,
         EnergyFields
 #if (ENABLE_ADIOS == 1)
@@ -189,16 +190,16 @@ private:
 
 
     /* define field plugins */
-    using UnspecializedFieldPlugins = bmpl::vector<
+    using UnspecializedFieldPlugins = bmp11::mp_list<
 #if( PMACC_CUDA_ENABLED == 1 )
         SliceFieldPrinterMulti< bmp11::_1 >
 #endif
     >;
 
-    using AllFields = bmpl::vector< FieldB, FieldE, FieldJ >;
+    using AllFields = bmp11::mp_list< FieldB, FieldE, FieldJ >;
 
     using CombinedUnspecializedFieldPlugins = typename AllCombinations<
-        bmpl::vector<
+        bmp11::mp_list<
             AllFields,
             UnspecializedFieldPlugins
         >
@@ -211,7 +212,7 @@ private:
 
 
     /* define species plugins */
-    using UnspecializedSpeciesPlugins = bmpl::vector <
+    using UnspecializedSpeciesPlugins = bmp11::mp_list <
         plugins::multi::Master< EnergyParticles<bmp11::_1> >,
         plugins::multi::Master< BinEnergyParticles<bmp11::_1> >,
         CountParticles<bmp11::_1>,
@@ -231,7 +232,7 @@ private:
     >;
 
     using CombinedUnspecializedSpeciesPlugins = typename AllCombinations<
-        bmpl::vector<
+        bmp1::mp_list<
             VectorAllSpecies,
             UnspecializedSpeciesPlugins
         >

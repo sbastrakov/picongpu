@@ -27,8 +27,8 @@
 #include "pmacc/compileTime/conversion/JoinToSeq.hpp"
 
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/mpl/fold.hpp>
-#include <boost/mpl/vector.hpp>
 
 
 namespace pmacc
@@ -50,7 +50,7 @@ private:
 public:
     typedef typename bmpl::fold<
       Seq,
-      bmpl::vector0<>,
+      bmp11::mp_list<>,
       JoinToSeq<bmp11::_1, bmp11::_2>
     >::type type;
 };

@@ -23,8 +23,10 @@
 #pragma once
 
 
-#include <boost/mpl/vector.hpp>
 #include "pmacc/compileTime/conversion/MakeSeqFromNestedSeq.hpp"
+
+#include <boost/mp11/list.hpp>
+
 
 namespace pmacc
 {
@@ -38,7 +40,7 @@ namespace pmacc
  *
  * @code
  * using MyType = typename MakeSeq< A, B >::type
- * using MyType2 = typename MakeSeq< boost::mpl::vector<A, B>, C >::type
+ * using MyType2 = typename MakeSeq< boost::mp11::mp_list<A, B>, C >::type
  * @endcode
  *
  */
@@ -46,7 +48,7 @@ template< typename... T_Args >
 struct MakeSeq
 {
     typedef typename MakeSeqFromNestedSeq<
-        bmpl::vector< T_Args... >
+        bmp11::mp_list< T_Args... >
     >::type type;
 };
 

@@ -41,12 +41,12 @@
 #include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace picongpu
@@ -72,7 +72,7 @@ public:
     typedef typename FrameType::ValueTypeSeq ParticleAttributeList;
 
     /* delete multiMask and localCellIdx in adios particle*/
-    typedef bmpl::vector<multiMask,localCellIdx> TypesToDelete;
+    typedef bmp11::mp_list<multiMask,localCellIdx> TypesToDelete;
     typedef typename RemoveFromSeq<ParticleAttributeList, TypesToDelete>::type ParticleCleanedAttributeList;
 
     /* add totalCellIdx for adios particle*/
@@ -120,7 +120,7 @@ public:
         if (totalNumParticles > 0)
         {
             log<picLog::INPUT_OUTPUT > ("ADIOS:   (begin) copy particle host (with hierarchy) to host (without hierarchy): %1%") % T_SpeciesFilter::getName();
-            typedef bmpl::vector< typename GetPositionFilter<simDim>::type > usedFilters;
+            typedef bmp11::mp_list< typename GetPositionFilter<simDim>::type > usedFilters;
             typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
             MyParticleFilter filter;
             /* activate filter pipeline if moving window is activated */

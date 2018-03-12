@@ -29,7 +29,7 @@
 
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
 
-#include <boost/mpl/vector.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace pmacc
@@ -37,7 +37,7 @@ namespace pmacc
 
 
 
-template<typename UserTypeList = bmpl::vector<NullFrame> >
+template<typename UserTypeList = bmp11::mp_list<NullFrame> >
     class FilterFactory
 {
 public:

@@ -38,7 +38,7 @@ One can e.g. disable the output of particles by setting:
    /* output all species */
    using FileOutputParticles = VectorAllSpecies;
    /* disable */
-   using FileOutputParticles = bmpl::vector0< >;
+   using FileOutputParticles = bmp11::mp_list< >;
 
 .cfg file
 ^^^^^^^^^

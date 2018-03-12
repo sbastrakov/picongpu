@@ -37,11 +37,11 @@
 #include <pmacc/compileTime/conversion/RemoveFromSeq.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
 
-#include <boost/mpl/vector.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/type_traits.hpp>
 
 #include <string>
@@ -72,7 +72,7 @@ public:
     typedef typename FrameType::ValueTypeSeq ParticleAttributeList;
 
     /* delete multiMask and localCellIdx in adios particle*/
-    typedef bmpl::vector<multiMask,localCellIdx> TypesToDelete;
+    typedef bmp11::mp_list<multiMask,localCellIdx> TypesToDelete;
     typedef typename RemoveFromSeq<ParticleAttributeList, TypesToDelete>::type ParticleCleanedAttributeList;
 
     /* add totalCellIdx for adios particle*/

@@ -29,8 +29,6 @@
 #include "pmacc/dataManagement/DataConnector.hpp"
 #include "pmacc/mappings/simulation/ResourceMonitor.hpp"
 
-#include <boost/mpl/vector.hpp>
-
 #include <type_traits>
 
 

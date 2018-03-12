@@ -55,7 +55,7 @@ namespace detail
  * @tparam T_isEmpty true if T_MplSeq is empty else false
  */
 template<typename T_MplSeq,
-typename T_TmpResult = bmpl::vector0<>,
+typename T_TmpResult = bmp11::mp_list<>,
 bool T_isEmpty = bmp11::mp_empty<T_MplSeq>::value
 >
 struct AllCombinations;
@@ -114,7 +114,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
     typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
 
     typedef typename detail::AllCombinations<ShrinkedRangeVector, OneSeq>::type ResultIfNotEmpty;
-    typedef typename bmp11::mp_if<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty> type;
+    typedef typename bmp11::mp_if<IsLastElementEmpty,bmp11::mp_list<>,ResultIfNotEmpty> type;
 };
 
 /** recursive end implementation
@@ -175,7 +175,7 @@ struct AllCombinations
 
     /* result type: MplSequence of N-tuples */
     typedef typename detail::AllCombinations<ShrinkedRangeVector, FirstList>::type ResultIfNotEmpty;
-    typedef typename bmp11::mp_if<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty> type;
+    typedef typename bmp11::mp_if<IsLastElementEmpty,bmp11::mp_list<>,ResultIfNotEmpty> type;
 };
 
 

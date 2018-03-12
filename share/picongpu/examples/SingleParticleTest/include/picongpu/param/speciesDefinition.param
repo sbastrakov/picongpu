@@ -27,6 +27,8 @@
 #include <pmacc/identifier/value_identifier.hpp>
 
 #include "picongpu/particles/Particles.hpp"
+
+#include <boost/mp11/list.hpp>
 #include <boost/mpl/string.hpp>
 
 
@@ -57,7 +59,7 @@ using DefaultParticleAttributes = MakeSeq_t<
 value_identifier(float_X, MassRatioElectrons, 1.0);
 value_identifier(float_X, ChargeRatioElectrons, 1.0);
 
-using ParticleFlagsElectrons = bmpl::vector<
+using ParticleFlagsElectrons = bmp11::mp_list<
 /* enable the pusher only if PARAM_ENABLEPUSHER is defined as one `1` */
 #if( PARAM_ENABLEPUSHER == 1 )
     particlePusher<UsedParticlePusher>,

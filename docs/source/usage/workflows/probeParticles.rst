@@ -20,7 +20,7 @@ Workflow
 
 .. code-block:: cpp
 
-    using ParticleFlagsProbes = bmpl::vector<
+    using ParticleFlagsProbes = bmp11::mp_list<
         particlePusher< particles::pusher::Probe >,
         shape< UsedParticleShape >,
         interpolation< UsedField2Particle >
@@ -84,7 +84,7 @@ and add it to ``VectorAllSpecies``:
 
 .. code-block:: cpp
 
-   using InitPipeline = mpl::vector<
+   using InitPipeline = mp11::mp_list<
        // ... ,
        CreateDensity<
            densityProfiles::ProbeEveryFourthCell,
