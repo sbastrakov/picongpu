@@ -386,21 +386,13 @@ struct min<
 template<typename Lhs, typename Rhs>
 struct dot
 {
-    /*typedef typename mul<Lhs, Rhs>::type MulResult;
-    typedef typename mpl::accumulate<
-        typename MulResult::mplVector,
-        mp11::mp_int<0>,
-        mp11::mp_plus<
-            mpl::_1,
-            mpl::_2
-        >
-    >::type type;*/
-    ///! Need to replace
-    using type = applyOperator<
-        typename Lhs::vector_type,
-        typename Rhs::vector_type,
-        mp11::mp_plus
+private:
+    using ComponentwiseProduct = mul<
+        Lhs,
+        Rhs
     >::type;
+public:
+    using type = mp11::mp_plus< ComponentwiseProduct::mplVector >;
 };
 
 //________________________V O L U M E____________________________
