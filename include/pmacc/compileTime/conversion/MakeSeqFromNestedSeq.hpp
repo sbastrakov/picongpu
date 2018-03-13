@@ -26,9 +26,9 @@
 #include "pmacc/compileTime/conversion/ToSeq.hpp"
 #include "pmacc/compileTime/conversion/JoinToSeq.hpp"
 
-#include <boost/mp11/bind.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/list.hpp>
-#include <boost/mpl/fold.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -48,11 +48,11 @@ private:
     typedef typename ToSeq<T_In >::type Seq;
 
 public:
-    typedef typename bmpl::fold<
+    using type = bmp11::mp_fold<
       Seq,
       bmp11::mp_list<>,
-      JoinToSeq<bmp11::_1, bmp11::_2>
-    >::type type;
+      bmp11::mp_identity_t< JoinToSeq >
+    >;
 };
 
 } //namespace pmacc
