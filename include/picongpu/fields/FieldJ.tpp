@@ -43,7 +43,7 @@
 #include "picongpu/traits/SIBaseUnits.hpp"
 #include <pmacc/traits/GetNumWorkers.hpp>
 
-#include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 #include <iostream>
@@ -67,17 +67,17 @@ fieldJ( cellDescription.getGridLayout( ) ), fieldJrecv( nullptr )
         current<>
     >::type AllSpeciesWithCurrent;
 
-    typedef bmpl::accumulate<
+    using LowerMarginShapes = bmp11::mp_fold<
         AllSpeciesWithCurrent,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetCurrentSolver<bmp11::_2> > >
-        >::type LowerMarginShapes;
+        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetCurrentSolver<bmp11::_2> > >::type
+    >;
 
-    typedef bmpl::accumulate<
+    using UpperMarginShapes = bmp11::mp_fold<
         AllSpeciesWithCurrent,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetCurrentSolver<bmp11::_2> > >
-        >::type UpperMarginShapes;
+        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetCurrentSolver<bmp11::_2> > >::type
+    >;
 
     /* margins are always positive, also for lower margins
      * additional current interpolations and current filters on FieldJ might

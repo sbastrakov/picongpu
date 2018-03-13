@@ -46,7 +46,7 @@
 #include "picongpu/particles/traits/GetMarginPusher.hpp"
 #include "picongpu/fields/LaserPhysics.hpp"
 
-#include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 #include <list>
@@ -68,17 +68,17 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
         interpolation<>
     >::type VectorSpeciesWithInterpolation;
 
-    typedef bmpl::accumulate<
+    using LowerMarginInterpolation = bmp11::mp_fold<
         VectorSpeciesWithInterpolation,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >
-        >::type LowerMarginInterpolation;
+        pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >::type
+    >;
 
-    typedef bmpl::accumulate<
+    using UpperMarginInterpolation = bmp11::mp_fold<
         VectorSpeciesWithInterpolation,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
-        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >
-        >::type UpperMarginInterpolation;
+        pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >::type
+    >;
 
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef pmacc::math::CT::max<
@@ -99,17 +99,17 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
         VectorSpeciesWithInterpolation,
         particlePusher<>
     >::type VectorSpeciesWithPusherAndInterpolation;
-    typedef bmpl::accumulate<
+    using LowerMargin = bmp11::mp_fold<
         VectorSpeciesWithPusherAndInterpolation,
         LowerMarginInterpolationAndSolver,
-        pmacc::math::CT::max<bmp11::_1, GetLowerMarginPusher<bmp11::_2> >
-        >::type LowerMargin;
+        pmacc::math::CT::max<bmp11::_1, GetLowerMarginPusher<bmp11::_2> >::type
+    >;
 
-    typedef bmpl::accumulate<
+    using UpperMargin = bmp11::mp_fold<
         VectorSpeciesWithPusherAndInterpolation,
         UpperMarginInterpolationAndSolver,
-        pmacc::math::CT::max<bmp11::_1, GetUpperMarginPusher<bmp11::_2> >
-        >::type UpperMargin;
+        pmacc::math::CT::max<bmp11::_1, GetUpperMarginPusher<bmp11::_2> >::type
+    >;
 
     const DataSpace<simDim> originGuard( LowerMargin( ).toRT( ) );
     const DataSpace<simDim> endGuard( UpperMargin( ).toRT( ) );

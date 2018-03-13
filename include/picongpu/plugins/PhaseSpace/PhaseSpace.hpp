@@ -37,7 +37,6 @@
 #include <pmacc/traits/HasFlag.hpp>
 #include <pmacc/traits/GetNumWorkers.hpp>
 
-#include <boost/mpl/accumulate.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>
@@ -258,11 +257,11 @@ namespace picongpu
          *  we use not more than 32KB shared memory
          *  Note: checking the longest edge for all phase space configurations
          *        is a conservative work around until #469 is implemented */
-        typedef typename bmpl::accumulate<
+        using SuperCellsLongestEdge = bmp11::mp_fold<
             typename SuperCellSize::mplVector,
             bmp11::mp_int<0>,
-            bmp11::mp_max<bmp11::_1, bmp11::_2>
-        >::type SuperCellsLongestEdge;
+            bmp11::mp_max
+        >;
         static constexpr uint32_t maxShared = 32*1024; /* 32 KB */
         static constexpr uint32_t num_pbins = maxShared/(sizeof(float_PS)*SuperCellsLongestEdge::value);
 

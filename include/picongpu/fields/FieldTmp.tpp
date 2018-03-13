@@ -41,7 +41,7 @@
 #include <pmacc/traits/GetUniqueTypeId.hpp>
 #include <pmacc/traits/GetNumWorkers.hpp>
 
-#include <boost/mpl/accumulate.hpp>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 
 #include <string>
@@ -87,17 +87,17 @@ namespace picongpu
         >::type VectorSpeciesWithInterpolation;
 
         /* ------------------ lower margin  ----------------------------------*/
-        typedef bmpl::accumulate<
+        using SpeciesLowerMargin = bmp11::mp_fold<
             VectorSpeciesWithInterpolation,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >
-        >::type SpeciesLowerMargin;
+            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< GetInterpolation<bmp11::_2> > >::type
+        >;
 
-        typedef bmpl::accumulate<
+        using FieldTmpLowerMargin = bmp11::mp_fold<
             FieldTmpSolvers,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< bmp11::_2 > >
-        >::type FieldTmpLowerMargin;
+            pmacc::math::CT::max<bmp11::_1, GetLowerMargin< bmp11::_2 > >::type
+        >;
 
         typedef pmacc::math::CT::max<
             SpeciesLowerMargin,
@@ -115,17 +115,17 @@ namespace picongpu
 
         /* ------------------ upper margin  -----------------------------------*/
 
-        typedef bmpl::accumulate<
+        using SpeciesUpperMargin = bmp11::mp_fold<
             VectorSpeciesWithInterpolation,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >
-        >::type SpeciesUpperMargin;
+            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< GetInterpolation<bmp11::_2> > >::type
+        >;
 
-        typedef bmpl::accumulate<
+        using FieldTmpUpperMargin = bmp11::mp_fold<
             FieldTmpSolvers,
             typename pmacc::math::CT::make_Int<simDim, 0>::type,
-            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< bmp11::_2 > >
-        >::type FieldTmpUpperMargin;
+            pmacc::math::CT::max<bmp11::_1, GetUpperMargin< bmp11::_2 > >::type
+        >;
 
         typedef pmacc::math::CT::max<
             SpeciesUpperMargin,

@@ -35,7 +35,6 @@
 #include <pmacc/math/MapTuple.hpp>
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
-#include <boost/mpl/accumulate.hpp>
 #include <boost/mp11/bind.hpp>
 
 
