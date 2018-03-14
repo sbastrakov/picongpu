@@ -326,15 +326,20 @@ template<
 >
 struct mul
 {
-    //typedef typename applyOperator<
-    //typename Lhs::vector_type,
-    //typename Rhs::vector_type,
-    //mpl::times<mpl::_1, mpl::_2> >::type type;
-    ///! Need to replace plus with times
+private:
+    template<
+        typename Lhs,
+        typename Rhs,
+    >
+    using Times = std::integral_constant< 
+        typename Lhs::value_type,
+        Lhs::value * Rhs::value
+    >;
+public:
     using type = applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        mp11::mp_plus
+        Times
     >::type;
 };
 
