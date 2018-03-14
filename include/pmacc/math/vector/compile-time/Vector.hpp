@@ -402,34 +402,24 @@ public:
 
 //________________________V O L U M E____________________________
 
-//template<typename T_Vec>
-//struct volume
-//{
-//    typedef typename mpl::accumulate<
-//        typename T_Vec::mplVector,
-//        mpl::int_<1>,
-//        mpl::times<mpl::_1, mpl::_2>
-//    >::type type;
-//};
-
 template< typename T_Vec >
 struct volume
 {
 private:
-    template< typename T_Arg >
-    struct ToInt {
-        static constexpr int value = T_Arg::value;
-    };
-    template< >
-    struct ToInt< VectorParameterPlaceholder > {
-        static constexpr int value = 1;
-    };
+    template<
+        typename Lhs,
+        typename Rhs,
+    >
+    using Times = std::integral_constant< 
+        typename Lhs::value_type,
+        Lhs::value * Rhs::value
+    >;
 public:
-    using type = /*bmp11::mp_int<
-        ToInt< typename At< T_Vec::mplVector, bmp11::mp_int< 0 > >::type >::value *
-        ToInt< typename At< T_Vec::mplVector, bmp11::mp_int< 1 > >::type >::value *
-        ToInt< typename At< T_Vec::mplVector, bmp11::mp_int< 2 > >::type >::value
-    >;*/ bmp11::mp_int<10>;
+    using type = mp11::mp_fold<
+        typename T_Vec::mplVector,
+        mp11::mp_int<1>,
+        Times
+    >;
 };
 
 
