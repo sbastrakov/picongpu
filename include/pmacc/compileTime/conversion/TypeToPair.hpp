@@ -23,25 +23,26 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mpl/pair.hpp>
+#include <boost/mp11/mp_list.hpp>
+
 
 namespace pmacc
 {
 
 
 
-/** create boost mpl pair
+/** create boost mp11 list of two elements
  *
  * @tparam T_Type any type
- * @resturn ::type boost mpl pair where first and second is set to T_Type
+ * @resturn ::type boost mp11 mp_list of two elements set to T_Type
  */
 template<typename T_Type>
 struct TypeToPair
 {
-    typedef
-    bmpl::pair< T_Type,
-            T_Type >
-            type;
+    using type = bmp11::mp_list<
+        T_Type,
+        T_Type
+    >;
 };
 
 

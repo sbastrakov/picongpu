@@ -29,21 +29,20 @@
 #include "pmacc/particles/memory/buffers/StackExchangeBuffer.hpp"
 #include "pmacc/eventSystem/EventSystem.hpp"
 #include "pmacc/particles/memory/dataTypes/SuperCell.hpp"
-
 #include "pmacc/math/Vector.hpp"
-
 #include "pmacc/particles/boostExtension/InheritGenerators.hpp"
 #include "pmacc/compileTime/conversion/MakeSeq.hpp"
 #include "pmacc/particles/memory/frames/Frame.hpp"
 #include "pmacc/particles/Identifier.hpp"
 #include "pmacc/particles/memory/dataTypes/StaticArray.hpp"
-
-#include <boost/mpl/pair.hpp>
 #include "pmacc/particles/ParticleDescription.hpp"
 #include "pmacc/particles/memory/dataTypes/ListPointer.hpp"
 
+#include <boost/mp11/list.hpp>
+
 #include <memory>
 #include <type_traits>
+
 
 namespace pmacc
 {
@@ -69,13 +68,13 @@ public:
         template<typename X>
         struct apply
         {
-            typedef bmpl::pair<
+            using type = bmp11::mp_list<
                 X,
                 StaticArray<
                     typename traits::Resolve<X>::type::type,
                     std::integral_constant<uint32_t, T_size>
                 >
-            > type;
+            >;
         };
     };
 

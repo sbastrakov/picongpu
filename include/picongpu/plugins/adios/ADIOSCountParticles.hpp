@@ -37,7 +37,6 @@
 #include <pmacc/compileTime/conversion/RemoveFromSeq.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
 
-#include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>

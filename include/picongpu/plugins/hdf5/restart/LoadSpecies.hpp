@@ -37,7 +37,6 @@
 #include <pmacc/particles/operations/splitIntoListOfFrames.kernel>
 #include <pmacc/dataManagement/DataConnector.hpp>
 
-#include <boost/mpl/pair.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>

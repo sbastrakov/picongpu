@@ -22,9 +22,10 @@
 #pragma once
 
 #include "pmacc/types.hpp"
-
-#include <boost/mpl/pair.hpp>
 #include "pmacc/compileTime/conversion/TypeToPair.hpp"
+
+#include <boost/mp11/list.hpp>
+
 
 namespace pmacc
 {
@@ -38,20 +39,37 @@ namespace pmacc
  * @tparam T_Type any type
  * @resturn ::type
  */
-template<typename T_Type>
+template< typename T_Type >
 struct TypeToAliasPair
 {
-    typedef typename TypeToPair<T_Type>::type type;
+    using type = typename TypeToPair< T_Type >::type;
 };
 
 /** specialisation if T_Type is a pmacc alias*/
-template<template<typename,typename> class T_Alias,typename T_Type>
-struct TypeToAliasPair< T_Alias<T_Type,pmacc::pmacc_isAlias> >
+template<
+    template<
+        typename,
+        typename
+    > class T_Alias,
+    typename T_Type
+>
+struct TypeToAliasPair<
+    T_Alias<
+        T_Type,
+        pmacc::pmacc_isAlias
+    >
+>
 {
-    typedef
-    bmpl::pair< T_Alias<pmacc_void,pmacc::pmacc_isAlias> ,
-            T_Alias<T_Type,pmacc::pmacc_isAlias> >
-            type;
+    using type = bmp11::mp_list<
+        T_Alias<
+            pmacc_void,
+            pmacc::pmacc_isAlias
+        >,
+        T_Alias<
+            T_Type,
+            pmacc::pmacc_isAlias
+        >
+    >;
 };
 
 

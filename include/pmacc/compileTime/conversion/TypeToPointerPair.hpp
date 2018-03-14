@@ -23,7 +23,7 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mpl/pair.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace pmacc
@@ -63,13 +63,13 @@ struct MakeIdentifier<TypeAsIdentifier<T_Type> >
 /** create boost mpl pair <TypeAsIdentifier<Type>,PointerOfType>
  *
  * @tparam T_Type any type
- * @return ::type boost::mpl::pair<TypeAsIdentifier<Type>,PointerOfType>
+ * @return ::type boost::mp11::mp_list<TypeAsIdentifier<Type>,PointerOfType>
  */
 template<typename T_Type>
 struct TypeToPointerPair
 {
-    typedef T_Type* TypePtr;
-    typedef bmpl::pair< typename MakeIdentifier<T_Type>::type , TypePtr > type;
+    using TypePtr = T_Type*;
+    using type = bmp11::mp_list< typename MakeIdentifier<T_Type>::type , TypePtr >;
 };
 
 }//namespace pmacc

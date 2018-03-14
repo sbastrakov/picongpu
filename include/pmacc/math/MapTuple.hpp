@@ -25,7 +25,6 @@
 #include "pmacc/particles/boostExtension/InheritLinearly.hpp"
 
 #include <boost/mpl/map.hpp>
-#include <boost/mpl/pair.hpp>
 #include <boost/utility/result_of.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
@@ -164,7 +163,7 @@ namespace math
             (
                 *( static_cast<
                     T_PodType<
-                        bmpl::pair<
+                        bmp11::mp_list<
                             T_Key,
                             bmp11::mp_at<
                                 Map,
@@ -187,7 +186,7 @@ namespace math
                 *(
                     static_cast<
                         const T_PodType<
-                            bmpl::pair<
+                            bmp11::mp_list<
                                 T_Key,
                                 bmp11::mp_at<
                                     Map,

@@ -30,7 +30,7 @@
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/traits/Resolve.hpp>
 
-#include <boost/mpl/pair.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/type_traits.hpp>
@@ -184,10 +184,12 @@ struct OperatorCreateVectorBox
     template<typename InType>
     struct apply
     {
-        typedef
-        bmpl::pair< InType,
-        pmacc::VectorDataBox< typename pmacc::traits::Resolve<InType>::type::type > >
-        type;
+        using type = bmp11::mp_list<
+            InType,
+            pmacc::VectorDataBox<
+                typename pmacc::traits::Resolve< InType >::type::type
+            >
+        >;
     };
 };
 

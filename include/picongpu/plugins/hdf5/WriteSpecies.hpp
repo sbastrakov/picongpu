@@ -38,7 +38,6 @@
 #include <pmacc/traits/HasIdentifier.hpp>
 #include <pmacc/assert.hpp>
 
-#include <boost/mpl/pair.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>
