@@ -24,7 +24,6 @@
 #include "pmacc/types.hpp"
 #include "pmacc/particles/boostExtension/InheritLinearly.hpp"
 
-#include <boost/mpl/map.hpp>
 #include <boost/utility/result_of.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/integral.hpp>
@@ -36,19 +35,23 @@ namespace pmacc
 namespace math
 {
 
-    namespace bmpl = boost::mpl;
-
     /** wrap a datum
      *
      * align the data structure with `PMACC_ALIGN`
      *
-     * @tparam T_Pair boost mpl pair< key, type of the value >
+     * @tparam T_Pair boost::mp11::mp_list< key, type of the value >
      */
     template< typename T_Pair >
     struct AlignedData
     {
-        typedef typename T_Pair::first Key;
-        typedef typename T_Pair::second ValueType;
+        using Key = bmp11::mp_at_c<
+            T_Pair,
+            0
+        >;
+        using ValueType = bmp11::mp_at_c<
+            T_Pair,
+            1
+        >;
 
         PMACC_ALIGN( value, ValueType );
 
@@ -73,13 +76,19 @@ namespace math
 
     /** wrap a datum
      *
-     * @tparam T_Pair boost mpl pair< key, type of the value >
+     * @tparam T_Pair boost::mp11::mp_list< key, type of the value >
      */
     template< typename T_Pair >
     struct NativeData
     {
-        typedef typename T_Pair::first Key;
-        typedef typename T_Pair::second ValueType;
+        using Key = bmp11::mp_at_c<
+            T_Pair,
+            0
+        >;
+        using ValueType = bmp11::mp_at_c<
+            T_Pair,
+            1
+        >;
 
         ValueType value;
 

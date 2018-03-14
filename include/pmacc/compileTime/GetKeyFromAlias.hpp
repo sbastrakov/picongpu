@@ -27,8 +27,8 @@
 #include "pmacc/compileTime/conversion/TypeToPair.hpp"
 #include "pmacc/compileTime/errorHandlerPolicies/ReturnType.hpp"
 
-#include <boost/mpl/copy.hpp>
-#include <boost/mp11/function.hpp>
+#include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/map.hpp>
 #include <boost/mp11/utility.hpp>
 
 
@@ -51,28 +51,48 @@ struct GetKeyFromAlias
 {
 private:
     typedef T_KeyNotFoundPolicy KeyNotFoundPolicy;
+
     /*create a map where Key is a undeclared alias and value is real type*/
-    typedef typename SeqToMap<T_MPLSeq, TypeToAliasPair<bmp11::_1> >::type AliasMap;
+    using AliasMap = typename SeqToMap<
+        T_MPLSeq,
+        TypeToAliasPair
+    >::type;
+
     /*create a map where Key and value is real type*/
-    typedef typename SeqToMap<T_MPLSeq, TypeToPair<bmp11::_1> >::type KeyMap;
+    using KeyMap = typename SeqToMap<
+        T_MPLSeq,
+        TypeToPair
+    >::type;
+
     /*combine both maps*/
-    ///typedef bmpl::inserter< KeyMap, bmpl::insert<bmp11::_1, bmp11::_2> > Map_inserter;
-    typedef typename bmpl::copy<
+    using FullMap = bmp11::mp_fold<
         AliasMap,
-        Map_inserter
-        >::type FullMap;
+        KeyMap,
+        bmp11::mp_map_insert
+    >;
+
     /* search for given key,
      * - we get the real type if key found
      * - else we get boost::mp11::mp_void<>
      */
-    typedef typename bmp1::at<FullMap, T_Key>::type MapType;
+    using MapType = bmp11::mp_map_find<
+        FullMap,
+        T_Key
+    >;
+
 public:
-    /* Check for KeyNotFound and calculate final type. (Uses lazy evaluation) */
-    typedef typename bmp11::mp_if<
-        bmp11::mp_same<MapType, bmp11::mp_void<> >,
-        KeyNotFoundPolicy<T_MPLSeq, T_Key>,
-        bmp11::mp_identity<MapType>
-    >::type type;
+
+    using type = bmp11::mp_if<
+        std::is_same<
+            MapType,
+            void
+        >,
+        KeyNotFoundPolicy<
+            T_MPLSeq,
+            T_Key
+        >::type,
+        MapType
+    >;
 };
 
 }//namespace pmacc

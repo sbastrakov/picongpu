@@ -22,32 +22,24 @@
 #pragma once
 
 #include "pmacc/types.hpp"
-
-#include <boost/mpl/map.hpp>
-#include <boost/mp11/algorithm.hpp>
 #include "pmacc/math/MapTuple.hpp"
-
-
-#include <boost/type_traits.hpp>
-
 #include "pmacc/particles/boostExtension/InheritLinearly.hpp"
 #include "pmacc/particles/memory/dataTypes/Particle.hpp"
 #include "pmacc/particles/frame_types.hpp"
 #include "pmacc/compileTime/conversion/SeqToMap.hpp"
 #include "pmacc/compileTime/conversion/OperateOnSeq.hpp"
-#include <boost/utility/result_of.hpp>
-#include <boost/type_traits/is_same.hpp>
-
 #include "pmacc/compileTime/GetKeyFromAlias.hpp"
-
 #include "pmacc/traits/HasIdentifier.hpp"
 #include "pmacc/traits/HasFlag.hpp"
 #include "pmacc/traits/GetFlagType.hpp"
-
 #include "pmacc/particles/ParticleDescription.hpp"
+
 #include <boost/mpl/string.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/utility/result_of.hpp>
+#include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits.hpp>
 
 
 namespace pmacc

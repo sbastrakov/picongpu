@@ -24,42 +24,43 @@
 #include "pmacc/types.hpp"
 #include "pmacc/compileTime/accessors/Identity.hpp"
 
-#include <boost/mpl/map.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
-#include <boost/type_traits.hpp>
+#include <boost/mp11/map.hpp>
+#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
 {
 
-/** convert boost mpl sequence to a mpl map
+/** convert boost mp11 list to an mp11 map
  *
- * @tparam T_MPLSeq any boost mpl sequence
+ * @tparam T_MPLSeq boost mp11 list
  * @tparam T_UnaryOperator unary operator to translate type from the sequence
- * to a mpl pair
+ * to a mp11 list
  * @tparam T_Accessor An unary lambda operator which is used before the type
  * from the sequence is passed to T_UnaryOperator
- * @return ::type mpl map
+ * @return ::type mp11 map
  */
-template<typename T_MPLSeq,
-typename T_UnaryOperator,
-typename T_Accessor = compileTime::accessors::Identity<>
+template<
+    typename T_MPLSeq,
+    typename T_UnaryOperator,
+    typename T_Accessor = compileTime::accessors::Identity<>
 >
 struct SeqToMap
 {
-
-    template<typename X>
     struct Op : typename T_UnaryOperator< typename T_Accessor< X >::type >::type
     {
     };
 
-    typedef T_MPLSeq MPLSeq;
-    ///typedef bmpl::inserter< bmpl::map<>, bmpl::insert<bmp11::_1, bmp11::_2> > Map_inserter;
-    using type = bmp11::mp_transform<
-        MPLSeq,
-        Op<bmp11::_1> ,
-        Map_inserter
+    using Lists = bmp11::mp_transform<
+        T_MPLSeq,
+        bmp11::mp_identity_t< Op >
+    >;
+    using type = bmp11::mp_fold<
+        Lists,
+        bmp11::mp_list<>,
+        bmp11::mp_map_insert
     >;
 };
 
