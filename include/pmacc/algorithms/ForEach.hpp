@@ -25,11 +25,9 @@
 #include "pmacc/compileTime/accessors/Identity.hpp"
 #include "pmacc/forward.hpp"
 
-#include <boost/mpl/begin_end.hpp>
-#include <boost/mpl/deref.hpp>
 #include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/mp11/utility.hpp>
-#include <boost/type_traits.hpp>
 
 
 namespace pmacc
@@ -47,48 +45,26 @@ namespace detail
      *  \tparam isEnd true if itBegin == itEnd, else false
      */
     template<
-        typename itBegin,
-        typename itEnd,
-        bool isEnd = boost::is_same<
-            itBegin,
-            itEnd
-        >::value
+        typename List,
+        bool isEnd = bmp11::is_empty< List >::value
     >
     struct CallFunctorOfIterator
     {
-        typedef typename boost::mpl::next< itBegin >::type nextIt;
-        typedef typename boost::mpl::deref< itBegin >::type Functor;
-        typedef CallFunctorOfIterator<
-            nextIt,
-            itEnd
-        > NextCall;
-
         PMACC_NO_NVCC_HDWARNING
         template< typename ... T_Types >
         HDINLINE void
         operator( )( T_Types const & ... ts ) const
         {
-            Functor( )( getForwardedValue( ts ) ... );
-            NextCall( )( ts ... );
+            bmp11::mp_front< List >( )( getForwardedValue( ts ) ... );
+            bmp11::mp_pop_front< List >( )( ts ... );
         }
 
-        PMACC_NO_NVCC_HDWARNING
-        template< typename... T_Types >
-        HDINLINE void
-        operator( )( T_Types const & ... ts )
-        {
-            Functor( )( getForwardedValue( ts ) ... );
-            NextCall( )( ts ... );
-        }
     };
 
     /** Recursion end of ForEach */
-    template<
-    typename itBegin,
-    typename itEnd>
+    template< typename List >
     struct CallFunctorOfIterator<
-        itBegin,
-        itEnd,
+        List,
         true
     >
     {
@@ -97,15 +73,6 @@ namespace detail
         HDINLINE void
         operator()( T_Types const & ... ) const
         {
-
-        }
-
-        PMACC_NO_NVCC_HDWARNING
-        template< typename ... T_Types >
-        HDINLINE void
-        operator()( T_Types const & ... )
-        {
-
         }
     };
 
@@ -150,37 +117,14 @@ namespace detail
             bmp11::mp_identity_t< ReplacePlaceholder >
         >;
 
-        typedef typename boost::mpl::begin< SolvedFunctors >::type begin;
-        typedef typename boost::mpl::end< SolvedFunctors >::type end;
-
-        typedef detail::CallFunctorOfIterator<
-            begin,
-            end
-        > NextCall;
-
-        /* this functor does nothing */
-        typedef detail::CallFunctorOfIterator<
-            end,
-            end
-        > Functor;
-
         PMACC_NO_NVCC_HDWARNING
         template< typename ... T_Types >
         HDINLINE void
         operator( )( const T_Types& ... ts ) const
         {
-            Functor()( getForwardedValue( ts )... );
-            NextCall()( ts ... );
+            detail::CallFunctorOfIterator< SolvedFunctors >::NextCall()( ts ... );
         }
 
-        PMACC_NO_NVCC_HDWARNING
-        template< typename ... T_Types >
-        HDINLINE void
-        operator( )( const T_Types& ... ts )
-        {
-            Functor( )( getForwardedValue( ts ) ... );
-            NextCall( )( ts ... );
-        }
     };
 
 } // namespace forEach
