@@ -22,8 +22,7 @@
 #pragma once
 
 #include "pmacc/particles/memory/frames/NullFrame.hpp"
-#include <boost/mpl/deref.hpp>
-#include <boost/mpl/begin.hpp>
+
 #include <boost/mp11/list.hpp>
 
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20

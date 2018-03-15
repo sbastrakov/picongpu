@@ -39,7 +39,6 @@
 #include <pmacc/assert.hpp>
 
 #include <boost/type_traits/is_same.hpp>
-#include <boost/mpl/begin_end.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/mp11/list.hpp>
 #include <boost/type_traits.hpp>

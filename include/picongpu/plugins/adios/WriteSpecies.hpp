@@ -41,7 +41,6 @@
 #include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 
-#include <boost/mpl/begin_end.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/mp11/bind.hpp>
