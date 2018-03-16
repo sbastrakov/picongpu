@@ -27,7 +27,6 @@
 #include <boost/type_traits/remove_reference.hpp>
 #include "pmacc/cuSTL/cursor/traits.hpp"
 
-namespace mpl = boost::mpl;
 
 namespace pmacc
 {

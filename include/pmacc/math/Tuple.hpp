@@ -55,7 +55,6 @@ namespace math
         BOOST_STATIC_ASSERT(dim == N);                      \
     }
 
-namespace mpl = boost::mpl;
 
 template<typename TypeList, bool ListEmpty = bmp11::mp_empty<TypeList>::value>
 class Tuple;
