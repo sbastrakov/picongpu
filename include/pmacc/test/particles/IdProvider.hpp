@@ -37,7 +37,6 @@
 
 BOOST_AUTO_TEST_SUITE( particles )
 
-namespace bmpl = boost::mpl;
 
 namespace
 {

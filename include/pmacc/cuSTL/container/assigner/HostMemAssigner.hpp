@@ -35,8 +35,6 @@ namespace pmacc
 namespace assigner
 {
 
-namespace bmpl = boost::mpl;
-
 template<typename T_Dim = bmp11::_1, typename T_CartBuffer = bmp11::_2>
 struct HostMemAssigner
 {

@@ -44,8 +44,6 @@ namespace pmacc
 namespace container
 {
 
-namespace bmpl = boost::mpl;
-
 /** Implementation of a box-shaped (cartesian) container type.
  * Holds a reference counter so one can have several containers sharing one buffer.
  * Is designed to be an RAII class, but does not fully obey the RAII rules (see copy-ctor).

@@ -40,7 +40,6 @@ namespace particleMerging
 {
 
     using namespace pmacc;
-    namespace bmpl = boost::mpl;
 
     /** Implements a particle merging algorithm based on
     *
