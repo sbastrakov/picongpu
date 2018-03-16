@@ -107,7 +107,7 @@ struct TypeSelector<std::integral_constant<T, value > >
 template<>
 struct TypeSelector<VectorParameterPlaceholder>
 {
-    typedef mp11::mp_int<0> type;
+    typedef bmp11::mp_int<0> type;
 };
 
 }
@@ -126,28 +126,28 @@ struct Vector
     typedef Arg1 y;
     typedef Arg2 z;
 
-    using mplVector = mp11::mp_if<
-        mp11::mp_same<
+    using mplVector = bmp11::mp_if<
+        bmp11::mp_same<
             x,
             detail::VectorParameterPlaceholder
         >,
-        mp11::mp_list<>,
-        mp11::mp_if<
-            mp11::mp_same<
+        bmp11::mp_list<>,
+        bmp11::mp_if<
+            bmp11::mp_same<
                 y,
                 detail::VectorParameterPlaceholder
             >,
-            mp11::mp_list< x >,
-            mp11::mp_if<
-                mp11::mp_same <
+            bmp11::mp_list< x >,
+            bmp11::mp_if<
+                bmp11::mp_same <
                     z,
                     detail::VectorParameterPlaceholder
                 >,
-                mp11::mp_list<
+                bmp11::mp_list<
                     x,
                     y
                 >,
-                mp11::mp_list<
+                bmp11::mp_list<
                     x,
                     y,
                     z
@@ -159,10 +159,10 @@ struct Vector
     template<int element>
     struct at
     {
-        using type = mp11::mp_at_c<mplVector, element>;
+        using type = bmp11::mp_at_c<mplVector, element>;
     };
 
-    static constexpr int dim = mp11::mp_size<mplVector >::value;
+    static constexpr int dim = bmp11::mp_size<mplVector >::value;
 
     typedef typename detail::TypeSelector<x>::type type;
     typedef Vector<x, y, z> This;
@@ -314,7 +314,7 @@ struct add
     using type = applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        mp11::mp_plus
+        bmp11::mp_plus
     >::type;
 };
 
@@ -354,7 +354,7 @@ struct max
     using type = applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        mp11::mp_max
+        bmp11::mp_max
     >::type;
 };
 
@@ -369,7 +369,7 @@ struct min
     using type = applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        mp11::mp_min
+        bmp11::mp_min
     >::type;
 };
 
@@ -382,7 +382,7 @@ struct min<
     using type = applyOperator<
         typename T_Vec::mplVector,
         typename T_Vec::x,
-        mp11::mp_min
+        bmp11::mp_min
     >::type;
 };
 
@@ -397,7 +397,7 @@ private:
         Rhs
     >::type;
 public:
-    using type = mp11::mp_plus< ComponentwiseProduct::mplVector >;
+    using type = bmp11::mp_plus< ComponentwiseProduct::mplVector >;
 };
 
 //________________________V O L U M E____________________________
@@ -415,9 +415,9 @@ private:
         Lhs::value * Rhs::value
     >;
 public:
-    using type = mp11::mp_fold<
+    using type = bmp11::mp_fold<
         typename T_Vec::mplVector,
-        mp11::mp_int<1>,
+        bmp11::mp_int<1>,
         Times
     >;
 };
@@ -536,7 +536,7 @@ template<
 >
 struct At_c
 {
-    using type = mp11::mp_at_c<
+    using type = bmp11::mp_at_c<
         typename T_Vec::mplVector,
         T_idx
     >;
@@ -554,7 +554,7 @@ struct At_c
 template<typename T_Vec, typename T_Idx>
 struct At
 {
-    using type = mp11::mp_at<
+    using type = bmp11::mp_at<
         typename T_Vec::mplVector,
         T_Idx
     >::type;

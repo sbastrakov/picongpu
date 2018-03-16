@@ -34,9 +34,9 @@ namespace CT
 {
 
 template<
-    typename X = mp11::mp_void<>,
-    typename Y = mp11::mp_void<>,
-    typename Z = mp11::mp_void<>
+    typename X = bmp11::mp_void<>,
+    typename Y = bmp11::mp_void<>,
+    typename Z = bmp11::mp_void<>
 >
 struct Float
 {

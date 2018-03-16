@@ -79,7 +79,7 @@ struct TypelistLinearInherit<Head, Vec ,true>
  * \tparam vec_ boost mp11 mp_list with classes
  *
  * class A<pmacc::NullFrame>;
- * LinearInherit<mp11::mp_list<A<>,B> >::type return
+ * LinearInherit<bmp11::mp_list<A<>,B> >::type return
  *
  * typedef A<B> type;
  */

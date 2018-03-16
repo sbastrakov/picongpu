@@ -57,7 +57,7 @@ namespace math
 
 namespace mpl = boost::mpl;
 
-template<typename TypeList, bool ListEmpty = mp11::mp_empty<TypeList>::value>
+template<typename TypeList, bool ListEmpty = bmp11::mp_empty<TypeList>::value>
 class Tuple;
 
 template<typename TypeList>
@@ -65,15 +65,15 @@ class Tuple<TypeList, true> {};
 
 template<typename TypeList>
 class Tuple<TypeList, false>
-    : public Tuple<mp11::mp_pop_front<TypeList>>
+    : public Tuple<bmp11::mp_pop_front<TypeList>>
 {
 public:
-    static constexpr int dim = mp11::mp_size<TypeList>::value;
+    static constexpr int dim = bmp11::mp_size<TypeList>::value;
     typedef TypeList TypeList_;
 private:
-    typedef Tuple<mp11::mp_pop_front<TypeList>> base;
+    typedef Tuple<bmp11::mp_pop_front<TypeList>> base;
 
-    typedef typename mp11::mp_front<TypeList> Value;
+    typedef typename bmp11::mp_front<TypeList> Value;
     typedef typename boost::remove_reference<Value>::type pureValue;
 
     Value value;
@@ -89,43 +89,43 @@ public:
 
     template<int i>
     HDINLINE
-    mp11::mp_at_c<TypeList, i>&
+    bmp11::mp_at_c<TypeList, i>&
     at_c()
     {
-        return this->at(mp11::mp_int<i>::value);
+        return this->at(bmp11::mp_int<i>::value);
     }
     template<int i>
     HDINLINE
-    const mp11::mp_at_c<TypeList, i>&
+    const bmp11::mp_at_c<TypeList, i>&
     at_c() const
     {
-        return this->at(mp11::mp_int<i>::value);
+        return this->at(bmp11::mp_int<i>::value);
     }
 
-    HDINLINE Value& at(mp11::mp_int<0>)
+    HDINLINE Value& at(bmp11::mp_int<0>)
     {
         return value;
     }
 
-    HDINLINE const Value& at(mp11::mp_int<0>) const
+    HDINLINE const Value& at(bmp11::mp_int<0>) const
     {
         return value;
     }
 
     template<typename Idx>
     HDINLINE
-    mp11::mp_at<TypeList, Idx>&
+    bmp11::mp_at<TypeList, Idx>&
     at(Idx)
     {
-        return base::at(mp11::mp_int<Idx::value - 1>);
+        return base::at(bmp11::mp_int<Idx::value - 1>);
     }
 
     template<typename Idx>
     HDINLINE
-    const mp11::mp_at<TypeList, Idx>&
+    const bmp11::mp_at<TypeList, Idx>&
     at(Idx) const
     {
-        return base::at(mp11::mp_int<Idx::value - 1>);
+        return base::at(bmp11::mp_int<Idx::value - 1>);
     }
 };
 
@@ -134,10 +134,10 @@ public:
 #define MAKE_TUPLE(Z, N, _) \
     template<BOOST_PP_ENUM_PARAMS(N, typename Value)> \
     HDINLINE \
-    Tuple<mp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
+    Tuple<bmp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
     make_Tuple(BOOST_PP_ENUM_BINARY_PARAMS(N, Value, value)) \
     { \
-        return Tuple<mp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
+        return Tuple<bmp11::mp_list<BOOST_PP_ENUM_PARAMS(N, Value)> > \
             (BOOST_PP_ENUM_PARAMS(N, value)); \
     }
 
@@ -150,7 +150,7 @@ namespace result_of
 template<typename TTuple, int i>
 struct at_c
 {
-    using type = mp11::mp_at_c<typename TTuple::TypeList_, i>;
+    using type = bmp11::mp_at_c<typename TTuple::TypeList_, i>;
 };
 } // result_of
 
