@@ -249,8 +249,8 @@ public:
          >::type;
 
         using AllSpeciesFilter = bmp11::mp_transform<
-            AllParticlesTimesAllFilters,
-            CreateSpeciesFilter< bmp11::_1 >
+            CreateSpeciesFilter< bmp11::_1 >,
+            AllParticlesTimesAllFilters
         >;
 
         using AllEligibleSpeciesSources = bmp11::mp_copy_if<

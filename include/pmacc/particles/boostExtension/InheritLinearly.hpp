@@ -46,8 +46,8 @@ namespace detail
     >
     using InheritLinearly = bmp11::mp_fold<
         bmp11::mp_transform<
-            T_Sequence,
-            T_Accessor
+            T_Accessor,
+            T_Sequence
         >
         Empty,
         bmp11::mp_inherit

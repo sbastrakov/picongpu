@@ -206,8 +206,8 @@ private:
     >::type;
 
     using FieldPlugins = bmp11::mp_transform<
-        CombinedUnspecializedFieldPlugins,
-        typename TupleSpeciesPlugin::Apply< bmp11::_1 >
+        typename TupleSpeciesPlugin::Apply< bmp11::_1 >,
+        CombinedUnspecializedFieldPlugins
     >;
 
 
@@ -244,8 +244,8 @@ private:
     >;
 
     using SpeciesPlugins = bmp11::mp_transform<
-        CombinedUnspecializedSpeciesPluginsEligible,
-        typename TupleSpeciesPlugin::Apply< bmp11::_1 >
+        typename TupleSpeciesPlugin::Apply< bmp11::_1 >,
+        CombinedUnspecializedSpeciesPluginsEligible
     >;
 
     /* create sequence with all fully specialized plugins */

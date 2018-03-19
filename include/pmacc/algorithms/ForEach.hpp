@@ -113,8 +113,8 @@ namespace detail
         };
 
         using SolvedFunctors = bmp11::mp_transform<
-            T_MPLSeq,
-            bmp11::mp_identity_t< ReplacePlaceholder >
+            bmp11::mp_identity_t< ReplacePlaceholder >,
+            T_MPLSeq
         >;
 
         PMACC_NO_NVCC_HDWARNING

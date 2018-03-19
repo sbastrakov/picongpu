@@ -330,11 +330,11 @@ private:
         // find all valid filter for the current used species
         using EligibleFilters = typename MakeSeqFromNestedSeq<
             bmp11::mp_transform<
-                particles::filter::AllParticleFilters,
                 particles::traits::GenerateSolversIfSpeciesEligible<
                     bmp11::_1,
                     ParticlesType
-                >
+                >,
+                particles::filter::AllParticleFilters
             >
         >::type;
 

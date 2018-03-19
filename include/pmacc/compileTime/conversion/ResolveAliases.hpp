@@ -57,8 +57,8 @@ struct ResolveAliases
     };
 
     using type = bmp11::mp_transform<
-        MPLSeq,
-        bmp11::mp_identity_t< GetKeyFromAliasAccessor >
+        bmp11::mp_identity_t< GetKeyFromAliasAccessor >,
+        MPLSeq
     >;
 };
 

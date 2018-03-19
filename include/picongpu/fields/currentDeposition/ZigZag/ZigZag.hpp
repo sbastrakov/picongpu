@@ -227,11 +227,11 @@ struct ZigZag
                 boost::mp11::mp_plus<
                     boost::mp11::_1,
                     boost::mp11::mp_int< begin >
-                >
+                >,
                 boost::mp11::make_integer_sequence<
                     int,
                     end - begin
-                >,
+                >
             >
             /* define grid points where we evaluate the shape function*/
             using Size_full = typename pmacc::math::CT::make_Vector<
@@ -244,11 +244,11 @@ struct ZigZag
                 boost::mp11::mp_plus<
                     boost::mp11::_1,
                     boost::mp11::mp_int< dir_begin >
-                >
+                >,
                 boost::mp11::make_integer_sequence<
                     int,
                     dir_end - dir_begin
-                >,
+                >
             >
             /* set grid points for the evaluation direction*/
             using Size = typename pmacc::math::CT::AssignIfInRange<

@@ -79,8 +79,8 @@ namespace traits
         >;
 
         using type = bmp11::mp_transform<
-            SeqEligibleSpecies,
-            bmp11::mp_identity_t< Op >
+            bmp11::mp_identity_t< Op >,
+            SeqEligibleSpecies
         >;
     };
 } // namespace traits

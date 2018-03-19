@@ -55,8 +55,8 @@ struct OperateOnSeq
 
     typedef T_MPLSeq MPLSeq;
     using type = bmp11::mp_transform<
-        MPLSeq,
-        bmp11::mp_identity_t< Op >
+        bmp11::mp_identity_t< Op >,
+        MPLSeq
     >;
 };
 

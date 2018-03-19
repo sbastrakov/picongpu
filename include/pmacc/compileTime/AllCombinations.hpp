@@ -93,21 +93,21 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         typedef T_Element Element;
 
         using type = bmp11::mp_transform<
-            InVector,
             pmacc::math::CT::Assign<
                 bmp11::_1,
                 T_ComponentPos,
                 Element
-            >
+            >,
+            InVector
         >;
     };
 
     using NestedSeq = bmp11::mp_transform<
-        LastElementAsSequence,
         AssignToAnyElementInVector<
             std::integral_constant<uint32_t, rangeVectorSize - 1 >,
             bmp11::_1
-        >
+        >,
+        LastElementAsSequence
     >;
 
     typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
@@ -168,8 +168,8 @@ struct AllCombinations
     /* transform all elements in the vector to math::CT::vector<> */
     typedef math::CT::Vector<> EmptyVector;
     using FirstList = bmp11::mp_transform<
-        LastElementAsSequence,
-        pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>
+        pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>,
+        LastElementAsSequence
     >;
 
     /* result type: MplSequence of N-tuples */

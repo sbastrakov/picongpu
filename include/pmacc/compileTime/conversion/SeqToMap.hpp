@@ -49,13 +49,13 @@ template<
 >
 struct SeqToMap
 {
-    struct Op : typename T_UnaryOperator< typename T_Accessor< X >::type >::type
+    struct Op : T_UnaryOperator< typename T_Accessor< X >::type >::type
     {
     };
 
     using Lists = bmp11::mp_transform<
-        T_MPLSeq,
-        bmp11::mp_identity_t< Op >
+        bmp11::mp_identity_t< Op >,
+        T_MPLSeq
     >;
     using type = bmp11::mp_fold<
         Lists,
