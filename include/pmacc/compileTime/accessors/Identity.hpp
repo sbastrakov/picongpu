@@ -25,7 +25,6 @@
 #include "pmacc/types.hpp"
 
 #include <boost/mp11/bind.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -42,10 +41,12 @@ namespace accessors
  *
  */
 template< typename T = bmp11::_1 >
-struct Identity : bmp11::mp_identity< T >
+struct Identity
 {
-
+    using type = T;
 };
+template< typename T >
+using Identity_t = typename Identity< T >::type;
 
 }//namespace accessors
 

@@ -35,15 +35,13 @@ namespace pmacc
  * @tparam T_1 a boost mp11 list or single type
  * @tparam T_2 a boost mp11 list or single type
  */
-
-template<typename T_1, typename T_2 = bmp11::mp_list<> >
-struct JoinToSeq
-{
-public:
-    using type = bmp11::mp_append<
-        ToSeq<T_1 >,
-        ToSeq<T_2 >
-    >;
-};
+template<
+    typename T_1,
+    typename T_2 = bmp11::mp_list<>
+>
+using JoinToSeq = bmp11::mp_append<
+    ToSeq< T_1 >,
+    ToSeq< T_2 >
+>;
 
 } //namespace pmacc
