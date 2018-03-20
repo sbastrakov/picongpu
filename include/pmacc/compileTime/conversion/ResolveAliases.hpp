@@ -33,32 +33,29 @@ namespace pmacc
 
 /** Translate all pmacc alias types to full specialized types
  *
- * Use lookup sequence to translate types
- * The policy is used if the type from T_MPLSeq is not in T_MPLSeqLookup a compile time error is triggered
+ * Use lookup list to translate types
+ * The policy is used if the type from T_Seq is not in T_SeqLookup a compile time error is triggered
  *
- * @tparam T_MPLSeq source sequence with types to translate
- * @tparam T_MPLSeqLookup lookup sequence to translate aliases
+ * @tparam T_Seq source list with types to translate
+ * @tparam T_SeqLookup lookup list to translate aliases
  */
 template<
-    typename T_MPLSeq,
-    typename T_MPLSeqLookup,
+    typename T_Seq,
+    typename T_SeqLookup,
     typename T_AliasNotFoundPolicy = errorHandlerPolicies::ThrowValueNotFound
 >
 struct ResolveAliases
 {
-    typedef T_MPLSeq MPLSeq;
-    typedef T_MPLSeqLookup MPLSeqLookup;
+    typedef T_Seq Seq;
+    typedef T_SeqLookup SeqLookup;
     typedef T_AliasNotFoundPolicy AliasNotFoundPolicy;
 
-    template<typename T_Identifier>
-    struct GetKeyFromAliasAccessor
-    {
-        using type = typename GetKeyFromAlias<MPLSeqLookup, T_Identifier, AliasNotFoundPolicy>::type;
-    };
+    template< typename T_Identifier >
+    using GetKeyFromAliasAccessor = GetKeyFromAlias_t< SeqLookup, T_Identifier, AliasNotFoundPolicy >;
 
     using type = bmp11::mp_transform<
-        bmp11::mp_identity_t< GetKeyFromAliasAccessor >,
-        MPLSeq
+        GetKeyFromAliasAccessor,
+        Seq
     >;
 };
 

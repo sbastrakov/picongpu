@@ -42,7 +42,7 @@ namespace pmacc
 template< typename T_Type >
 struct TypeToAliasPair
 {
-    using type = typename TypeToPair< T_Type >::type;
+    using type = TypeToPair< T_Type >;
 };
 
 /** specialisation if T_Type is a pmacc alias*/
@@ -71,6 +71,9 @@ struct TypeToAliasPair<
         >
     >;
 };
+
+template< typename T_Type >
+using TypeToAliasPair_t = typename TypeToAliasPair< T_Type >::type; 
 
 
 }//namespace pmacc

@@ -32,17 +32,14 @@ namespace errorHandlerPolicies
 {
 
 /** Returns the given type
- *  Binary meta function that takes any boost mpl sequence and a type
  */
-template<typename T_ReturnType = bmp11::mp_void<> >
-struct ReturnType
-{
-    template<typename T_MPLSeq, typename T_Value>
-    struct apply
-    {
-        typedef T_ReturnType type;
-    };
-};
+template<
+    typename T_ReturnType = void,
+    typename T_Seq = bmp11::mp_list<>,
+    typename T_Key = void
+>
+using ReturnType = T_ReturnType;
+
 
 } // namespace errorHandlerPolicies
 } // namespace pmacc

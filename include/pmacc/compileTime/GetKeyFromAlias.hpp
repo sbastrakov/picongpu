@@ -45,24 +45,23 @@ namespace pmacc
  */
 template<typename T_MPLSeq,
          typename T_Key,
-         typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType<>
+         typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType<void, T_MPLSeq, T_Key>
 >
 struct GetKeyFromAlias
 {
 private:
-    typedef T_KeyNotFoundPolicy KeyNotFoundPolicy;
 
     /*create a map where Key is a undeclared alias and value is real type*/
-    using AliasMap = typename SeqToMap<
+    using AliasMap = SeqToMap_t<
         T_MPLSeq,
-        TypeToAliasPair
-    >::type;
+        TypeToAliasPair_t
+    >;
 
     /*create a map where Key and value is real type*/
-    using KeyMap = typename SeqToMap<
+    using KeyMap = SeqToMap_t<
         T_MPLSeq,
         TypeToPair
-    >::type;
+    >;
 
     /*combine both maps*/
     using FullMap = bmp11::mp_fold<
@@ -87,12 +86,20 @@ public:
             MapType,
             void
         >,
-        KeyNotFoundPolicy<
-            T_MPLSeq,
-            T_Key
-        >::type,
+        T_KeyNotFoundPolicy,
         MapType
     >;
 };
+
+template<
+    typename T_Seq,
+    typename T_Key,
+    typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType<>
+>
+using GetKeyFromAlias_t = typename GetKeyFromAlias<
+    T_Seq,
+    T_Key,
+    T_KeyNotFoundPolicy
+>::type;
 
 }//namespace pmacc

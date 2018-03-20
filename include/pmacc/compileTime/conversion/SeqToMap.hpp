@@ -44,17 +44,16 @@ namespace pmacc
  */
 template<
     typename T_MPLSeq,
-    typename T_UnaryOperator,
+    template< typename > class T_UnaryOperator,
     typename T_Accessor = compileTime::accessors::Identity<>
 >
 struct SeqToMap
 {
-    struct Op : T_UnaryOperator< typename T_Accessor< X >::type >::type
-    {
-    };
+    template< typename T >
+    using Op = T_UnaryOperator< typename T_Accessor< X >::type >;
 
     using Lists = bmp11::mp_transform<
-        bmp11::mp_identity_t< Op >,
+        Op,
         T_MPLSeq
     >;
     using type = bmp11::mp_fold<
@@ -63,5 +62,12 @@ struct SeqToMap
         bmp11::mp_map_insert
     >;
 };
+
+template<
+    typename T_MPLSeq,
+    template< typename > class T_UnaryOperator,
+    typename T_Accessor = compileTime::accessors::Identity<>
+>
+using SeqToMap_t = typename SeqToMap< T_MPLSeq, T_UnaryOperator, T_Accessor >::type;
 
 }//namespace pmacc

@@ -30,21 +30,15 @@ namespace pmacc
 {
 
 
-
 /** create boost mp11 list of two elements
  *
  * @tparam T_Type any type
- * @resturn ::type boost mp11 mp_list of two elements set to T_Type
  */
 template<typename T_Type>
-struct TypeToPair
-{
-    using type = bmp11::mp_list<
-        T_Type,
-        T_Type
-    >;
-};
-
+using TypeToPair = bmp11::mp_list<
+    T_Type,
+    T_Type
+>;
 
 
 }//namespace pmacc
