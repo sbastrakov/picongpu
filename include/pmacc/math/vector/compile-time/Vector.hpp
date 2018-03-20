@@ -314,7 +314,7 @@ struct add
     using type = applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        bmp11::mp_plus
+        bmp11::mp_plus<bmp11::_1, bmp11::_2>
     >::type;
 };
 
