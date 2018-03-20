@@ -454,7 +454,7 @@ struct shrinkTo<T_Vec, DIM2>
     using type = CT::Vector<
         typename Vec::x,
         typename Vec::y,
-        VectorParameterPlaceholder
+        detail::VectorParameterPlaceholder
     >;
 };
 
@@ -464,8 +464,8 @@ struct shrinkTo<T_Vec, DIM1>
     typedef T_Vec Vec;
     using type = CT::Vector<
         typename Vec::x,
-        VectorParameterPlaceholder,
-        VectorParameterPlaceholder
+        detail::VectorParameterPlaceholder,
+        detail::VectorParameterPlaceholder
     >;
 };
 
