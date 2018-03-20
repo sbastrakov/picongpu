@@ -35,40 +35,25 @@ namespace detail
 
     struct Empty {};
 
-    /** get combined type which inherit from a boost mp11 list
-     *
-     * @tparam T_Sequence boost mp11 list with classes
-     * @tparam T_Accessor unary operator to transform each element of the sequence
-     */
-    template<
-        typename T_Sequence,
-        template< typename > class T_Accessor = compileTime::accessors::Identity
-    >
-    using InheritLinearly = bmp11::mp_fold<
-        bmp11::mp_transform<
-            T_Accessor,
-            T_Sequence
-        >
-        Empty,
-        bmp11::mp_inherit
-    >;
-
 } //namespace detail
 
-    /** type which inherits from multiple classes
-     *
-     * @tparam T_Sequence boost mpl sequence with classes
-     * @tparam T_Accessor unary operator to transform each element of the sequence
-     */
-    template<
-        typename T_Sequence,
-        template< typename > class T_Accessor = compileTime::accessors::Identity
-    >
-    struct InheritLinearly : detail::InheritLinearly<
-        T_Sequence,
-        T_Accessor
-    >
-    {
-    };
+/** type which inherits from multiple classes
+ *
+ * @tparam T_List boost mp11 list of classes
+ * @tparam T_Accessor unary operator to transform each element of the list
+ */
+template<
+    typename T_List,
+    template< typename > class T_Accessor = compileTime::accessors::Identity_t
+>
+using InheritLinearly = bmp11::mp_fold<
+    /*bmp11::mp_transform<
+        T_Accessor,
+        T_List
+    >*/
+    T_List,
+    detail::Empty,
+    bmp11::mp_inherit
+>;
 
 } //namespace pmacc
