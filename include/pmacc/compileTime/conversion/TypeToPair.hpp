@@ -23,7 +23,7 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mp11/mp_list.hpp>
+#include <boost/mp11/list.hpp>
 
 
 namespace pmacc
