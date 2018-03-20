@@ -23,35 +23,33 @@
 
 
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
 {
 
-/* remove types from a sequence
+/* remove types from a list
  *
- * @tparam T_MPLSeqSrc source sequence from were we delete types
- * @tparam T_MPLSeqObjectsToRemove sequence with types which shuld be deleted
+ * @tparam T_SeqSrc source mp11 list from were we delete types
+ * @tparam T_SeqObjectsToRemove mp11 list with types which should be deleted
  */
 template<
-    typename T_MPLSeqSrc,
-    typename T_MPLSeqObjectsToRemove
+    typename T_SeqSrc,
+    typename T_SeqObjectsToRemove
 >
 struct RemoveFromSeq
 {
+private:
     template< typename T_Value >
-    struct hasId
-    {
-        using type = bmp11::mp_contains<
-            T_MPLSeqObjectsToRemove,
-            T_Value
-        >;
-    };
+    using HasId = bmp11::mp_contains<
+        T_SeqObjectsToRemove,
+        T_Value
+    >;
 
-    using type = bmp11::remove_if<
-        T_MPLSeqSrc,
-        bmp11::mp_identity_t< hasId >
+public:
+    using type = bmp11::mp_remove_if<
+        T_SeqSrc,
+        HasId
     >;
 };
 
