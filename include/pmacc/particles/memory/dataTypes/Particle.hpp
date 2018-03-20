@@ -257,23 +257,22 @@ pmacc::Particle<T_FrameType2, T_ValueTypeSeq2>
      * bmp11::mp_contains has lower complexity than traits::HasIdentifier
      * and was used for this reason
      */
+    template< typename T >
+    using SrcTypeSeqContains = bmp11::mp_contains<
+        SrcTypeSeq,
+        T
+    >;
     using CommonTypeSeq = bmp11::mp_copy_if<
         DestTypeSeq,
-        bmp11::mp_contains<
-            SrcTypeSeq,
-            bmp11::_1
-        >
+        SrcTypeSeqContains
     >;
 
     /* create sequences with disjunct attributes from `DestTypeSeq` */
+    template< typename T >
+    using SrcTypeSeqNotContains = bmp11::mp_not< SrcTypeSeqContains< T > >;
     using UniqueInDestTypeSeq = bmp11::mp_copy_if<
         DestTypeSeq,
-        bmp11::mp_not<
-            bmp11::mp_contains<
-                SrcTypeSeq,
-                bmp11::_1
-            >
-        >
+        SrcTypeSeqNotContains
     >;
 
     /** Assign particle attributes
