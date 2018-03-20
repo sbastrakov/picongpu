@@ -39,13 +39,10 @@ namespace pmacc
 template<typename T_1, typename T_2 = bmp11::mp_list<> >
 struct JoinToSeq
 {
-private:
-    using Seq1 = typename ToSeq<T_1 >::type;
-    using Seq2 = typename ToSeq<T_2 >::type;
 public:
     using type = bmp11::mp_append<
-        Seq1,
-        Seq2
+        ToSeq<T_1 >,
+        ToSeq<T_2 >
     >;
 };
 

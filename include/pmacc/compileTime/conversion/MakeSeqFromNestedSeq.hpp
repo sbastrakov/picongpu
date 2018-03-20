@@ -44,14 +44,11 @@ namespace pmacc
 template<typename T_In>
 struct MakeSeqFromNestedSeq
 {
-private:
-    typedef typename ToSeq<T_In >::type Seq;
-
 public:
     using type = bmp11::mp_fold<
-      Seq,
+      ToSeq<T_In >,
       bmp11::mp_list<>,
-      bmp11::mp_identity_t< JoinToSeq >
+      JoinToSeq
     >;
 };
 

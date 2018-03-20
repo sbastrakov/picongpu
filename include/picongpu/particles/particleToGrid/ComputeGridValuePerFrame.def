@@ -207,7 +207,7 @@ namespace detail
     struct CreateEligible
     {
         // wrap single arguments to sequence
-        using SeqSpecies = typename pmacc::ToSeq< T_SeqSpecies >::type;
+        using SeqSpecies = ToSeq< T_SeqSpecies >;
         using DerivedAttribute = T_DerivedAttribute;
 
         using type = typename traits::GenerateSolversIfSpeciesEligible<

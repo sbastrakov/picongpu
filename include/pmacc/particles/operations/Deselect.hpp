@@ -52,10 +52,10 @@ struct Deselect;
 
 template<typename T_Exclude, typename T_Object>
 HDINLINE
-typename boost::result_of < detail::Deselect<typename ToSeq<T_Exclude>::type,T_Object>(T_Object)>::type
+typename boost::result_of < detail::Deselect<ToSeq<T_Exclude>,T_Object>(T_Object)>::type
 deselect(T_Object& object)
 {
-    typedef typename ToSeq< T_Exclude >::type DeselectSeq;
+    using DeselectSeq = ToSeq< T_Exclude >;
     typedef detail::Deselect<DeselectSeq, T_Object> BaseType;
 
     return BaseType()(object);

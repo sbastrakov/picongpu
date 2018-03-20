@@ -31,17 +31,14 @@ namespace pmacc
 {
 
 /** cast type to boost mp11 mp_list
- * @return ::type if T_Type is sequence then identity of T_Type
- *                else boost::mp11::mp_list<T_Type>
+ * if T_Type is sequence then identity of T_Type
+ * else boost::mp11::mp_list< T_Type >
  */
-template<typename T_Type>
-struct ToSeq
-{
-    using type = bmp11::mp_if<
-        bmp11::mp_is_list< T_Type >,
-        T_Type,
-        bmp11::mp_list<T_Type>
-    >;
-};
+template< typename T_Type >
+using ToSeq = bmp11::mp_if<
+    bmp11::mp_is_list< T_Type >,
+    T_Type,
+    bmp11::mp_list< T_Type >
+>;
 
 }//namespace pmacc

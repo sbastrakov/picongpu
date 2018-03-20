@@ -60,7 +60,7 @@ namespace traits
     struct GenerateSolversIfSpeciesEligible
     {
         // wrap single arguments to sequence
-        using SeqSpecies = typename pmacc::ToSeq< T_SeqSpecies >::type;
+        using SeqSpecies = pmacc::ToSeq< T_SeqSpecies >;
         // unspecialized solver
         using Solver = T_Solver;
 

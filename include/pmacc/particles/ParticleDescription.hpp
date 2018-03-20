@@ -66,11 +66,11 @@ struct ParticleDescription
 {
     typedef T_Name Name;
     typedef T_SuperCellSize SuperCellSize;
-    typedef typename ToSeq<T_ValueTypeSeq>::type ValueTypeSeq;
-    typedef typename ToSeq<T_Flags>::type FlagsList;
+    using ValueTypeSeq = ToSeq<T_ValueTypeSeq>;
+    using FlagsList = ToSeq<T_Flags>;
     typedef T_HandleGuardRegion HandleGuardRegion;
-    typedef typename ToSeq<T_MethodsList>::type MethodsList;
-    typedef typename ToSeq<T_FrameExtensionList>::type FrameExtensionList;
+    using MethodsList = ToSeq<T_MethodsList>;
+    using FrameExtensionList = ToSeq<T_FrameExtensionList>;
     typedef ParticleDescription<
         Name,
         SuperCellSize,
@@ -97,7 +97,7 @@ struct ReplaceValueTypeSeq
     typedef ParticleDescription<
     typename OldParticleDescription::Name,
     typename OldParticleDescription::SuperCellSize,
-    typename ToSeq<T_NewValueTypeSeq>::type,
+    ToSeq<T_NewValueTypeSeq>,
     typename OldParticleDescription::FlagsList,
     typename OldParticleDescription::HandleGuardRegion,
     typename OldParticleDescription::MethodsList,
@@ -122,7 +122,7 @@ struct ReplaceFrameExtensionSeq
     typename OldParticleDescription::FlagsList,
     typename OldParticleDescription::HandleGuardRegion,
     typename OldParticleDescription::MethodsList,
-    typename ToSeq<T_FrameExtensionSeq>::type
+    ToSeq<T_FrameExtensionSeq>
     > type;
 };
 
