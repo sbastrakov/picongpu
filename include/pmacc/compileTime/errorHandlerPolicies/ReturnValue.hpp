@@ -28,17 +28,16 @@ namespace pmacc
 namespace errorHandlerPolicies
 {
 
-/** Returns the second parameter (normally the value that the sequence was searched for
- *  Binary meta function that takes any boost mpl sequence and a type
+/**
+ * Returns the second parameter
+ *
+ * Normally T_List is an mp11 list and T_Value is type not found in the list
  */
-struct ReturnValue
-{
-    template<typename T_MPLSeq, typename T_Value>
-    struct apply
-    {
-        typedef T_Value type;
-    };
-};
+template<
+    typename T_List,
+    typename T_Value
+> 
+using ReturnValue = T_Value;
 
 } // namespace errorHandlerPolicies
 } // namespace pmacc

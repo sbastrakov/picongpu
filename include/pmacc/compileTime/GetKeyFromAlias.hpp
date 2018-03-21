@@ -45,7 +45,7 @@ namespace pmacc
  */
 template<typename T_MPLSeq,
          typename T_Key,
-         typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType<void, T_MPLSeq, T_Key>
+         typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
 >
 struct GetKeyFromAlias
 {
@@ -86,7 +86,7 @@ public:
             MapType,
             void
         >,
-        T_KeyNotFoundPolicy,
+        T_KeyNotFoundPolicy<T_MPLSeq, T_Key>,
         MapType
     >;
 };
@@ -94,7 +94,7 @@ public:
 template<
     typename T_Seq,
     typename T_Key,
-    typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType<>
+    typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
 >
 using GetKeyFromAlias_t = typename GetKeyFromAlias<
     T_Seq,

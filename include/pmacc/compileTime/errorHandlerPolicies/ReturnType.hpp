@@ -23,22 +23,22 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mp11/function.hpp>
-
 
 namespace pmacc
 {
 namespace errorHandlerPolicies
 {
 
-/** Returns the given type
+/**
+ * Returns the second parameter
+ *
+ * Normally T_List is an mp11 list and T_Type is type not found in the list
  */
 template<
-    typename T_ReturnType = void,
-    typename T_Seq = bmp11::mp_list<>,
-    typename T_Key = void
->
-using ReturnType = T_ReturnType;
+    typename T_List,
+    typename T_Type
+> 
+using ReturnType = T_Type;
 
 
 } // namespace errorHandlerPolicies
