@@ -60,18 +60,14 @@ namespace pmath = pmacc::math;
  */
 template<typename T_CreatePairOperator,
 typename T_ParticleDescription >
-struct Frame;
-
-template<typename T_CreatePairOperator,
-typename T_ParticleDescription >
 struct Frame :
 public InheritLinearly<typename T_ParticleDescription::MethodsList>,
-protected pmath::MapTuple<typename SeqToMap<typename T_ParticleDescription::ValueTypeSeq, T_CreatePairOperator>::type, pmath::AlignedData>,
+protected pmath::MapTuple<SeqToMap_t<typename T_ParticleDescription::ValueTypeSeq, T_CreatePairOperator>, pmath::AlignedData>,
 public InheritLinearly<
-    typename OperateOnSeq<
+    OperateOnSeq<
         typename T_ParticleDescription::FrameExtensionList,
         typename bmp11::_1< Frame<T_CreatePairOperator,T_ParticleDescription> >::type
-    >::type
+    >
 >
 {
     typedef T_ParticleDescription ParticleDescription;

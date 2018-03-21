@@ -30,34 +30,24 @@
 namespace pmacc
 {
 
-/** run an unary operator on each element of a sequence
+/** Transform boost mp11 list into another list by applying operations
  *
- * @tparam T_MPLSeq any boost mpl sequence
- * @tparam T_UnaryOperator unary operator to translate type from the sequence
- * to a mpl pair
+ * @tparam T_List boost mp11 list
+ * @tparam T_UnaryOperator unary operator to apply for each element
  * @tparam T_Accessor an unary lambda operator that is used before the type
  * from the sequence is passed to T_UnaryOperator
- * @return ::type bmp11::mp_list
  */
 template<
-    typename T_MPLSeq,
+    typename T_List,
     typename T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity<>
+    typename T_Accessor = compileTime::accessors::Identity_t
 >
-struct OperateOnSeq
-{
-
-    template<typename X>
-    struct Op
-    {
-        using type = typename T_Accessor< X >::type;
-    };
-
-    typedef T_MPLSeq MPLSeq;
-    using type = bmp11::mp_transform<
-        bmp11::mp_identity_t< Op >,
-        MPLSeq
-    >;
-};
+using OperateOnSeq = bmp11::mp_transform<
+    T_UnaryOperator,
+    bmp11::mp_transform<
+        T_Accessor,
+        T_List
+    >
+>;
 
 }//namespace pmacc

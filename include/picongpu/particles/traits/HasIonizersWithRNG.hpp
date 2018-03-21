@@ -52,17 +52,17 @@ namespace traits
         using VectorSpecies = T_VectorSpecies;
 
         // make a list of all species that can be ionized
-        using VectorSpeciesWithIonizer = typename pmacc::particles::traits::FilterByFlag<
+        using SpeciesWithIonizer = typename pmacc::particles::traits::FilterByFlag<
             VectorSpecies,
             ionizers<>
         >::type;
 
         // make a list of all ionizers that will be used by all species
         using AllUsedIonizers = typename pmacc::MakeSeqFromNestedSeq<
-            typename pmacc::OperateOnSeq<
-                VectorSpeciesWithIonizer,
-                GetIonizerList< bmp11::_1 >
-            >::type
+            pmacc::OperateOnSeq<
+                SpeciesWithIonizer,
+                GetIonizerList
+            >
         >::type;
 
         /* make a list of `boost::true_type`s and `boost::false_type`s for species that use or do
