@@ -38,15 +38,11 @@ namespace forEach
 {
 namespace detail
 {
-    /** call the functor were itBegin points to
-     *
-     *  \tparam itBegin iterator to an element in a mpl sequence
-     *  \tparam itEnd iterator to the end of a mpl sequence
-     *  \tparam isEnd true if itBegin == itEnd, else false
+    /** call the functor for the list
      */
     template<
-        typename List,
-        bool isEnd = bmp11::is_empty< List >::value
+        typename T_List,
+        bool isEmpty = bmp11::mp_empty< T_List >::value
     >
     struct CallFunctorOfIterator
     {
@@ -55,16 +51,16 @@ namespace detail
         HDINLINE void
         operator( )( T_Types const & ... ts ) const
         {
-            bmp11::mp_front< List >( )( getForwardedValue( ts ) ... );
-            bmp11::mp_pop_front< List >( )( ts ... );
+            bmp11::mp_front< T_List >( )( getForwardedValue( ts ) ... );
+            bmp11::mp_pop_front< T_List >( )( ts ... );
         }
 
     };
 
     /** Recursion end of ForEach */
-    template< typename List >
+    template< typename T_List >
     struct CallFunctorOfIterator<
-        List,
+        T_List,
         true
     >
     {
@@ -78,9 +74,9 @@ namespace detail
 
 } // namespace detail
 
-    /** Compile-Time for each for Boost::MPL Type Lists
+    /** Compile-Time for each for Boost::mp11 Type Lists
      *
-     *  \tparam T_MPLSeq A mpl sequence that can be accessed by mpl::begin, mpl::end, mpl::next
+     *  \tparam T_MPLSeq A mp11 list
      *  \tparam T_Functor An unary lambda functor with a HDINLINE void operator()(...) method
      *          _1 is substituted by Accessor's result.
      *          The maximum number of parameters for the operator() is limited by
@@ -99,22 +95,19 @@ namespace detail
      *                     Functor(Accessor(float))(42);
      */
     template<
-        typename T_MPLSeq,
+        typename T_Seq,
         typename T_Functor,
-        typename T_Accessor = compileTime::accessors::Identity< >
+        typename T_Accessor = compileTime::accessors::Identity_t
     >
     struct ForEach
     {
 
-        template< typename X >
-        struct ReplacePlaceholder
-        {
-            using type = T_Functor< typename T_Accessor< X >::type >::type;
-        };
+        template< typename T >
+        using ReplacePlaceholder = T_Functor< T_Accessor< T > >;
 
         using SolvedFunctors = bmp11::mp_transform<
-            bmp11::mp_identity_t< ReplacePlaceholder >,
-            T_MPLSeq
+            ReplacePlaceholder,
+            T_Seq
         >;
 
         PMACC_NO_NVCC_HDWARNING
