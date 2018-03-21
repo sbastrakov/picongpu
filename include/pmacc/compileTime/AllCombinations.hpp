@@ -109,7 +109,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         LastElementAsSequence
     >;
 
-    typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
+    using OneSeq = MakeSeqFromNestedSeq< NestedSeq >;
 
     typedef typename detail::AllCombinations<ShrinkedRangeVector, OneSeq>::type ResultIfNotEmpty;
     typedef typename bmp11::mp_if<IsLastElementEmpty,bmp11::mp_list<>,ResultIfNotEmpty> type;

@@ -328,7 +328,7 @@ private:
         }
 
         // find all valid filter for the current used species
-        using EligibleFilters = typename MakeSeqFromNestedSeq<
+        using EligibleFilters = MakeSeqFromNestedSeq<
             bmp11::mp_transform<
                 particles::traits::GenerateSolversIfSpeciesEligible<
                     bmp11::_1,
@@ -336,7 +336,7 @@ private:
                 >,
                 particles::filter::AllParticleFilters
             >
-        >::type;
+        >;
 
         //! periodicity of computing the particle energy
         plugins::multi::Option< std::string > notifyPeriod = {

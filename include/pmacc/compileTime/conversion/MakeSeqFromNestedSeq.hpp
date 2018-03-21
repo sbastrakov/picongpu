@@ -28,28 +28,21 @@
 
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/list.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
 {
 
-/** combine all elements of the input type to a single vector
+/** Combine all elements of the input type or list to a single list
  *
- * If elements of the input sequence are a sequence themself, all of their
- * elements will be added to the resulting sequence
- *
- * @tparam T_In a boost mpl sequence or single type
+ * If the input is a list and its elements are lists themselves, all of their
+ * elements will be added to the resulting list
  */
-template<typename T_In>
-struct MakeSeqFromNestedSeq
-{
-public:
-    using type = bmp11::mp_fold<
-      ToSeq<T_In >,
-      bmp11::mp_list<>,
-      JoinToSeq
-    >;
-};
+template< typename T >
+using MakeSeqFromNestedSeq = bmp11::mp_fold<
+    ToSeq< T >,
+    bmp11::mp_list<>,
+    JoinToSeq
+>;
 
 } //namespace pmacc

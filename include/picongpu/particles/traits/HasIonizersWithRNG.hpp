@@ -58,12 +58,12 @@ namespace traits
         >::type;
 
         // make a list of all ionizers that will be used by all species
-        using AllUsedIonizers = typename pmacc::MakeSeqFromNestedSeq<
+        using AllUsedIonizers = pmacc::MakeSeqFromNestedSeq<
             pmacc::OperateOnSeq<
                 SpeciesWithIonizer,
                 GetIonizerList
             >
-        >::type;
+        >;
 
         /* make a list of `boost::true_type`s and `boost::false_type`s for species that use or do
          * not use the RNG during ionization
