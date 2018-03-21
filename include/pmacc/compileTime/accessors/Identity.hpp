@@ -40,13 +40,14 @@ namespace accessors
  * \tparam T in type
  *
  */
-template< typename T = bmp11::_1 >
+template< typename T >
 struct Identity
 {
     using type = T;
 };
+
 template< typename T >
-using Identity_t = typename Identity< T >::type;
+using Identity_t = T;
 
 }//namespace accessors
 
