@@ -219,19 +219,23 @@ namespace math
         HDINLINE
         typename boost::result_of<
             MapTuple(
-                bmp11::mp_at<
-                    Map,
-                    bmp11::mp_int< T_i >
-                >::first
+                bmp11::mp_front<
+                    bmp11::mp_at<
+                        Map,
+                        bmp11::mp_int< T_i >
+                    >
+                >
             )
         >::type
         at( )
         {
             return ( *this )[
-                bmp11::mp_at<
-                    Map,
-                    bmp11::mp_int< T_i >
-                >::first( )
+                bmp11::mp_front<
+                    bmp11::mp_at<
+                        Map,
+                        bmp11::mp_int< T_i >
+                    >
+                >( )
             ];
         }
 
@@ -239,19 +243,23 @@ namespace math
         HDINLINE
         typename boost::result_of<
             const MapTuple(
-                bmp11::mp_at<
-                    Map,
-                    bmp11::mp_int< T_i >
-                >::first
+                bmp11::mp_front<
+                    bmp11::mp_at<
+                        Map,
+                        bmp11::mp_int< T_i >
+                    >
+                >
             )
         >::type
         at( ) const
         {
             return ( *this )[
-                bmp11::mp_at<
-                    Map,
-                    bmp11::mp_int< T_i >
-                >::first( )
+                bmp11::mp_front<
+                    bmp11::mp_at<
+                        Map,
+                        bmp11::mp_int< T_i >
+                    >
+                >
             ];
         }
         /** @} */
