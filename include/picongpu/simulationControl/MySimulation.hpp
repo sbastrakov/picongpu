@@ -68,8 +68,6 @@
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
 #include <pmacc/nvidia/functors/Add.hpp>
 #include <pmacc/nvidia/functors/Sub.hpp>
-
-#include <pmacc/compileTime/conversion/SeqToMap.hpp>
 #include <pmacc/compileTime/conversion/TypeToPointerPair.hpp>
 
 #include <pmacc/algorithms/ForEach.hpp>

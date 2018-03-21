@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "pmacc/compileTime/conversion/SeqToMap.hpp"
 #include "pmacc/compileTime/conversion/TypeToAliasPair.hpp"
 #include "pmacc/compileTime/conversion/TypeToPair.hpp"
 #include "pmacc/compileTime/conversion/MakeSeqFromNestedSeq.hpp"
