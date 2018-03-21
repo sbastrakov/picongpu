@@ -25,7 +25,6 @@
 #include "pmacc/compileTime/accessors/Identity.hpp"
 
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/bind.hpp>
 #include <boost/mp11/map.hpp>
 #include <boost/mp11/utility.hpp>
 
@@ -35,26 +34,25 @@ namespace pmacc
 
 /** convert boost mp11 list to an mp11 map
  *
- * @tparam T_MPLSeq boost mp11 list
- * @tparam T_UnaryOperator unary operator to translate type from the sequence
- * to a mp11 list
- * @tparam T_Accessor An unary lambda operator which is used before the type
- * from the sequence is passed to T_UnaryOperator
+ * @tparam T_List boost mp11 list
+ * @tparam T_UnaryOperator unary metafunction to translate a type from T_List to an mp11 list
+ * @tparam T_Accessor an unary metafunction which is used before the type
+ * from the list is passed to T_UnaryOperator
  * @return ::type mp11 map
  */
 template<
-    typename T_MPLSeq,
+    typename T_List,
     template< typename > class T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity<>
+    typename T_Accessor = compileTime::accessors::Identity_t
 >
 struct SeqToMap
 {
     template< typename T >
-    using Op = T_UnaryOperator< typename T_Accessor< X >::type >;
+    using Op = T_UnaryOperator< T_Accessor< T > >;
 
     using Lists = bmp11::mp_transform<
         Op,
-        T_MPLSeq
+        T_List
     >;
     using type = bmp11::mp_fold<
         Lists,
@@ -64,10 +62,14 @@ struct SeqToMap
 };
 
 template<
-    typename T_MPLSeq,
+    typename T_List,
     template< typename > class T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity<>
+    typename T_Accessor = compileTime::accessors::Identity_t
 >
-using SeqToMap_t = typename SeqToMap< T_MPLSeq, T_UnaryOperator, T_Accessor >::type;
+using SeqToMap_t = typename SeqToMap<
+    T_List,
+    T_UnaryOperator,
+    T_Accessor
+>::type;
 
 }//namespace pmacc
