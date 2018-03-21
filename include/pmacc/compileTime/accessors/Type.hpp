@@ -23,8 +23,6 @@
 
 #include "pmacc/types.hpp"
 
-#include <boost/mp11/bind.hpp>
-
 
 namespace pmacc
 {
@@ -38,11 +36,14 @@ namespace accessors
      *
      * T must have defined ::type
      */
-    template< typename T = bmp11::_1 >
+    template< typename T >
     struct Type
     {
         using type = typename T::type;
     };
+
+    template< typename T >
+    using Type_t = typename T::type;
 
 } // namespace accessors
 } // namespace compileTime
