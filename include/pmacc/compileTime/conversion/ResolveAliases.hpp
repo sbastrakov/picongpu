@@ -39,7 +39,7 @@ template<
     template<
         typename T_List,
         typename T_Key
-    > class T_AliasNotFoundPolicy = errorHandlerPolicies::ThrowValueNotFound
+    > class T_AliasNotFoundPolicy
 >
 struct ResolveAliases
 {
