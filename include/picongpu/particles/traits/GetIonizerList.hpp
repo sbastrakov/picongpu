@@ -57,7 +57,7 @@ namespace traits
         // this now resolves the alias into the actual object type, a list of ionizers
         using FoundIonizerList = typename pmacc::traits::Resolve< FoundIonizersAlias >::type;
 
-        template< typename T >
+        template< template< typename > class T >
         using Operation = T< SpeciesType >;
         using type = pmacc::OperateOnSeq<
             FoundIonizerList,
