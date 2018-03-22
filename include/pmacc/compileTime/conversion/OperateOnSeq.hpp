@@ -33,14 +33,14 @@ namespace pmacc
 /** Transform boost mp11 list into another list by applying operations
  *
  * @tparam T_List boost mp11 list
- * @tparam T_UnaryOperator unary operator to apply for each element
- * @tparam T_Accessor an unary lambda operator that is used before the type
- * from the sequence is passed to T_UnaryOperator
+ * @tparam T_UnaryOperator unary metafunction to apply to each element
+ * @tparam T_Accessor unary metafunction that is used before the type
+ * from the list is passed to T_UnaryOperator
  */
 template<
     typename T_List,
-    typename T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity_t
+    template< typename > class T_UnaryOperator,
+    template< typename > class T_Accessor = compileTime::accessors::Identity_t
 >
 using OperateOnSeq = bmp11::mp_transform<
     T_UnaryOperator,
