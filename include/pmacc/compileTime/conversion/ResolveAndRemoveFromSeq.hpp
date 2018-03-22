@@ -43,7 +43,7 @@ struct ResolveAndRemoveFromSeq
 {
     typedef T_MPLSeqSrc MPLSeqSrc;
     typedef T_MPLSeqObjectsToRemove MPLSeqObjectsToRemove;
-    typedef typename ResolveAliases<MPLSeqObjectsToRemove, MPLSeqSrc, errorHandlerPolicies::ReturnValue>::type ResolvedSeqWithObjectsToRemove;
+    using ResolvedSeqWithObjectsToRemove = ResolveAliases<MPLSeqObjectsToRemove, MPLSeqSrc, errorHandlerPolicies::ReturnValue>;
     typedef typename RemoveFromSeq<MPLSeqSrc, ResolvedSeqWithObjectsToRemove>::type type;
 };
 

@@ -25,38 +25,59 @@
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
 {
 
-/** Translate all pmacc alias types to full specialized types
- *
- * Use lookup list to translate types
- * The policy is used if the type from T_Seq is not in T_SeqLookup a compile time error is triggered
- *
- * @tparam T_Seq source list with types to translate
- * @tparam T_SeqLookup lookup list to translate aliases
- */
+namespace detail
+{
+
 template<
-    typename T_Seq,
-    typename T_SeqLookup,
-    typename T_AliasNotFoundPolicy = errorHandlerPolicies::ThrowValueNotFound
+    typename T_List,
+    typename T_Lookup,
+    template<
+        typename T_List,
+        typename T_Key
+    > class T_AliasNotFoundPolicy = errorHandlerPolicies::ThrowValueNotFound
 >
 struct ResolveAliases
 {
-    typedef T_Seq Seq;
-    typedef T_SeqLookup SeqLookup;
-    typedef T_AliasNotFoundPolicy AliasNotFoundPolicy;
-
     template< typename T_Identifier >
-    using GetKeyFromAliasAccessor = GetKeyFromAlias_t< SeqLookup, T_Identifier, AliasNotFoundPolicy >;
+    using GetKeyFromAliasAccessor = GetKeyFromAlias_t<
+        T_Lookup,
+        T_Identifier,
+        T_AliasNotFoundPolicy
+    >;
 
     using type = bmp11::mp_transform<
         GetKeyFromAliasAccessor,
-        Seq
+        T_List
     >;
 };
 
-}//namespace pmacc
+} // namespace detail
+
+/** Translate all pmacc alias types to full specialized types
+ *
+ * Use lookup list to translate types
+ * The policy is used if the type from T_List is not in T_Lookup a compile time error is triggered
+ *
+ * @tparam T_List source list with types to translate
+ * @tparam T_Lookup lookup list to translate aliases
+ */
+template<
+    typename T_List,
+    typename T_Lookup,
+    template<
+        typename T_List,
+        typename T_Key
+    > class T_AliasNotFoundPolicy = errorHandlerPolicies::ThrowValueNotFound
+>
+using ResolveAliases = typename detail::ResolveAliases<
+    T_List,
+    T_Lookup,
+    T_AliasNotFoundPolicy
+>::type;
+
+} //namespace pmacc

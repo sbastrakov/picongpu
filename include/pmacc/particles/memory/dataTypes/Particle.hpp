@@ -317,7 +317,7 @@ pmacc::Particle<T_FrameType, T_ValueTypeSeq>
     typedef T_MPLSeqWithObjectsToRemove MPLSeqWithObjectsToRemove;
 
     /* translate aliases to full specialized identifier*/
-    typedef typename ResolveAliases<MPLSeqWithObjectsToRemove, ValueTypeSeq, errorHandlerPolicies::ReturnValue>::type ResolvedSeqWithObjectsToRemove;
+    using ResolvedSeqWithObjectsToRemove = ResolveAliases<MPLSeqWithObjectsToRemove, ValueTypeSeq, errorHandlerPolicies::ReturnValue>;
     /* remove types from original particle attribute list*/
     typedef typename RemoveFromSeq<ValueTypeSeq, ResolvedSeqWithObjectsToRemove>::type NewValueTypeSeq;
     /* new particle type*/
