@@ -91,21 +91,25 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
         typedef TmpResult InVector;
         typedef T_Element Element;
 
+        template< typename T >
+        using Op = typename pmacc::math::CT::Assign<
+            T,
+            T_ComponentPos,
+            Element
+        >::type;
         using type = bmp11::mp_transform<
-            pmacc::math::CT::Assign<
-                bmp11::_1,
-                T_ComponentPos,
-                Element
-            >,
+            Op,
             InVector
         >;
     };
 
+    template< typename T >
+    using Op = typename AssignToAnyElementInVector<
+        std::integral_constant<uint32_t, rangeVectorSize - 1 >,
+        T
+    >::type;
     using NestedSeq = bmp11::mp_transform<
-        AssignToAnyElementInVector<
-            std::integral_constant<uint32_t, rangeVectorSize - 1 >,
-            bmp11::_1
-        >,
+        Op,
         LastElementAsSequence
     >;
 
@@ -160,14 +164,23 @@ struct AllCombinations
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
     using ShrinkedRangeVector = bmp11::mp_take_c<
-        MplSeq
+        MplSeq,
         rangeVectorSize - 1
     >;
 
     /* transform all elements in the vector to math::CT::vector<> */
     typedef math::CT::Vector<> EmptyVector;
+    template< typename T >
+    using Op = typename pmacc::math::CT::Assign<
+        EmptyVector,
+        std::integral_constant<
+            uint32_t,
+            rangeVectorSize - 1
+        >,
+        T
+    >::type;
     using FirstList = bmp11::mp_transform<
-        pmacc::math::CT::Assign<EmptyVector, std::integral_constant<uint32_t, rangeVectorSize - 1 >, bmp11::_1>,
+        Op,
         LastElementAsSequence
     >;
 

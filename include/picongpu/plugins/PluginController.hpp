@@ -232,7 +232,7 @@ private:
     >;
 
     using CombinedUnspecializedSpeciesPlugins = typename AllCombinations<
-        bmp1::mp_list<
+        bmp11::mp_list<
             VectorAllSpecies,
             UnspecializedSpeciesPlugins
         >

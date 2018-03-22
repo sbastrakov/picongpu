@@ -261,7 +261,7 @@ struct PushSpecies
 template<typename T_SpeciesType>
 struct CommunicateSpecies
 {
-    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_SpeciesType
     >;
@@ -451,7 +451,7 @@ struct CallBremsstrahlung
     >;
     using ElectronFrameType = typename ElectronSpecies::FrameType;
 
-    using IonSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+    using IonSpecies = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         typename pmacc::particles::traits::ResolveAliasFromSpecies<
             ElectronSpecies,
