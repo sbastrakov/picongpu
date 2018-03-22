@@ -43,7 +43,7 @@ namespace pmacc
 template<
     typename T_List,
     template< typename > class T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity_t
+    template< typename > class = compileTime::accessors::Identity_t
 >
 struct SeqToMap
 {
@@ -64,7 +64,7 @@ struct SeqToMap
 template<
     typename T_List,
     template< typename > class T_UnaryOperator,
-    typename T_Accessor = compileTime::accessors::Identity_t
+    template< typename > class T_Accessor = compileTime::accessors::Identity_t
 >
 using SeqToMap_t = typename SeqToMap<
     T_List,
