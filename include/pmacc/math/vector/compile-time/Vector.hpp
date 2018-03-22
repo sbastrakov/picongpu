@@ -25,6 +25,7 @@
 #include "pmacc/types.hpp"
 
 #include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -199,7 +200,7 @@ struct Vector
 template<
     typename Lhs,
     typename Rhs,
-    typename T_BinaryOperator
+    template<typename, typename> class T_BinaryOperator
 >
 struct applyOperator
 {
@@ -213,7 +214,7 @@ struct applyOperator
 template<
     typename T_TypeA,
     typename T_TypeB,
-    typename T_BinaryOperator
+    template< typename, typename > class T_BinaryOperator
 >
 struct applyOperator<
     CT::Vector< T_TypeA >,
@@ -233,7 +234,7 @@ template<
     typename T_TypeA1,
     typename T_TypeB0,
     typename T_TypeB1,
-    typename T_BinaryOperator
+    template< typename, typename > class T_BinaryOperator
 >
 struct applyOperator<
     CT::Vector<
@@ -268,7 +269,7 @@ template<
     typename T_TypeB0,
     typename T_TypeB1,
     typename T_TypeB2,
-    typename T_BinaryOperator
+    template< typename, typename > class T_BinaryOperator
 >
 struct applyOperator<
     CT::Vector<
@@ -311,10 +312,21 @@ template<
 >
 struct add
 {
-    using type = applyOperator<
+private:
+    template<
+        typename Lhs,
+        typename Rhs
+    >
+    using Plus = bmp11::mp_plus<
+        Lhs,
+        Rhs
+    >;
+
+public:
+    using type = typename applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
-        bmp11::mp_plus<bmp11::_1, bmp11::_2>
+        bmp11::mp_plus //Plus
     >::type;
 };
 
@@ -329,14 +341,14 @@ struct mul
 private:
     template<
         typename Lhs,
-        typename Rhs,
+        typename Rhs
     >
     using Times = std::integral_constant< 
         typename Lhs::value_type,
         Lhs::value * Rhs::value
     >;
 public:
-    using type = applyOperator<
+    using type = typename applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
         Times
@@ -351,7 +363,7 @@ template<
 >
 struct max
 {
-    using type = applyOperator<
+    using type = typename applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
         bmp11::mp_max
@@ -366,7 +378,7 @@ template<
 >
 struct min
 {
-    using type = applyOperator<
+    using type = typename applyOperator<
         typename Lhs::vector_type,
         typename Rhs::vector_type,
         bmp11::mp_min
@@ -379,7 +391,7 @@ struct min<
     void
 >
 {
-    using type = applyOperator<
+    using type = typename applyOperator<
         typename T_Vec::mplVector,
         typename T_Vec::x,
         bmp11::mp_min
@@ -392,12 +404,12 @@ template<typename Lhs, typename Rhs>
 struct dot
 {
 private:
-    using ComponentwiseProduct = mul<
+    using ComponentwiseProduct = typename mul<
         Lhs,
         Rhs
     >::type;
 public:
-    using type = bmp11::mp_plus< ComponentwiseProduct::mplVector >;
+    using type = bmp11::mp_plus< typename ComponentwiseProduct::mplVector >;
 };
 
 //________________________V O L U M E____________________________
@@ -408,7 +420,7 @@ struct volume
 private:
     template<
         typename Lhs,
-        typename Rhs,
+        typename Rhs
     >
     using Times = std::integral_constant< 
         typename Lhs::value_type,
@@ -557,7 +569,7 @@ struct At
     using type = bmp11::mp_at<
         typename T_Vec::mplVector,
         T_Idx
-    >::type;
+    >;
 };
 
 //________________________make_Vector___________________
