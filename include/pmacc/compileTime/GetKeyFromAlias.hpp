@@ -55,13 +55,13 @@ struct GetKeyFromAlias
 private:
 
     /*create a map where Key is a undeclared alias and value is real type*/
-    using AliasMap = SeqToMap_t<
+    using AliasMap = SeqToMap<
         T_List,
         TypeToAliasPair_t
     >;
 
     /*create a map where Key and value is real type*/
-    using KeyMap = SeqToMap_t<
+    using KeyMap = SeqToMap<
         T_List,
         TypeToPair
     >;
