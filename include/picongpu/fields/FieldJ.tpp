@@ -62,10 +62,10 @@ fieldJ( cellDescription.getGridLayout( ) ), fieldJrecv( nullptr )
     const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
 
     /* cell margins the current might spread to due to particle shapes */
-    typedef typename pmacc::particles::traits::FilterByFlag<
+    using AllSpeciesWithCurrent = pmacc::particles::traits::FilterByFlag<
         VectorAllSpecies,
         current<>
-    >::type AllSpeciesWithCurrent;
+    >;
 
     using LowerMarginShapes = bmp11::mp_fold<
         AllSpeciesWithCurrent,

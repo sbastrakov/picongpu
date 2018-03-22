@@ -306,11 +306,10 @@ struct PushAllSpecies
         EventList commEventList;
 
         /* push all species */
-        typedef typename pmacc::particles::traits::FilterByFlag
-        <
+        using VectorSpeciesWithPusher = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             particlePusher<>
-        >::type VectorSpeciesWithPusher;
+        >;
         ForEach< VectorSpeciesWithPusher, particles::PushSpecies< bmp11::_1 > > pushSpecies;
         pushSpecies( currentStep, eventInt, forward(updateEventList) );
 

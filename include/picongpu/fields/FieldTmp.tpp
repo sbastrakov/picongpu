@@ -80,11 +80,10 @@ namespace picongpu
          */
         const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
 
-        typedef typename pmacc::particles::traits::FilterByFlag
-        <
+        using VectorSpeciesWithInterpolation = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             interpolation<>
-        >::type VectorSpeciesWithInterpolation;
+        >;
 
         /* ------------------ lower margin  ----------------------------------*/
         using SpeciesLowerMargin = bmp11::mp_fold<

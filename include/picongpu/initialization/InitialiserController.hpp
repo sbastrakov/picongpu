@@ -130,14 +130,14 @@ public:
                                  (1./math::sqrt(INV_CELL2_SUM)) %
                                  (SPEED_OF_LIGHT * DELTA_T);
 
-            using SpeciesWithMass = typename pmacc::particles::traits::FilterByFlag<
+            using SpeciesWithMass = pmacc::particles::traits::FilterByFlag<
                 VectorAllSpecies,
                 massRatio<>
-            >::type;
-            using SpeciesWithMassCharge = typename pmacc::particles::traits::FilterByFlag<
+            >;
+            using SpeciesWithMassCharge = pmacc::particles::traits::FilterByFlag<
                 SpeciesWithMass,
                 chargeRatio<>
-            >::type;
+            >;
             ForEach< SpeciesWithMassCharge, LogOmegaP<> > logOmegaP;
             logOmegaP();
 

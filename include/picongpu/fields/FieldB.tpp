@@ -67,11 +67,10 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
     /*#####create FieldB###############*/
     fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
-    typedef typename pmacc::particles::traits::FilterByFlag
-    <
+    using VectorSpeciesWithInterpolation = pmacc::particles::traits::FilterByFlag<
         VectorAllSpecies,
         interpolation<>
-    >::type VectorSpeciesWithInterpolation;
+    >;
     using LowerMarginInterpolation = bmp11::mp_fold<
         VectorSpeciesWithInterpolation,
         typename pmacc::math::CT::make_Int<simDim, 0>::type,
@@ -98,11 +97,10 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
        (currently all pusher use the interpolation of the species)
        and find maximum margin
     */
-    typedef typename pmacc::particles::traits::FilterByFlag
-    <
+    using VectorSpeciesWithPusherAndInterpolation = pmacc::particles::traits::FilterByFlag<
         VectorSpeciesWithInterpolation,
         particlePusher<>
-    >::type VectorSpeciesWithPusherAndInterpolation;
+    >;
     using LowerMargin = bmp11::mp_fold<
         VectorSpeciesWithPusherAndInterpolation,
         LowerMarginInterpolationAndSolver,

@@ -311,10 +311,14 @@ public:
         currentBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER > (*cellDescription);
 
         // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung Photons
-        typedef typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies,
-                                                                synchrotronPhotons<> >::type AllSynchrotronPhotonsSpecies;
-        typedef typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies,
-                                                                bremsstrahlungPhotons<> >::type AllBremsstrahlungPhotonsSpecies;
+        using AllSynchrotronPhotonsSpecies = pmacc::particles::traits::FilterByFlag<
+            VectorAllSpecies,
+            synchrotronPhotons<>
+        >;
+        using AllBremsstrahlungPhotonsSpecies = pmacc::particles::traits::FilterByFlag<
+            VectorAllSpecies,
+            bremsstrahlungPhotons<>
+         >;
 
         // create factory for the random number generator
         using RNGFactory = pmacc::random::RNGProvider< simDim, pmacc::random::methods::XorMin< cupla::Acc> >;
@@ -351,10 +355,10 @@ public:
         /* Allocate helper fields for FLYlite population kinetics for atomic physics
          * (histograms, rate matrix, etc.)
          */
-        using AllFlyLiteIons = typename pmacc::particles::traits::FilterByFlag<
+        using AllFlyLiteIons = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             populationKinetics<>
-        >::type;
+        >;
 
         ForEach<
             AllFlyLiteIons,
@@ -528,18 +532,18 @@ public:
         DataConnector &dc = Environment<>::get().DataConnector();
 
         /* Initialize ionization routine for each species with the flag `ionizers<>` */
-        using VectorSpeciesWithIonizers = typename pmacc::particles::traits::FilterByFlag<
+        using VectorSpeciesWithIonizers = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             ionizers<>
-        >::type;
+        >;
         ForEach< VectorSpeciesWithIonizers, particles::CallIonization< bmp11::_1 > > particleIonization;
         particleIonization( cellDescription, currentStep );
 
         /* FLYlite population kinetics for atomic physics */
-        using AllFlyLiteIons = typename pmacc::particles::traits::FilterByFlag<
+        using AllFlyLiteIons = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             populationKinetics<>
-        >::type;
+        >;
 
         ForEach<
             AllFlyLiteIons,
@@ -560,11 +564,10 @@ public:
 
 #if( PMACC_CUDA_ENABLED == 1 )
         /* Bremsstrahlung */
-        typedef typename pmacc::particles::traits::FilterByFlag
-        <
+        using VectorSpeciesWithBremsstrahlung = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             bremsstrahlungIons<>
-        >::type VectorSpeciesWithBremsstrahlung;
+        >;
         ForEach<
             VectorSpeciesWithBremsstrahlung,
             particles::CallBremsstrahlung< bmp11::_1 >
@@ -604,11 +607,10 @@ public:
         (*currentBGField)(fieldJ, nvfct::Add(), FieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, FieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
-        typedef typename pmacc::particles::traits::FilterByFlag
-        <
+        using VectorSpeciesWithCurrentSolver = pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
             current<>
-        >::type VectorSpeciesWithCurrentSolver;
+        >;
         ForEach<
             VectorSpeciesWithCurrentSolver,
             ComputeCurrent<

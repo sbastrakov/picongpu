@@ -26,7 +26,6 @@
 #include "pmacc/traits/HasFlag.hpp"
 
 #include <boost/mp11/algorithm.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -35,29 +34,43 @@ namespace particles
 {
 namespace traits
 {
+namespace detail
+{
 
-/** Return a new sequence of particle species carrying flag.
- *
- * @tparam T_MPLSeq sequence of particle species
- * @tparam T_Flag flag to be filtered
- */
-template<typename T_MPLSeq, typename T_Flag>
+template<
+    typename T_List,
+    typename T_Flag
+>
 struct FilterByFlag
 {
-    typedef T_MPLSeq MPLSeq;
-    typedef T_Flag Flag;
+    template< typename T_Species >
+    using HasFlag = typename ::pmacc::traits::HasFlag<
+        typename T_Species::FrameType,
+        T_Flag
+    >::type;
 
-    template<typename T_Species>
-    struct HasFlag
-    {
-        typedef typename ::pmacc::traits::HasFlag<
-            typename T_Species::FrameType,
-            Flag>::type type;
-    };
-
-    using type = bmp11::mp_copy_if<MPLSeq, bmp11::mp_identity_t< HasFlag > >;
+    using type = bmp11::mp_copy_if<
+        T_List,
+        HasFlag
+    >;
 };
 
-}//namespace traits
-}//namespace particles
-}//namespace pmacc
+} // namespace detail
+
+/** Return a new list of particle species carrying the flag.
+ *
+ * @tparam T_List list of particle species
+ * @tparam T_Flag flag to be filtered
+ */
+template<
+    typename T_List,
+    typename T_Flag
+>
+using FilterByFlag = typename detail::FilterByFlag<
+    T_List,
+    T_Flag
+>::type;
+
+} //namespace traits
+} //namespace particles
+} //namespace pmacc
