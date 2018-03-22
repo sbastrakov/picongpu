@@ -38,14 +38,17 @@ namespace pmacc
 /**
  * Returns the key type from an alias
  *
- * \tparam T_MPLSeq Sequence of keys to search
- * \tparam T_Key Key or alias of a key in the sequence
- * \tparam T_KeyNotFoundPolicy Binary meta-function that is called like (T_MPLSeq, T_Key)
- *         when T_Key is not found in the sequence. Default is to return bmp11::mp_void<>
+ * \tparam T_List list of keys to search in
+ * \tparam T_Key key or alias of a key in the sequence
+ * \tparam T_KeyNotFoundPolicy metafunction to be called if key is not found
  */
-template<typename T_MPLSeq,
-         typename T_Key,
-         typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
+template<
+    typename T_List,
+    typename T_Key,
+    template<
+        typename T_List,
+        typename T_Key
+    > class T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
 >
 struct GetKeyFromAlias
 {
@@ -53,13 +56,13 @@ private:
 
     /*create a map where Key is a undeclared alias and value is real type*/
     using AliasMap = SeqToMap_t<
-        T_MPLSeq,
+        T_List,
         TypeToAliasPair_t
     >;
 
     /*create a map where Key and value is real type*/
     using KeyMap = SeqToMap_t<
-        T_MPLSeq,
+        T_List,
         TypeToPair
     >;
 
@@ -86,18 +89,21 @@ public:
             MapType,
             void
         >,
-        T_KeyNotFoundPolicy<T_MPLSeq, T_Key>,
+        T_KeyNotFoundPolicy<T_List, T_Key>,
         MapType
     >;
 };
 
 template<
-    typename T_Seq,
+    typename T_List,
     typename T_Key,
-    typename T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
+    template<
+        typename T_List,
+        typename T_Key
+    > class T_KeyNotFoundPolicy = errorHandlerPolicies::ReturnType
 >
 using GetKeyFromAlias_t = typename GetKeyFromAlias<
-    T_Seq,
+    T_List,
     T_Key,
     T_KeyNotFoundPolicy
 >::type;
