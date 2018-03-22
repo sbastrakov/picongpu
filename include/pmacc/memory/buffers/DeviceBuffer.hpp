@@ -83,7 +83,7 @@ namespace pmacc
         HINLINE
         container::CartBuffer<TYPE, DIM, allocator::DeviceMemAllocator<TYPE, DIM>,
                                 copier::D2DCopier<DIM>,
-                                assigner::DeviceMemAssigner<> >
+                                assigner::DeviceMemAssigner >
         cartBuffer() const
         {
             cudaPitchedPtr cudaData = this->getCudaPitched();

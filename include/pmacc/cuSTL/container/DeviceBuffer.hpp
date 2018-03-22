@@ -52,12 +52,12 @@ template<typename Type, int T_dim>
 class DeviceBuffer
  : public CartBuffer<Type, T_dim, allocator::DeviceMemAllocator<Type, T_dim>,
                                 copier::D2DCopier<T_dim>,
-                                assigner::DeviceMemAssigner<> >
+                                assigner::DeviceMemAssigner >
 {
 private:
     typedef CartBuffer<Type, T_dim, allocator::DeviceMemAllocator<Type, T_dim>,
                                   copier::D2DCopier<T_dim>,
-                                  assigner::DeviceMemAssigner<> > Base;
+                                  assigner::DeviceMemAssigner > Base;
 
 protected:
     HDINLINE DeviceBuffer() {}

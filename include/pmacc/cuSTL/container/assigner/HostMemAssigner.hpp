@@ -22,10 +22,7 @@
 #pragma once
 
 #include "pmacc/cuSTL/algorithm/host/Foreach.hpp"
-
 #include <pmacc/cuSTL/algorithm/functor/AssignValue.hpp>
-
-#include <boost/mp11/bind.hpp>
 
 #include <stdint.h>
 
@@ -35,7 +32,7 @@ namespace pmacc
 namespace assigner
 {
 
-template<typename T_Dim = bmp11::_1, typename T_CartBuffer = bmp11::_2>
+template<typename T_Dim, typename T_CartBuffer>
 struct HostMemAssigner
 {
     static constexpr int dim = T_Dim::value;

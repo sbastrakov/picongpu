@@ -32,7 +32,6 @@
 #include "pmacc/math/vector/UInt32.hpp"
 #include "pmacc/types.hpp"
 
-#include <boost/mp11/bind.hpp>
 #include <boost/mp11/function.hpp>
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
@@ -55,15 +54,27 @@ namespace container
  * \tparam Copier copies one memory buffer to another
  * \tparam Assigner assigns a value to every datum of a memory buffer
  *
- * Assigner policy has to support `apply2`: Assigner<Dim, CartBuffer>
+ * Assigner policy is a metafunction that supports Assigner<Dim, CartBuffer>
  *
  */
-template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocator,
-                                  typename Copier = bmp11::mp_void<>,
-                                  typename Assigner = bmp11::mp_list<bmp11::_1, bmp11::_2> >
-class CartBuffer : public
-    /* "Curiously recurring template pattern" */
-    typename Assigner< bmp11::mp_int<T_dim>, CartBuffer<Type, T_dim, Allocator, Copier, Assigner> >::type
+template<
+    typename Type,
+    int T_dim,
+    typename Allocator = allocator::EmptyAllocator,
+    typename Copier = bmp11::mp_void<>,
+    template<typename ...> class Assigner = bmp11::mp_list
+>
+/* "Curiously recurring template pattern" */
+class CartBuffer : public Assigner<
+    bmp11::mp_int< T_dim >,
+    CartBuffer<
+        Type,
+        T_dim,
+        Allocator,
+        Copier,
+        Assigner
+    >
+>
 {
 public:
     typedef Type type;

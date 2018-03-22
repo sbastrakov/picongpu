@@ -102,7 +102,7 @@ namespace detail
     }
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (const math::Size_t<T_dim>& _size) : refCount(nullptr)
@@ -111,7 +111,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     init();
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (size_t x) : refCount(nullptr)
@@ -119,7 +119,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     this->_size = math::Size_t<1>(x); init();
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (size_t x, size_t y) : refCount(nullptr)
@@ -127,7 +127,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     this->_size = math::Size_t<2>(x, y); init();
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (size_t x, size_t y, size_t z) : refCount(nullptr)
@@ -135,7 +135,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     this->_size = math::Size_t<3>(x, y, z); init();
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (const CartBuffer<Type, T_dim, Allocator, Copier, Assigner>& other) : refCount(nullptr)
@@ -147,7 +147,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     this->pitch = other.pitch;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&& other) : refCount(nullptr)
@@ -160,7 +160,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
     other.refCount = nullptr;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::init()
 {
@@ -173,14 +173,14 @@ void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::init()
     this->pitch = detail::PitchHelper<T_dim>()(cursor);
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::~CartBuffer()
 {
     exit();
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::exit()
 {
@@ -196,7 +196,7 @@ void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::exit()
 #endif
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
@@ -216,7 +216,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
     return *this;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>&
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
@@ -242,7 +242,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
     return *this;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 View<CartBuffer<Type, T_dim, Allocator, Copier, Assigner> >
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::view
@@ -261,7 +261,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::view
     return result;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 cursor::BufferCursor<Type, T_dim> CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::origin() const
 {
@@ -269,7 +269,7 @@ cursor::BufferCursor<Type, T_dim> CartBuffer<Type, T_dim, Allocator, Copier, Ass
     return cursor::BufferCursor<Type, T_dim>(this->dataPointer, this->pitch);
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 cursor::SafeCursor<cursor::BufferCursor<Type, T_dim> >
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::originSafe() const
@@ -279,7 +279,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::originSafe() const
                                    math::Int<T_dim>(size()));
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 cursor::Cursor<cursor::PointerAccessor<Type>, cursor::CartNavigator<T_dim>, char*>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::originCustomAxes(const math::UInt32<T_dim>& axes) const
@@ -300,7 +300,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::originCustomAxes(const mat
             (cursor::PointerAccessor<Type>(), navi, (char*)this->dataPointer);
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 zone::SphericZone<T_dim>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::zone() const
@@ -311,7 +311,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::zone() const
     return myZone;
 }
 
-template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, int T_dim, typename Allocator, typename Copier, template<typename ...> class Assigner>
 HDINLINE
 bool
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::isContigousMemory() const
@@ -319,7 +319,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::isContigousMemory() const
     return this->pitch == detail::PitchHelper<dim>()(this->_size);
 }
 
-template<typename Type, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, typename Allocator, typename Copier, template<typename ...> class Assigner>
 std::ostream& operator<<(std::ostream& s, const CartBuffer<Type, 1, Allocator, Copier, Assigner>& con)
 {
     for(size_t x = 0; x < con.size().x(); x++)
@@ -327,7 +327,7 @@ std::ostream& operator<<(std::ostream& s, const CartBuffer<Type, 1, Allocator, C
     return s << std::endl;
 }
 
-template<typename Type, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, typename Allocator, typename Copier, template<typename ...> class Assigner>
 std::ostream& operator<<(std::ostream& s, const CartBuffer<Type, 2, Allocator, Copier, Assigner>& con)
 {
     for(size_t y = 0; y < con.size().y(); y++)
@@ -339,7 +339,7 @@ std::ostream& operator<<(std::ostream& s, const CartBuffer<Type, 2, Allocator, C
     return s << std::endl;
 }
 
-template<typename Type, typename Allocator, typename Copier, typename Assigner>
+template<typename Type, typename Allocator, typename Copier, template<typename ...> class Assigner>
 std::ostream& operator<<(std::ostream& s, const CartBuffer<Type, 3, Allocator, Copier, Assigner>& con)
 {
     for(size_t z = 0; z < con.size().z(); z++)
