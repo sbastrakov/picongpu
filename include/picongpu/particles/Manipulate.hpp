@@ -59,7 +59,7 @@ namespace particles
     >
     struct Manipulate
     {
-        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
             VectorAllSpecies,
             T_SpeciesType
         >;

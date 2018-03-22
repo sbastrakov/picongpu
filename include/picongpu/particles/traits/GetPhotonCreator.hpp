@@ -43,7 +43,7 @@ namespace traits
     template< typename T_SpeciesType >
     struct GetPhotonCreator
     {
-        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
             VectorAllSpecies,
             T_SpeciesType
         >;
@@ -56,7 +56,7 @@ namespace traits
         >::type;
 
         // This now resolves the alias into the actual object type and select the species from the species list
-        using FoundPhotonSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+        using FoundPhotonSpecies = pmacc::particles::compileTime::FindByNameOrType<
             VectorAllSpecies,
             typename pmacc::traits::Resolve< FoundSynchrotronPhotonsAlias >::type
         >;

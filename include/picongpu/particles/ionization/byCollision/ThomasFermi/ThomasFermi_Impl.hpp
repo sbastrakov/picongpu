@@ -74,11 +74,11 @@ namespace ionization
     struct ThomasFermi_Impl
     {
 
-        using DestSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+        using DestSpecies = pmacc::particles::compileTime::FindByNameOrType<
             VectorAllSpecies,
             T_DestSpecies
         >;
-        using SrcSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+        using SrcSpecies = pmacc::particles::compileTime::FindByNameOrType<
             VectorAllSpecies,
             T_SrcSpecies
         >;

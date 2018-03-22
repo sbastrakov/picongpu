@@ -90,7 +90,7 @@ template<
 >
 struct CreateDensity
 {
-    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_SpeciesType
     >;
@@ -149,12 +149,12 @@ template<
 >
 struct ManipulateDerive
 {
-    using DestSpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using DestSpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_DestSpeciesType
     >;
     using DestFrameType = typename DestSpeciesType::FrameType;
-    using SrcSpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using SrcSpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_SrcSpeciesType
     >;
@@ -232,7 +232,7 @@ struct Derive : ManipulateDerive<
 template< typename T_SpeciesType = bmp11::_1 >
 struct FillAllGaps
 {
-    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_SpeciesType
     >;

@@ -25,8 +25,8 @@
 #include "pmacc/compileTime/errorHandlerPolicies/ThrowValueNotFound.hpp"
 
 #include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/function.hpp>
 #include <boost/mp11/list.hpp>
-#include <boost/mp11/utility.hpp>
 
 
 namespace pmacc
@@ -35,64 +35,70 @@ namespace particles
 {
 namespace compileTime
 {
+namespace detail
+{
 
-    /* find a type within a sequence by name or the type itself
-     *
-     * pmacc::traits::GetCTName is used to translate each element of
-     * T_MPLSeq into a name.
-     *
-     * @tparam T_MPLSeq source sequence where we search T_Identifier
-     * @tparam T_Identifier name or type to search
-     */
+template<
+    typename T_List,
+    typename T_Identifier,
     template<
-        typename T_MPLSeq,
-        typename T_Identifier,
-        typename T_KeyNotFoundPolicy = pmacc::errorHandlerPolicies::ThrowValueNotFound
-    >
-    struct FindByNameOrType
-    {
-        using KeyNotFoundPolicy = T_KeyNotFoundPolicy;
+        typename T_List,
+        typename T_Identifier
+    > class T_KeyNotFoundPolicy
+>
+struct FindByNameOrType
+{
+    template< typename T_Value >
+    using HasTypeOrName = bmp11::mp_or<
+        bmp11::mp_same<
+            T_Identifier,
+            T_Value
+        >,
+        bmp11::mp_same<
+            pmacc::traits::GetCTName_t< T_Value >,
+            T_Identifier
+        >
+    >;
+ 
+    using FilteredSeq = bmp11::mp_copy_if<
+        T_List,
+        HasTypeOrName
+    >;
 
-        template< typename T_Value >
-        struct HasTypeOrName
-        {
-            using type = bmp11::mp_or<
-                bmp11::mp_same<
-                    T_Identifier,
-                    T_Value
-                >,
-                bmp11::mp_same<
-                    pmacc::traits::GetCTName_t< T_Value >,
-                    T_Identifier
-                >
-            >;
-        };
+    using type = bmp11::mp_if<
+        bmp11::mp_empty< FilteredSeq >,
+        T_KeyNotFoundPolicy<
+            T_List,
+            T_Identifier
+        >,
+        bmp11::mp_front< FilteredSeq >
+    >;
+};
 
-        using FilteredSeq = bmp11::mp_copy_if<
-            T_MPLSeq,
-            bmp11::mp_identity_t< HasTypeOrName >
-        >;
+} // namespace detail
 
-        using type = typename bmp11::mp_if<
-            bmp11::mp_empty< FilteredSeq >,
-            typename KeyNotFoundPolicy<
-                T_MPLSeq,
-                T_Identifier
-            >::type,
-            bmp11::mp_front< FilteredSeq >
-        >;
-    };
-
+/**
+ * Find a type within a sequence by name or the type itself
+ *
+ * pmacc::traits::GetCTName is used to translate each element of
+ * T_List into a name.
+ *
+ * @tparam T_List source list where we search T_Identifier
+ * @tparam T_Identifier name or type to search
+ */
+template<
+    typename T_List,
+    typename T_Identifier,
     template<
-        typename T_MPLSeq,
-        typename T_Identifier,
-        typename T_KeyNotFoundPolicy = pmacc::errorHandlerPolicies::ThrowValueNotFound
-    >
-    using FindByNameOrType_t = typename FindByNameOrType<
-        T_MPLSeq,
-        T_Identifier,
-        T_KeyNotFoundPolicy
-    >::type;
+        typename T_List,
+        typename T_Identifier
+    > class T_KeyNotFoundPolicy = pmacc::errorHandlerPolicies::ThrowValueNotFound
+>
+using FindByNameOrType = typename detail::FindByNameOrType<
+    T_List,
+    T_Identifier,
+    T_KeyNotFoundPolicy
+>::type;
 
 } // namespace compileTime
 } // namespace particles

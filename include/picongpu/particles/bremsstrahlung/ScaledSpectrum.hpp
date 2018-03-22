@@ -167,12 +167,12 @@ public:
 template<typename T_ElectronSpecies>
 struct FillScaledSpectrumMap
 {
-    using ElectronSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+    using ElectronSpecies = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_ElectronSpecies
     >;
 
-    using IonSpecies = pmacc::particles::compileTime::FindByNameOrType_t<
+    using IonSpecies = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         typename pmacc::particles::traits::ResolveAliasFromSpecies<
             ElectronSpecies,

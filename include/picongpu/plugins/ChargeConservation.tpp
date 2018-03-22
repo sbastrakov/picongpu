@@ -171,7 +171,7 @@ struct Div<DIM2, ValueType>
 template<typename T_SpeciesType, typename T_Area>
 struct ComputeChargeDensity
 {
-    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+    using SpeciesType = pmacc::particles::compileTime::FindByNameOrType<
         VectorAllSpecies,
         T_SpeciesType
     >;
