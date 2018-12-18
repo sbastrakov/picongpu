@@ -106,7 +106,7 @@ namespace dirSplitting
         }
     public:
 
-        using NummericalCellType = picongpu::numericalCellTypes::EMFCenteredCell;
+        using CellType = picongpu::numericalCellTypes::EMFCenteredCell;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         DirSplitting(MappingDesc) {}

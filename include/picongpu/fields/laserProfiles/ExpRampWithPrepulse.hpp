@@ -160,7 +160,7 @@ namespace acc
             DataSpace< simDim > offsetToCenterOfPlane( m_offsetToTotalDomain );
             offsetToCenterOfPlane[ planeNormalDir ] = 0; // do not shift origin of plane normal
             floatD_X const pos = precisionCast< float_X >( localCell + offsetToCenterOfPlane ) * cellSize.shrink< simDim >();
-            // @todo add half-cells via traits::FieldPosition< Solver::NumicalCellType, FieldE >()
+            // @todo add half-cells via traits::FieldPosition< CellType, FieldE >()
 
             // transversal position only
             float3_X const w0_3D( Unitless::W0_X, 0., Unitless::W0_Z );

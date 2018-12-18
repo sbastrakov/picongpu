@@ -63,7 +63,7 @@ namespace none
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
     public:
-        using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
+        using CellType = picongpu::numericalCellTypes::YeeCell;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         None(MappingDesc)

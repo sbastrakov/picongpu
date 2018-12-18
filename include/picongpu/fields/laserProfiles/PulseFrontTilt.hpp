@@ -114,7 +114,7 @@ namespace acc
             DataSpace< simDim > offsetToCenterOfPlane( m_offsetToTotalDomain );
             offsetToCenterOfPlane[ planeNormalDir ] = 0; // do not shift origin of plane normal
             floatD_X const pos = precisionCast< float_X >( localCell + offsetToCenterOfPlane ) * cellSize.shrink< simDim >();
-            // @todo add half-cells via traits::FieldPosition< Solver::NumicalCellType, FieldE >()
+            // @todo add half-cells via traits::FieldPosition< CellType, FieldE >()
 
             // calculate focus position relative to the laser initialization plane
             float_X const focusPos = Unitless::FOCUS_POS - pos.y();

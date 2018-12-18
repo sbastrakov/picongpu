@@ -112,7 +112,7 @@ namespace maxwellSolver
 
     public:
 
-        using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
+        using CellType = picongpu::numericalCellTypes::YeeCell;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         Yee(MappingDesc cellDescription) : m_cellDescription(cellDescription)
