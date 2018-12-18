@@ -21,7 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/MaxwellSolver/None/None.def"
-#include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
+#include "picongpu/fields/cellTypes/Yee.hpp"
 
 #include <pmacc/types.hpp>
 
@@ -63,7 +63,7 @@ namespace none
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
     public:
-        using CellType = picongpu::numericalCellTypes::YeeCell;
+        using CellType = cellTypes::Yee;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         None(MappingDesc)

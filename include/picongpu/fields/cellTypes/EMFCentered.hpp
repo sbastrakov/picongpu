@@ -1,4 +1,4 @@
-/* Copyright 2013-2018 Axel Huebl, Heiko Burau, Rene Widera
+/* Copyright 2013-2018 Heiko Burau, Rene Widera, Axel Huebl
  *
  * This file is part of PIConGPU.
  *
@@ -28,160 +28,123 @@
 
 namespace picongpu
 {
-namespace numericalCellTypes
+namespace fields
 {
-    struct YeeCell{};
-} //namespace numericalCellTypes
+namespace cellTypes
+{
+
+    struct EMFCentered{};
+
+} // namespace fields
+} // namespace cellTypes
 
 namespace traits
 {
-    /** position (float2_X) in cell for E_x, E_y, E_z
+    /** position (floatD_X in case of T_simDim == simDim) in cell for
+     *  E_x, E_y, E_z
      */
-    template<>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldE, DIM2>
+    template<uint32_t T_simDim>
+    struct FieldPosition<fields::cellTypes::EMFCentered, FieldE, T_simDim>
     {
-        /** \tparam float2_X position of the component in the cell
-         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
-         */
-       using VectorVector2D3V = const ::pmacc::math::Vector<
-           float2_X,
-           DIM3
-       >;
-        /// boost::result_of hints
-        template<class> struct result;
-
-        template<class F>
-        struct result<F()> {
-            using type = VectorVector2D3V;
-        };
-
-        HDINLINE FieldPosition()
-        {
-        }
-
-        HDINLINE VectorVector2D3V operator()() const
-        {
-            const float2_X posE_x( 0.5, 0.0 );
-            const float2_X posE_y( 0.0, 0.5 );
-            const float2_X posE_z( 0.0, 0.0 );
-
-            return VectorVector2D3V( posE_x, posE_y, posE_z );
-        }
-    };
-
-    /** position (float3_X) in cell for E_x, E_y, E_z
-     */
-    template<>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldE, DIM3>
-    {
-        /** \tparam float2_X position of the component in the cell
-         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
-         */
-        using VectorVector3D3V = const ::pmacc::math::Vector<
-            float3_X,
-            DIM3
-        >;
+        typedef pmacc::math::Vector<float_X, T_simDim> PosType;
+        typedef const pmacc::math::Vector<PosType, DIM3> ReturnType;
 
         /// boost::result_of hints
         template<class> struct result;
 
         template<class F>
         struct result<F()> {
-            using type = VectorVector3D3V;
+            using type = ReturnType;
         };
 
         HDINLINE FieldPosition()
         {
         }
 
-        HDINLINE VectorVector3D3V operator()() const
+        HDINLINE ReturnType operator()() const
         {
-            const float3_X posE_x( 0.5, 0.0, 0.0 );
-            const float3_X posE_y( 0.0, 0.5, 0.0 );
-            const float3_X posE_z( 0.0, 0.0, 0.5 );
+            const auto center = PosType::create( 0.5 );
 
-            return VectorVector3D3V( posE_x, posE_y, posE_z );
-        }
-    };
-
-    /** position (float2_X) in cell for B_x, B_y, B_z
-     */
-    template<>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldB, DIM2>
-    {
-        /** \tparam float2_X position of the component in the cell
-         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
-         */
-       using VectorVector2D3V = const ::pmacc::math::Vector<
-           float2_X,
-           DIM3
-       >;
-        /// boost::result_of hints
-        template<class> struct result;
-
-        template<class F>
-        struct result<F()> {
-            using type = VectorVector2D3V;
-        };
-
-        HDINLINE FieldPosition()
-        {
-        }
-
-        HDINLINE VectorVector2D3V operator()() const
-        {
-            const float2_X posB_x( 0.0, 0.5 );
-            const float2_X posB_y( 0.5, 0.0 );
-            const float2_X posB_z( 0.5, 0.5 );
-
-            return VectorVector2D3V( posB_x, posB_y, posB_z );
-        }
-    };
-
-    /** position (float3_X) in cell for B_x, B_y, B_z
-     */
-    template<>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldB, DIM3>
-    {
-        /** \tparam float2_X position of the component in the cell
-         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
-         */
-        using VectorVector3D3V = const ::pmacc::math::Vector<
-            float3_X,
-            DIM3
-        >;
-
-        /// boost::result_of hints
-        template<class> struct result;
-
-        template<class F>
-        struct result<F()> {
-            using type = VectorVector3D3V;
-        };
-
-        HDINLINE FieldPosition()
-        {
-        }
-
-        HDINLINE VectorVector3D3V operator()() const
-        {
-            const float3_X posB_x( 0.0, 0.5, 0.5 );
-            const float3_X posB_y( 0.5, 0.0, 0.5 );
-            const float3_X posB_z( 0.5, 0.5, 0.0 );
-
-            return VectorVector3D3V( posB_x, posB_y, posB_z );
+            return ReturnType::create( center );
         }
     };
 
     /** position (floatD_X in case of T_simDim == simDim) in cell for
-     *  J_x, J_y, J_z
+     *  B_x, B_y, B_z
      */
     template<uint32_t T_simDim>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldJ, T_simDim> :
-        public FieldPosition<numericalCellTypes::YeeCell, FieldE, T_simDim>
+    struct FieldPosition<fields::cellTypes::EMFCentered, FieldB, T_simDim> :
+        public FieldPosition<fields::cellTypes::EMFCentered, FieldE, T_simDim>
     {
         HDINLINE FieldPosition()
         {
+        }
+    };
+
+    /** position (float2_X) in cell for J_x, J_y, J_z */
+    template<>
+    struct FieldPosition<fields::cellTypes::EMFCentered, FieldJ, DIM2>
+    {
+        /** \tparam float2_X position of the component in the cell
+         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
+         */
+        using VectorVector2D3V = const ::pmacc::math::Vector<
+           float2_X,
+           DIM3
+        >;
+        /// boost::result_of hints
+        template<class> struct result;
+
+        template<class F>
+        struct result<F()> {
+            using type = VectorVector2D3V;
+        };
+
+        HDINLINE FieldPosition()
+        {
+        }
+
+        HDINLINE VectorVector2D3V operator()() const
+        {
+            const float2_X posJ_x( 0.5, 0.0 );
+            const float2_X posJ_y( 0.0, 0.5 );
+            const float2_X posJ_z( 0.0, 0.0 );
+
+            return VectorVector2D3V( posJ_x, posJ_y, posJ_z );
+        }
+    };
+
+    /** position (float3_X) in cell for J_x, J_y, J_z
+     */
+    template<>
+    struct FieldPosition<fields::cellTypes::EMFCentered, FieldJ, DIM3>
+    {
+        /** \tparam float2_X position of the component in the cell
+         *  \tparam DIM3     Fields (E/B/J) have 3 components, even in 1 or 2D !
+         */
+        using VectorVector3D3V = const ::pmacc::math::Vector<
+            float3_X,
+            DIM3
+        >;
+        /// boost::result_of hints
+        template<class> struct result;
+
+        template<class F>
+        struct result<F()> {
+            using type = VectorVector3D3V;
+        };
+
+        HDINLINE FieldPosition()
+        {
+        }
+
+        HDINLINE VectorVector3D3V operator()() const
+        {
+            const float3_X posJ_x( 0.5, 0.0, 0.0 );
+            const float3_X posJ_y( 0.0, 0.5, 0.0 );
+            const float3_X posJ_z( 0.0, 0.0, 0.5 );
+
+            return VectorVector3D3V( posJ_x, posJ_y, posJ_z );
         }
     };
 
@@ -190,7 +153,7 @@ namespace traits
      * scalar field FieldTmp
      */
     template<uint32_t T_simDim>
-    struct FieldPosition<numericalCellTypes::YeeCell, FieldTmp, T_simDim>
+    struct FieldPosition<fields::cellTypes::EMFCentered, FieldTmp, T_simDim>
     {
         typedef pmacc::math::Vector<float_X, T_simDim> FieldPos;
         typedef pmacc::math::Vector<FieldPos, DIM1> ReturnType;
@@ -213,4 +176,4 @@ namespace traits
         }
     };
 } // namespace traits
-} // namespace picongpu
+} // picongpu

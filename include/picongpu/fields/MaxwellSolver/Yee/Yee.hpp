@@ -20,6 +20,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
+#include "picongpu/fields/cellTypes/Yee.hpp"
 #include "picongpu/fields/MaxwellSolver/Yee/Yee.def"
 #include "picongpu/fields/MaxwellSolver/Yee/Curl.hpp"
 #include "picongpu/fields/FieldManipulator.hpp"
@@ -27,7 +28,6 @@
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldManipulator.hpp"
 #include "picongpu/fields/MaxwellSolver/Yee/Yee.kernel"
-#include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "picongpu/fields/LaserPhysics.hpp"
 
 #include <pmacc/nvidia/functors/Assign.hpp>
@@ -112,7 +112,7 @@ namespace maxwellSolver
 
     public:
 
-        using CellType = picongpu::numericalCellTypes::YeeCell;
+        using CellType = cellTypes::Yee;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         Yee(MappingDesc cellDescription) : m_cellDescription(cellDescription)

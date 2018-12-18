@@ -22,9 +22,9 @@
 #include "picongpu/fields/MaxwellSolver/DirSplitting/DirSplitting.def"
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/MaxwellSolver/DirSplitting/DirSplitting.kernel"
+#include "picongpu/fields/cellTypes/EMFCentered.hpp"
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldE.hpp"
-#include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "picongpu/fields/LaserPhysics.hpp"
 
 #include <pmacc/cuSTL/algorithm/kernel/ForeachBlock.hpp>
@@ -106,7 +106,7 @@ namespace dirSplitting
         }
     public:
 
-        using CellType = picongpu::numericalCellTypes::EMFCenteredCell;
+        using CellType = cellTypes::EMFCentered;
         using CurrentInterpolation = T_CurrentInterpolation;
 
         DirSplitting(MappingDesc) {}
