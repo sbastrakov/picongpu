@@ -50,7 +50,10 @@ namespace maxwellSolver
     >
     class Yee
     {
-    private:
+    protected:
+    // TODO: protected is used just so that YeePML may use the implementation,
+    // it is probably a hacky way to achieve that.
+    // This class is not meant to be used as a polymorphic base in any case
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
 

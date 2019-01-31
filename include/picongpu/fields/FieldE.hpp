@@ -95,7 +95,7 @@ namespace picongpu
 
     private:
 
-        void absorbeBorder();
+        void absorbeBorder(); // this looks like a forgotten leftover from older changes
 
 
         GridBuffer<ValueType,simDim> *fieldE;
