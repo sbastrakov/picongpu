@@ -46,6 +46,7 @@
 #include "picongpu/fields/FieldE.hpp"
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldJ.hpp"
+#include "picongpu/fields/FieldPML.hpp"
 #include "picongpu/fields/FieldTmp.hpp"
 #include "picongpu/fields/MaxwellSolver/Solvers.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
@@ -308,6 +309,8 @@ public:
         dc.share( std::shared_ptr< ISimulationData >( fieldE ) );
         auto fieldJ = new FieldJ( *cellDescription );
         dc.share( std::shared_ptr< ISimulationData >( fieldJ ) );
+        auto fieldPML = new FieldPML(*cellDescription);
+        dc.share(std::shared_ptr< ISimulationData >(fieldPML));
 
         std::vector< FieldTmp * > fieldTmp;
         for( uint32_t slot = 0; slot < fieldTmpNumSlots; ++slot)
