@@ -61,13 +61,15 @@ using namespace pmacc;
 FieldPML::FieldPML( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription )
 {
-    /*#####create FieldB###############*/
+    /*#####create FieldPML###############*/
+    log<picLog::PHYSICS >("In FieldPML::FieldPML()");
     fieldPML = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 }
 
 FieldPML::~FieldPML( )
 {
-    __delete(fieldB);
+    log<picLog::PHYSICS >("In FieldPML::~FieldPML()");
+    __delete(fieldPML);
 }
 
 SimulationDataId FieldPML::getUniqueId()
@@ -77,18 +79,19 @@ SimulationDataId FieldPML::getUniqueId()
 
 void FieldPML::synchronize( )
 {
+    log<picLog::PHYSICS >("In FieldPML::synchronize()");
     fieldPML->deviceToHost( );
 }
 
 void FieldPML::syncToDevice( )
 {
-
+    log<picLog::PHYSICS >("In FieldPML::syncToDevice()");
     fieldPML->hostToDevice( );
 }
 
 EventTask FieldPML::asyncCommunication( EventTask serialEvent )
 {
-
+    log<picLog::PHYSICS >("In FieldPML::asyncCommunication()");
     EventTask eB = fieldPML->asyncCommunication( serialEvent );
     return eB;
 }
@@ -119,6 +122,7 @@ GridBuffer<FieldPML::ValueType, simDim> &FieldPML::getGridBuffer( )
 
 void FieldPML::reset( uint32_t )
 {
+    log<picLog::PHYSICS >("In FieldPML::reset()");
     fieldPML->getHostBuffer( ).reset( true );
     fieldPML->getDeviceBuffer( ).reset( false );
 }
@@ -147,6 +151,7 @@ FieldPML::getName( )
 uint32_t
 FieldPML::getCommTag( )
 {
+    log<picLog::PHYSICS >("In FieldPML::getCommTag() - NOT IMPLEMENTED YET");
     return 0; /// todo
 }
 

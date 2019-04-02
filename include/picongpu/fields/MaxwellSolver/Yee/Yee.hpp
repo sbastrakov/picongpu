@@ -44,7 +44,7 @@ namespace maxwellSolver
 {
 
     template<
-        typename T_CurrentInterpolation,
+        typename T_CurrentInterpolation,  // note: this is not used
         class CurlE,
         class CurlB
     >
@@ -116,7 +116,7 @@ namespace maxwellSolver
     public:
 
         using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
-        using CurrentInterpolation = T_CurrentInterpolation;
+        using CurrentInterpolation = T_CurrentInterpolation; // note: this is not used
 
         Yee(MappingDesc cellDescription) : m_cellDescription(cellDescription)
         {
