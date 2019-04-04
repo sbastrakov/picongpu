@@ -32,13 +32,18 @@
 #include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "picongpu/fields/LaserPhysics.hpp"
 
+#include <pmacc/dimensions/DataSpace.hpp>
 #include <pmacc/nvidia/functors/Assign.hpp>
 #include <pmacc/mappings/threads/ThreadCollective.hpp>
 #include <pmacc/memory/boxes/CachedBox.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/traits/NumberOfExchanges.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
+#include <map>
+#include <numeric>
 
 
 namespace picongpu
@@ -47,6 +52,45 @@ namespace fields
 {
 namespace maxwellSolver
 {
+
+    namespace detail
+    {
+        // For lack of a data type for exchange directions, introduce one
+        using ExchangeDirection = uint32_t;
+        using ExchangeDirections = std::vector< ExchangeDirection >;
+
+        // Get all exchanges for which PML can be used in the current domain
+        // Note that it does not have to be used due to other restrictions
+        ExchangeDirections getActiveDirections( uint32_t thickness[3][2] )
+        {
+            auto isActive = [&]( ExchangeDirection direction )
+            {
+                auto const communicationMask = Environment< simDim >::get().GridController().getCommunicationMask();
+                bool const hasNeighbor = communicationMask.isSet( direction );
+                if( hasNeighbor )
+                    return false;
+                auto const relativeMask = communicationMask.getRelativeDirections< simDim >( direction );
+                for( uint32_t dim = 0; dim < simDim; dim++ )
+                {
+                    // in relativeMask[ dim ] 1 is we are at "right" border, -1 is "left", 0 - "middle"
+                    if ( relativeMask[ dim ] )
+                    {
+                        int const idx = std::max( relativeMask[ dim ], 0 );
+                        if( thickness[ dim ][ idx ] != 0 )
+                            return true;
+                    }
+                }
+                return false;
+            };
+
+            ExchangeDirections allDirections( NumberOfExchanges< simDim >::value );
+            std::iota( allDirections.begin(), allDirections.end(), 0 );
+            ExchangeDirections activeDirections;
+            std::copy_if( allDirections.begin(), allDirections.end(), std::back_inserter( activeDirections ), isActive );
+            return activeDirections;
+        }
+
+    } // namespace detail
 
     // Yee solver with PML absorber
     // With the current design of field solvers, PML has to be specific for each solver
@@ -79,6 +123,7 @@ namespace maxwellSolver
         // as a temporary solution sides are encoded in the absorber format (to be fixed)
         uint32_t thickness[3][2]; // unit: cells
         float3_X sigmaMax;
+        detail::ExchangeDirections activeDirections;
 
         void initializeParameters()
         {
@@ -89,9 +134,9 @@ namespace maxwellSolver
             for (int axis = 0; axis < 3; axis++)
                 for (int direction = 0; direction < 2; direction++) {
                     thickness[axis][direction] = ABSORBER_CELLS[axis][direction];
-                    ///std::cout << "PML thinkess[" << axis << "][" << direction << "] = "
-                    ///    << thickness[axis][direction] << std::endl;
                 }
+            activeDirections = detail::getActiveDirections( thickness );
+            ///std::copy( activeDirections.begin(), activeDirections.end(), std::ostream_iterator< int >( std::cout, " " ) );
 
             gradingOrder = 4; // for now hardcoded with a good default value
             // Sigma optimal is based on (7.66) in Taflove 3rd ed., but uses PIC units and is divided by eps0
@@ -104,27 +149,8 @@ namespace maxwellSolver
                 sigmaMax[ dim ] = sigmaOptimalMultiplier * sigmaOptimal[ dim ];
         }
 
-        bool isActiveDirection( uint32_t const exchangeIdx, uint32_t const currentStep ) const
+        bool isEnabled( uint32_t const exchangeIdx, uint32_t const currentStep ) const
         {
-            auto const communicationMask = Environment< simDim >::get().GridController().getCommunicationMask();
-
-            // PML can only be used on the outer borders of the simulation domain
-            bool const hasNeighbor = communicationMask.isSet( exchangeIdx );
-            if( hasNeighbor )
-                return false;
-
-            bool isActive = false;
-            auto const relativeMask = communicationMask.getRelativeDirections< simDim >( exchangeIdx );
-            for( uint32_t dim = 0; dim < simDim; dim++ )
-            {
-                // in relativeMask[ dim ] 1 is we are at "right" border, -1 is "left"
-                int const idx = abs( relativeMask[ dim ] );
-                if( thickness[ dim ][ idx ] != 0 )
-                    isActive = true;
-            }
-            if( !isActive )
-                return false;
-
             // this logic is copied from the old absorber,
             // after checking it seems PML should use the same logic
             /* allow to enable the absorber on the top side if the laser
@@ -154,15 +180,12 @@ namespace maxwellSolver
 
         void updateBHalfPML( uint32_t const currentStep )
         {
-            auto const numExchanges = NumberOfExchanges< simDim >::value;
-            for( uint32_t exchangeIdx = 1; exchangeIdx < numExchanges; ++exchangeIdx )
+            for( auto direction: activeDirections )
             {
-                bool enabled = isActiveDirection( exchangeIdx, currentStep );
-                ///std::cout << "exchangeIdx = " << exchangeIdx << ", enabled = " << enabled << "\n\n\n";
-                if( !enabled )
+                if( !isEnabled( direction, currentStep ) )
                     continue;
 
-                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, exchangeIdx );
+                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, direction );
                 constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                     pmacc::math::CT::volume< SuperCellSize >::type::value
                 >::value;
@@ -189,15 +212,12 @@ namespace maxwellSolver
 
         void updateEPML( uint32_t currentStep )
         {
-            auto const numExchanges = NumberOfExchanges< simDim >::value;
-            for( uint32_t exchangeIdx = 1; exchangeIdx < numExchanges; ++exchangeIdx )
+            for( auto direction: activeDirections )
             {
-                bool enabled = isActiveDirection( exchangeIdx, currentStep );
-                ///std::cout << "exchangeIdx = " << exchangeIdx << ", enabled = " << enabled << "\n\n\n";
-                if( !enabled )
+                if( !isEnabled( direction, currentStep ) )
                     continue;
 
-                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, exchangeIdx );
+                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, direction );
                 constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                     pmacc::math::CT::volume< SuperCellSize >::type::value
                 >::value;
