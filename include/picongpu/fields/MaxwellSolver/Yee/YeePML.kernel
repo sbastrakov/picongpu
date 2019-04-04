@@ -20,6 +20,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
+#include <pmacc/algorithms/math/floatMath/floatingPoint.tpp>
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/mappings/threads/ThreadCollective.hpp>
@@ -36,18 +37,46 @@ namespace yeePML
 {
     using namespace pmacc;
 
-    /// Parameters and getSigma() should be moved to detail afterwards
-    struct Parameters {
-        float3_X sigmaMax;
-        int gradingOrder;
-    };
-
-    DINLINE float3_X getSigma(DataSpace< simDim > cellIdx, Parameters parameters,
-        DataSpace< simDim > numPMLCells,
-        DataSpace< simDim >localDomainCells)
+    namespace detail
     {
-        parameters.sigmaMax;
-    }
+
+        struct Parameters
+        {
+            floatD_X normalizedSigmaMax;
+            uint32_t gradingOrder;
+        };
+
+        // Get relative depth of a given index in PML, result between 0 and 1
+        // index is float to account for halves of cells
+        DINLINE float_X getRelativeDepth(float_X index, uint32_t numPMLCells, uint32_t numLocalDomainCells)
+        {
+            float_X result = 0.0;
+            if( index < numPMLCells )
+                result = (numPMLCells - index) / numPMLCells;
+            if( index > numLocalDomainCells - numPMLCells )
+                result = ( index - numLocalDomainCells + numPMLCells ) / numPMLCells;
+            return result;
+        }
+
+        DINLINE floatD_X getSigma( floatD_X cellIdx, Parameters parameters,
+            DataSpace< simDim > numPMLCells,
+            DataSpace< simDim > numLocalDomainCells)
+        {
+            floatD_X sigma;
+            for( uint32_t dim = 0; dim < simDim; dim++ )
+            {
+                float_X const relativeDepth = getRelativeDepth(
+                    cellIdx[ dim ],
+                    numPMLCells[ dim ],
+                    numLocalDomainCells[ dim ]
+                );
+                float_X const gradingCoefficient = math::pow( relativeDepth, float_X( parameters.gradingOrder ) );
+                sigma[ dim ] = parameters.normalizedSigmaMax[ dim ] * gradingCoefficient;
+            }
+            return sigma;
+        }
+
+    } // namespace detail
 
     /** compute electric field
      *
@@ -79,7 +108,7 @@ namespace yeePML
         template<
             typename T_Curl,
             typename T_EBox,
-            typename T_SplitEBox,
+            typename T_PMLBox,
             typename T_BBox,
             typename T_Mapping,
             typename T_Acc
@@ -87,17 +116,127 @@ namespace yeePML
         DINLINE void operator()(
             T_Acc const & acc,
             T_Curl const curl,
+            T_PMLBox splitFields,
             T_EBox fieldE,
-            T_SplitEBox splitFieldE,
             T_BBox const fieldB, // here only full B is required
-            T_Mapping mapper
+            T_Mapping mapper,
+            detail::Parameters parameters
         ) const
         {
-            /// TODO
+            // All numbers, offsets and indexes in this kernel include guard
+            auto const numGuardSuperCells = mapper.getGuardingSuperCells();
+            DataSpace< simDim > numGuardCells( numGuardSuperCells * SuperCellSize::toRT() );
+            DataSpace< simDim > const numLocalDomainCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
+            /// for now assume all guard cells are PML, can fix this value later
+            auto numPMLCells = numGuardCells;
+
+            // local index (inside the local domain), including guards
+            DataSpace< simDim > const superCellIdx( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
+            // starting cell index in the current supercell
+            DataSpace< simDim > const startCellIdx = superCellIdx * MappingDesc::SuperCellSize::toRT();
+
+            // Cache E values for the block
+            using namespace mappings::threads;
+            constexpr uint32_t numWorkers = T_workers;
+            uint32_t const workerIdx = threadIdx.x;
+            nvidia::functors::Assign assign;
+            auto fieldBBlock = fieldB.shift( startCellIdx );
+            ThreadCollective<
+                T_BlockDescription,
+                numWorkers
+            > collectiveCacheB( workerIdx );
+            auto cachedB = CachedBox::create<
+                0u,
+                typename T_BBox::ValueType
+            >(
+                acc,
+                T_BlockDescription()
+                );
+            collectiveCacheB(
+                acc,
+                assign,
+                cachedB,
+                fieldBBlock
+            );
+            __syncthreads();
+
+            // Parallel processing of cells
+            constexpr uint32_t numCellsPerSuperCell = pmacc::math::CT::volume< SuperCellSize >::type::value;
+            ForEachIdx<
+                IdxConfig<
+                numCellsPerSuperCell,
+                numWorkers
+                >
+            >{ workerIdx }(
+                [&](
+                    uint32_t const linearIdx,
+                    uint32_t const
+                    )
+            {
+                // cellIdx is cell index in local domain
+                DataSpace< simDim > const cellIdxInSuperCell = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
+                auto cellIdx = startCellIdx + cellIdxInSuperCell;
+
+                // check that the stencil can be computed in our index space
+                // to be generic we check both upper and lower sides, even though a
+                // stencil is realistically one-sided
+                using LowerMargin = typename traits::GetMargin< T_Curl >::LowerMargin;
+                using UpperMargin = typename traits::GetMargin< T_Curl >::UpperMargin;
+                auto const lowerMargin = LowerMargin::toRT();
+                auto const upperMargin = UpperMargin::toRT();
+                for ( int dim = 0; dim < simDim; dim++ )
+                {
+                    bool fitsLower = ( cellIdx[ dim ] >= lowerMargin[ dim ] );
+                    bool fitsUpper = ( cellIdx[ dim ] + upperMargin[ dim ] < numLocalDomainCells[ dim ] );
+                    if ( !fitsLower || !fitsUpper )
+                    {
+                        ///std::cout << "returning for cellIdx = " << cellIdx << "\n";
+                        return;
+                    }
+                }
+
+                constexpr float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+                constexpr float_X dt = DELTA_T;
+
+                // we might want to precompute that later
+                // for now only 3D implementation
+                // with the current grid for E does not need to shifted
+                const float3_X sigmaIdx( cellIdx.x(), cellIdx.y(), cellIdx.z() );
+                const float3_X sigma = detail::getSigma( sigmaIdx, parameters, numPMLCells, numLocalDomainCells );
+                const float3_X damping( 
+                    math::exp( -sigma[0] * dt ),
+                    math::exp( -sigma[1] * dt ),
+                    math::exp( -sigma[2] * dt )
+                );
+                float3_X diff( dt, dt, dt );
+                for ( uint32_t dim = 0; dim < 3; dim++ )
+                    if ( sigma[ dim ] )
+                        diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
+                ///std::cout << "E: cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
+
+                // Update split fields
+                using Difference = typename T_Curl::Difference;
+                const typename Difference::template GetDifference< 0 > Dx;
+                const typename Difference::template GetDifference< 1 > Dy;
+                const typename Difference::template GetDifference< 2 > Dz;
+                auto localB = cachedB.shift( cellIdxInSuperCell );
+                splitFields( cellIdx ).eyx = damping.x() * splitFields( cellIdx ).eyx - diff.x() * c2 * Dx( localB ).z();
+                splitFields( cellIdx ).ezx = damping.x() * splitFields( cellIdx ).ezx + diff.x() * c2 * Dx( localB ).y();
+                splitFields( cellIdx ).exy = damping.y() * splitFields( cellIdx ).exy + diff.y() * c2 * Dy( localB ).z();
+                splitFields( cellIdx ).ezy = damping.y() * splitFields( cellIdx ).ezy - diff.y() * c2 * Dy( localB ).x();
+                splitFields( cellIdx ).exz = damping.z() * splitFields( cellIdx ).exz - diff.z() * c2 * Dz( localB ).y();
+                splitFields( cellIdx ).eyz = damping.z() * splitFields( cellIdx ).eyz + diff.z() * c2 * Dz( localB ).x();
+
+                // Full fields are sums of split fields
+                fieldE( cellIdx ).x() = splitFields( cellIdx ).exy + splitFields( cellIdx ).exz;
+                fieldE( cellIdx ).y() = splitFields( cellIdx ).eyx + splitFields( cellIdx ).eyz;
+                fieldE( cellIdx ).z() = splitFields( cellIdx ).ezx + splitFields( cellIdx ).ezy;
+            }
+            );
         }
     };
 
-    /** compute magnetic field
+    /** Update magnetic field
      *
      * @tparam T_numWorkers number of workers
      * @tparam T_BlockDescription field (electric and magnetic) domain description
@@ -139,56 +278,51 @@ namespace yeePML
             T_BBox fieldB,
             T_EBox const fieldE,
             T_Mapping mapper,
-            Parameters parameters
+            detail::Parameters parameters
         ) const
         {
-            using namespace mappings::threads;
-
-            constexpr uint32_t cellsPerSuperCell = pmacc::math::CT::volume< SuperCellSize >::type::value;
-            constexpr uint32_t numWorkers = T_workers;
-
-            uint32_t const workerIdx = threadIdx.x;
-
+            // All numbers, offsets and indexes in this kernel include guard
             auto const numGuardSuperCells = mapper.getGuardingSuperCells();
-            DataSpace< simDim > guardCells(numGuardSuperCells * SuperCellSize::toRT());
-            DataSpace< simDim > const localDomainCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
-            /// for now assume all guard cells are PML
-            auto numPMLCells = guardCells;
+            DataSpace< simDim > numGuardCells( numGuardSuperCells * SuperCellSize::toRT() );
+            DataSpace< simDim > const numLocalDomainCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
+            /// for now assume all guard cells are PML, can fix this value later
+            auto numPMLCells = numGuardCells;
 
+            // local index (inside the local domain), including guards
+            DataSpace< simDim > const superCellIdx( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
+            // starting cell index in the current supercell
+            DataSpace< simDim > const startCellIdx = superCellIdx * MappingDesc::SuperCellSize::toRT();
+
+            // Cache E values for the block
+            using namespace mappings::threads;
+            constexpr uint32_t numWorkers = T_workers;
+            uint32_t const workerIdx = threadIdx.x;
+            nvidia::functors::Assign assign;
+            auto fieldEBlock = fieldE.shift( startCellIdx );
+            ThreadCollective<
+                T_BlockDescription,
+                numWorkers
+            > collectiveCacheE( workerIdx );
             auto cachedE = CachedBox::create<
                 0u,
                 typename T_EBox::ValueType
             >(
                 acc,
-                T_BlockDescription( )
+                T_BlockDescription()
             );
-
-            nvidia::functors::Assign assign;
-            DataSpace< simDim > const block( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
-            DataSpace< simDim > const blockCell = block * MappingDesc::SuperCellSize::toRT( );
-
-            auto fieldEBlock = fieldE.shift( blockCell );
-
-            ThreadCollective<
-                T_BlockDescription,
-                numWorkers
-            > collective( workerIdx );
-
-            collective(
+            collectiveCacheE(
                 acc,
                 assign,
                 cachedE,
                 fieldEBlock
             );
-
             __syncthreads();
 
-            constexpr float_X dt = DELTA_T;
-            constexpr float_X halfDt = 0.5_X * dt;
-
+            // Parallel processing of cells
+            constexpr uint32_t numCellsPerSuperCell = pmacc::math::CT::volume< SuperCellSize >::type::value;
             ForEachIdx<
                 IdxConfig<
-                    cellsPerSuperCell,
+                    numCellsPerSuperCell,
                     numWorkers
                 >
             >{ workerIdx }(
@@ -197,39 +331,62 @@ namespace yeePML
                     uint32_t const
                 )
                 {
-                    /* cell index within the superCell */
-                    DataSpace< simDim > const localCellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
-                    auto cellIdx = blockCell + localCellIdx;
-                    std::cout << "cellIdx, cellIdx = " << cellIdx << " " << localCellIdx << "\n";
+                    // cellIdx is cell index in local domain
+                    DataSpace< simDim > const cellIdxInSuperCell = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
+                    auto cellIdx = startCellIdx + cellIdxInSuperCell;
 
-                    /// this is to avoid near-boundary values as E spatial derivatives are not available there,
-                    /// probably there is a better way
-                    if ((cellIdx.x() == localDomainCells.x() - 1) ||
-                        (cellIdx.y() == localDomainCells.y() - 1) ||
-                        (cellIdx.z() == localDomainCells.z() - 1))
-                        return;
+                    // check that the stencil can be computed in our index space
+                    // to be generic we check both upper and lower sides, even though a
+                    // stencil is realistically one-sided
+                    using LowerMargin = typename traits::GetMargin< T_Curl >::LowerMargin;
+                    using UpperMargin = typename traits::GetMargin< T_Curl >::UpperMargin;
+                    auto const lowerMargin = LowerMargin::toRT();
+                    auto const upperMargin = UpperMargin::toRT();
+                    for ( int dim = 0; dim < simDim; dim++ )
+                    {
+                        bool fitsLower = ( cellIdx[ dim ] >= lowerMargin[ dim ] );
+                        bool fitsUpper = ( cellIdx[ dim ] + upperMargin[ dim ] < numLocalDomainCells[ dim ] );
+                        if ( !fitsLower || !fitsUpper )
+                        {
+                            ///std::cout << "returning for cellIdx = " << cellIdx << "\n";
+                            return;
+                        }
+                    }
 
+                    constexpr float_X halfDt = 0.5_X * DELTA_T;
+                    // we might want to precompute that later
+                    // for now only 3D implementation
+                    // with the current grid for B need to shift by a half cell
+                    const float3_X sigmaIdx( cellIdx.x() + 0.5_X, cellIdx.y() + 0.5_X, cellIdx.z() + 0.5_X );
+                    const float3_X sigma = detail::getSigma( sigmaIdx, parameters, numPMLCells, numLocalDomainCells );
+                    const float3_X damping( 
+                        math::exp( -sigma[0] * halfDt ),
+                        math::exp( -sigma[1] * halfDt ),
+                        math::exp( -sigma[2] * halfDt )
+                    );
+                    float3_X diff( halfDt, halfDt, halfDt );
+                    for ( uint32_t dim = 0; dim < 3; dim++ )
+                        if ( sigma[ dim ] )
+                            diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
+                    ///std::cout << "cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
+
+                    // Update split fields
                     using Difference = typename T_Curl::Difference;
                     const typename Difference::template GetDifference< 0 > Dx;
                     const typename Difference::template GetDifference< 1 > Dy;
                     const typename Difference::template GetDifference< 2 > Dz;
-                    // we might want to precompute that later
-                    const float3_X sigma = getSigma( cellIdx, parameters, numPMLCells, localDomainCells );
-                    const float3_X damping( math::exp(-sigma[0] * halfDt), math::exp(-sigma[1] * halfDt), math::exp(-sigma[2] * halfDt) );
-                    float3_X diff( halfDt, halfDt, halfDt );
-                    for (int d = 0; d < 3; d++)
-                        if (sigma[d])
-                            diff[d] = ( 1.0_X - damping[d] ) / sigma[d];
-                    auto localE = cachedE.shift(localCellIdx);
-                    splitFields(cellIdx).byx = damping.x() * splitFields(cellIdx).byx + diff.x() * (localE).z();
-                    splitFields(cellIdx).bzx = damping.x() * splitFields(cellIdx).bzx - diff.x() * Dx(localE).y();
-                    splitFields(cellIdx).bxy = damping.y() * splitFields(cellIdx).bxy - diff.y() * Dy(localE).z();
-                    splitFields(cellIdx).bzy = damping.y() * splitFields(cellIdx).bzy + diff.y() * Dy(localE).x();
-                    splitFields(cellIdx).bxz = damping.z() * splitFields(cellIdx).bxz + diff.z() * Dz(localE).y();
-                    splitFields(cellIdx).byz = damping.z() * splitFields(cellIdx).byz - diff.z() * Dz(localE).x();
-                    fieldB(cellIdx).x() = splitFields(cellIdx).bxy + splitFields(cellIdx).bxz;
-                    fieldB(cellIdx).y() = splitFields(cellIdx).byx + splitFields(cellIdx).byz;
-                    fieldB(cellIdx).z() = splitFields(cellIdx).bzx + splitFields(cellIdx).bzy;
+                    auto localE = cachedE.shift( cellIdxInSuperCell );
+                    splitFields( cellIdx ).byx = damping.x() * splitFields( cellIdx ).byx + diff.x() * Dx( localE ).z();
+                    splitFields( cellIdx ).bzx = damping.x() * splitFields( cellIdx ).bzx - diff.x() * Dx( localE ).y();
+                    splitFields( cellIdx ).bxy = damping.y() * splitFields( cellIdx ).bxy - diff.y() * Dy( localE ).z();
+                    splitFields( cellIdx ).bzy = damping.y() * splitFields( cellIdx ).bzy + diff.y() * Dy( localE ).x();
+                    splitFields( cellIdx ).bxz = damping.z() * splitFields( cellIdx ).bxz + diff.z() * Dz( localE ).y();
+                    splitFields( cellIdx ).byz = damping.z() * splitFields( cellIdx ).byz - diff.z() * Dz( localE ).x();
+
+                    // Full fields are sums of split fields
+                    fieldB( cellIdx ).x() = splitFields( cellIdx ).bxy + splitFields( cellIdx ).bxz;
+                    fieldB( cellIdx ).y() = splitFields( cellIdx ).byx + splitFields( cellIdx ).byz;
+                    fieldB( cellIdx ).z() = splitFields( cellIdx ).bzx + splitFields( cellIdx ).bzy;
                 }
             );
         }
