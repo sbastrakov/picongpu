@@ -84,8 +84,8 @@ namespace yeePML
      * @tparam T_BlockDescription field (electric and magnetic) domain description
      */
     template<
-        uint32_t T_workers,
-        typename T_BlockDescription
+        uint32_t T_workers/*,
+        typename T_BlockDescription*/
     >
     struct KernelUpdateE
     {
@@ -139,7 +139,8 @@ namespace yeePML
             using namespace mappings::threads;
             constexpr uint32_t numWorkers = T_workers;
             uint32_t const workerIdx = threadIdx.x;
-            nvidia::functors::Assign assign;
+            /// Temporarily disable cacheing
+            /*nvidia::functors::Assign assign;
             auto fieldBBlock = fieldB.shift( startCellIdx );
             ThreadCollective<
                 T_BlockDescription,
@@ -157,7 +158,7 @@ namespace yeePML
                 assign,
                 cachedB,
                 fieldBBlock
-            );
+            );*/
             __syncthreads();
 
             // Parallel processing of cells
@@ -219,7 +220,7 @@ namespace yeePML
                 const typename Difference::template GetDifference< 0 > Dx;
                 const typename Difference::template GetDifference< 1 > Dy;
                 const typename Difference::template GetDifference< 2 > Dz;
-                auto localB = cachedB.shift( cellIdxInSuperCell );
+                auto localB = fieldB.shift( cellIdx ); ///cachedB.shift( cellIdxInSuperCell );
                 splitFields( cellIdx ).eyx = damping.x() * splitFields( cellIdx ).eyx - diff.x() * c2 * Dx( localB ).z();
                 splitFields( cellIdx ).ezx = damping.x() * splitFields( cellIdx ).ezx + diff.x() * c2 * Dx( localB ).y();
                 splitFields( cellIdx ).exy = damping.y() * splitFields( cellIdx ).exy + diff.y() * c2 * Dy( localB ).z();
@@ -242,8 +243,8 @@ namespace yeePML
      * @tparam T_BlockDescription field (electric and magnetic) domain description
      */
     template<
-        uint32_t T_workers,
-        typename T_BlockDescription
+        uint32_t T_workers/*,
+        typename T_BlockDescription*/
     >
     struct KernelUpdateBHalf
     {
@@ -297,7 +298,8 @@ namespace yeePML
             using namespace mappings::threads;
             constexpr uint32_t numWorkers = T_workers;
             uint32_t const workerIdx = threadIdx.x;
-            nvidia::functors::Assign assign;
+            /// Temporarily disable cacheing
+            /*nvidia::functors::Assign assign;
             auto fieldEBlock = fieldE.shift( startCellIdx );
             ThreadCollective<
                 T_BlockDescription,
@@ -315,7 +317,7 @@ namespace yeePML
                 assign,
                 cachedE,
                 fieldEBlock
-            );
+            );*/
             __syncthreads();
 
             // Parallel processing of cells
@@ -375,7 +377,7 @@ namespace yeePML
                     const typename Difference::template GetDifference< 0 > Dx;
                     const typename Difference::template GetDifference< 1 > Dy;
                     const typename Difference::template GetDifference< 2 > Dz;
-                    auto localE = cachedE.shift( cellIdxInSuperCell );
+                    auto localE = fieldE.shift( cellIdx ); ///cachedE.shift( cellIdxInSuperCell );
                     splitFields( cellIdx ).byx = damping.x() * splitFields( cellIdx ).byx + diff.x() * Dx( localE ).z();
                     splitFields( cellIdx ).bzx = damping.x() * splitFields( cellIdx ).bzx - diff.x() * Dx( localE ).y();
                     splitFields( cellIdx ).bxy = damping.y() * splitFields( cellIdx ).bxy - diff.y() * Dy( localE ).z();

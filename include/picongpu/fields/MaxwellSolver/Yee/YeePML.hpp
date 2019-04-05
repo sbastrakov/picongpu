@@ -189,16 +189,18 @@ namespace maxwellSolver
                 constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                     pmacc::math::CT::volume< SuperCellSize >::type::value
                 >::value;
-                typedef SuperCellDescription<
-                    SuperCellSize,
-                    typename CurlE::LowerMargin,
-                    typename CurlE::UpperMargin
-                > BlockArea;
+                /// Temporarily disable cacheing as it is not clear how to load
+                /// exactly what we need and not go outside of the area
+                ///typedef SuperCellDescription<
+                ///    SuperCellSize,
+                ///    typename CurlE::LowerMargin,
+                ///    typename CurlE::UpperMargin
+                ///> BlockArea;
 
                 yeePML::detail::Parameters parameters;
                 parameters.normalizedSigmaMax = this->sigmaMax;
                 parameters.gradingOrder = this->gradingOrder;
-                PMACC_KERNEL( yeePML::KernelUpdateBHalf< numWorkers, BlockArea >{ } )
+                PMACC_KERNEL( yeePML::KernelUpdateBHalf< numWorkers/*, BlockArea*/ >{ } )
                     ( mapper.getGridDim(), numWorkers )(
                         CurlE(),
                         this->fieldPML->getDeviceDataBox(),
@@ -221,16 +223,18 @@ namespace maxwellSolver
                 constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                     pmacc::math::CT::volume< SuperCellSize >::type::value
                 >::value;
-                typedef SuperCellDescription<
-                    SuperCellSize,
-                    typename CurlB::LowerMargin,
-                    typename CurlB::UpperMargin
-                > BlockArea;
+                /// Temporarily disable cacheing as it is not clear how to load
+                /// exactly what we need and not go outside of the area
+                ///typedef SuperCellDescription<
+                ///    SuperCellSize,
+                ///    typename CurlB::LowerMargin,
+                ///    typename CurlB::UpperMargin
+                ///> BlockArea;
 
                 yeePML::detail::Parameters parameters;
                 parameters.normalizedSigmaMax = this->sigmaMax;
                 parameters.gradingOrder = this->gradingOrder;
-                PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers, BlockArea >{ } )
+                PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers /*, BlockArea*/ >{ } )
                     ( mapper.getGridDim(), numWorkers )(
                         CurlE(),
                         this->fieldPML->getDeviceDataBox(),
