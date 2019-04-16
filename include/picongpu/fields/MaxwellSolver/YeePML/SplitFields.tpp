@@ -22,7 +22,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/fields/FieldPML.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.hpp"
 
 #include <pmacc/eventSystem/EventSystem.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>

@@ -46,7 +46,7 @@
 #include "picongpu/fields/FieldE.hpp"
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldJ.hpp"
-#include "picongpu/fields/FieldPML.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.hpp"
 #include "picongpu/fields/FieldTmp.hpp"
 #include "picongpu/fields/MaxwellSolver/Solvers.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"

@@ -24,5 +24,6 @@
 #include "picongpu/fields/FieldB.tpp"
 #include "picongpu/fields/FieldE.tpp"
 #include "picongpu/fields/FieldJ.tpp"
-#include "picongpu/fields/FieldPML.tpp"
 #include "picongpu/fields/FieldTmp.tpp"
+/// As a workaround, for now put here
+#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.tpp"
