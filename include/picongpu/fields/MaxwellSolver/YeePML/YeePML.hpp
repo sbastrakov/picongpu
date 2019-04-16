@@ -29,7 +29,7 @@
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldPML.hpp"
 #include "picongpu/fields/FieldManipulator.hpp"
-#include "picongpu/fields/MaxwellSolver/Yee/YeePML.kernel"
+#include "picongpu/fields/MaxwellSolver/YeePML/YeePML.kernel"
 #include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "picongpu/fields/LaserPhysics.hpp"
 
