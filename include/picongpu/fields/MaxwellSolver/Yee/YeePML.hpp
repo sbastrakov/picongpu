@@ -1,4 +1,5 @@
 /* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
+ *                     Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -255,10 +256,6 @@ namespace maxwellSolver
             initializeParameters();
         }
 
-        // TODO: the following update_beforeCurrent() and update_afterCurrent()
-        // are exactly the same as in the Yee solver (but internally called
-        // updateBHalf, updateE are not). It would be ofc much better to not
-        // duplicate this logic, and this should be possible rather easily
         void update_beforeCurrent( uint32_t const currentStep )
         {
             // here we need up-to-date E everywhere, including PML for near-PML border
