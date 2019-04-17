@@ -227,6 +227,7 @@ namespace yee
                     /* cell index within the superCell */
                     DataSpace< simDim > const cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
 
+                    /// todo: maybe add a new constexpr for 0.5 * dt ?
                     fieldB( blockCell + cellIdx ) -= curl( cachedE.shift( cellIdx ) ) * float_X( 0.5 ) * dt;
                 }
             );

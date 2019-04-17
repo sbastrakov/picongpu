@@ -44,13 +44,16 @@ namespace maxwellSolver
 {
 
     template<
-        typename T_CurrentInterpolation,
+        typename T_CurrentInterpolation,  // note: this is not used
         class CurlE,
         class CurlB
     >
     class Yee
     {
-    private:
+    protected:
+    // TODO: protected is used just so that YeePML may use the implementation,
+    // it is probably a hacky way to achieve that.
+    // This class is not meant to be used as a polymorphic base in any case
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
 
@@ -113,7 +116,7 @@ namespace maxwellSolver
     public:
 
         using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
-        using CurrentInterpolation = T_CurrentInterpolation;
+        using CurrentInterpolation = T_CurrentInterpolation; // note: this is not used
 
         Yee(MappingDesc cellDescription) : m_cellDescription(cellDescription)
         {
