@@ -62,101 +62,91 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-FieldPML::FieldPML( MappingDesc cellDescription ) :
+SplitFields::SplitFields( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription )
 {
-    /*#####create FieldPML###############*/
-    log<picLog::PHYSICS >("In FieldPML::FieldPML()");
-    fieldPML = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    data.reset(
+        new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) )
+    );
 }
 
-FieldPML::~FieldPML( )
-{
-    log<picLog::PHYSICS >("In FieldPML::~FieldPML()");
-    __delete(fieldPML);
-}
-
-SimulationDataId FieldPML::getUniqueId()
+SimulationDataId SplitFields::getUniqueId()
 {
     return getName();
 }
 
-void FieldPML::synchronize( )
+void SplitFields::synchronize( )
 {
-    log<picLog::PHYSICS >("In FieldPML::synchronize()");
-    fieldPML->deviceToHost( );
+    data->deviceToHost( );
 }
 
-void FieldPML::syncToDevice( )
+void SplitFields::syncToDevice( )
 {
-    log<picLog::PHYSICS >("In FieldPML::syncToDevice()");
-    fieldPML->hostToDevice( );
+    data->hostToDevice( );
 }
 
-EventTask FieldPML::asyncCommunication( EventTask serialEvent )
+EventTask SplitFields::asyncCommunication( EventTask serialEvent )
 {
-    log<picLog::PHYSICS >("In FieldPML::asyncCommunication()");
-    EventTask eB = fieldPML->asyncCommunication( serialEvent );
+    EventTask eB = data->asyncCommunication( serialEvent );
     return eB;
 }
 
-GridLayout<simDim> FieldPML::getGridLayout( )
+GridLayout<simDim> SplitFields::getGridLayout( )
 {
 
     return cellDescription.getGridLayout( );
 }
 
-FieldPML::DataBoxType FieldPML::getHostDataBox( )
+SplitFields::DataBoxType SplitFields::getHostDataBox( )
 {
 
-    return fieldPML->getHostBuffer( ).getDataBox( );
+    return data->getHostBuffer( ).getDataBox( );
 }
 
-FieldPML::DataBoxType FieldPML::getDeviceDataBox( )
+SplitFields::DataBoxType SplitFields::getDeviceDataBox( )
 {
 
-    return fieldPML->getDeviceBuffer( ).getDataBox( );
+    return data->getDeviceBuffer( ).getDataBox( );
 }
 
-GridBuffer<FieldPML::ValueType, simDim> &FieldPML::getGridBuffer( )
+GridBuffer<SplitFields::ValueType, simDim> &SplitFields::getGridBuffer( )
 {
 
-    return *fieldPML;
+    return *data;
 }
 
-void FieldPML::reset( uint32_t )
+void SplitFields::reset( uint32_t )
 {
-    log<picLog::PHYSICS >("In FieldPML::reset()");
-    fieldPML->getHostBuffer( ).reset( true );
-    fieldPML->getDeviceBuffer( ).reset( false );
+    data->getHostBuffer( ).reset( true );
+    data->getDeviceBuffer( ).reset( false );
 }
 
 HDINLINE
-FieldPML::UnitValueType
-FieldPML::getUnit( )
+SplitFields::UnitValueType
+SplitFields::getUnit( )
 {
     return UnitValueType( 1.0_X );
 }
 
 HINLINE
 std::vector<float_64>
-FieldPML::getUnitDimension( )
+SplitFields::getUnitDimension( )
 {
     std::vector<float_64> unitDimension( 7, 0.0 );
     return unitDimension;
 }
 
 std::string
-FieldPML::getName( )
+SplitFields::getName( )
 {
-    return "PML";
+    return "PML split fields";
 }
 
 uint32_t
-FieldPML::getCommTag( )
+SplitFields::getCommTag( )
 {
-    log<picLog::PHYSICS >("In FieldPML::getCommTag() - NOT IMPLEMENTED YET");
-    return 0; /// todo
+    // These fields do not need to be communicated
+    return 0;
 }
 
 } // namespace yeePML

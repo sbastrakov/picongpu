@@ -40,6 +40,8 @@
 
 #include <pmacc/math/Vector.hpp>
 
+#include <memory>
+
 
 namespace picongpu
 {
@@ -50,27 +52,28 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-    // For the initial design just dump all PML-related values for a grid node here
-    // (will probably be changed later)
-    struct PMLNodeValues
+    /**
+     * For now store all PML values together.
+     * This will probably be changed later.
+     */
+    struct NodeValues
     {
         float_X exy, exz, eyx, eyz, ezx, ezy;
         float_X bxy, bxz, byx, byz, bzx, bzy;
     };
 
-    class FieldPML : public SimulationFieldHelper<MappingDesc>, public ISimulationData
+    class SplitFields : public SimulationFieldHelper<MappingDesc>, public ISimulationData
     {
     public:
-        using ValueType = PMLNodeValues;
-        typedef float_X UnitValueType; /// probably need to fake it for now
+
+        using ValueType = NodeValues;
+        typedef float_X UnitValueType; // this is a stub for now
 
         typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
-        FieldPML( MappingDesc cellDescription);
-
-        virtual ~FieldPML();
+        SplitFields( MappingDesc cellDescription);
 
         virtual void reset(uint32_t currentStep);
 
@@ -106,7 +109,11 @@ namespace yeePML
 
     private:
 
-        pmacc::GridBuffer<ValueType, simDim> *fieldPML;
+        using Buffer = pmacc::GridBuffer<
+            ValueType,
+            simDim
+        >;
+        std::unique_ptr< Buffer > data;
     };
 
 } // namespace yeePML

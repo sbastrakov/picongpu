@@ -101,7 +101,7 @@ namespace maxwellSolver
             T_CurlE,
             T_CurlB
         >;
-        std::shared_ptr< yeePML::FieldPML > splitFields;
+        std::shared_ptr< yeePML::SplitFields > splitFields;
 
         // Polynomial order of the absorber strength growth towards borders
         // (often denoted 'm' or 'n' in the literature)
@@ -244,10 +244,9 @@ namespace maxwellSolver
         {
             // Split fields are created here to not waste memory in case
             // PML is not used
-            auto fieldPML = new yeePML::FieldPML(cellDescription);
             DataConnector &dc = Environment<>::get().DataConnector();
-            dc.share(std::shared_ptr< ISimulationData >(fieldPML));
-            splitFields = dc.get< yeePML::FieldPML >( yeePML::FieldPML::getName(), true );
+            dc.share(std::shared_ptr< ISimulationData >(new yeePML::SplitFields(cellDescription)));
+            splitFields = dc.get< yeePML::SplitFields >( yeePML::SplitFields::getName(), true );
             initializeParameters();
         }
 
