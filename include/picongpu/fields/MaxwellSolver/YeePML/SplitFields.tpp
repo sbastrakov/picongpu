@@ -70,7 +70,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
     );
 }
 
-SimulationDataId SplitFields::getUniqueId()
+SimulationDataId SplitFields::getUniqueId( )
 {
     return getName();
 }
@@ -93,19 +93,16 @@ EventTask SplitFields::asyncCommunication( EventTask serialEvent )
 
 GridLayout<simDim> SplitFields::getGridLayout( )
 {
-
     return cellDescription.getGridLayout( );
 }
 
 SplitFields::DataBoxType SplitFields::getHostDataBox( )
 {
-
     return data->getHostBuffer( ).getDataBox( );
 }
 
 SplitFields::DataBoxType SplitFields::getDeviceDataBox( )
 {
-
     return data->getDeviceBuffer( ).getDataBox( );
 }
 
@@ -120,6 +117,7 @@ void SplitFields::reset( uint32_t )
     data->getHostBuffer( ).reset( true );
     data->getDeviceBuffer( ).reset( false );
 }
+
 
 HDINLINE
 SplitFields::UnitValueType
@@ -140,13 +138,6 @@ std::string
 SplitFields::getName( )
 {
     return "PML split fields";
-}
-
-uint32_t
-SplitFields::getCommTag( )
-{
-    // These fields do not need to be communicated
-    return 0;
 }
 
 } // namespace yeePML
