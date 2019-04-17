@@ -1,4 +1,5 @@
-/* Copyright 2019 Sergei Bastrakov
+/* Copyright 2019 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz,
+ *                Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
