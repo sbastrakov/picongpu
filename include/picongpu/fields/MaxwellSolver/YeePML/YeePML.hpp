@@ -55,6 +55,9 @@ namespace fields
 namespace maxwellSolver
 {
 
+    namespace yeePML
+    {
+
     namespace detail
     {
         // For lack of a data type for exchange directions, introduce one
@@ -110,12 +113,12 @@ namespace maxwellSolver
         class CurlE,
         class CurlB
     >
-    class YeePML : public Yee< T_CurrentInterpolation, CurlE, CurlB >
+    class Solver : public Yee< T_CurrentInterpolation, CurlE, CurlB >
     {
     private:
 
         using YeeSolver = Yee< T_CurrentInterpolation, CurlE, CurlB >;
-        std::shared_ptr< FieldPML > splitFields;
+        std::shared_ptr< yeePML::FieldPML > splitFields;
 
         // Polynomial order of the absorber strength growth towards borders
         // (often denoted 'm' or 'n' in the literature)
@@ -250,11 +253,13 @@ namespace maxwellSolver
 
     public:
 
-        YeePML(MappingDesc cellDescription) : Yee(cellDescription)
+        Solver(MappingDesc cellDescription) : Yee(cellDescription)
         {
             // Split fields are created here to not waste memory in case
             // PML is not used
-            splitFields.reset( new FieldPML( cellDescription ) );
+            auto fieldPML = new yeePML::FieldPML(cellDescription);
+            DataConnector &dc = Environment<>::get().DataConnector();
+            dc.share(std::shared_ptr< ISimulationData >(fieldPML));
             initializeParameters();
         }
 
@@ -286,12 +291,67 @@ namespace maxwellSolver
             EventTask eRfieldB = fieldB->asyncCommunication( __getTransactionEvent() );
             __setTransactionEvent( eRfieldB );
         }
+    };
+
+    } // namespace yeePML
+
+      /**
+      * Yee solver with split-field perfectly matched layer (PML).
+      * This implements the field solver interface and is supposed to be
+      * used from param files and instantiated in the computatioanl loop.
+      *
+      * Internally it is a wrapper around a singleton of yeePML::Solver.
+      */
+    template<
+        typename T_CurrentInterpolation,
+        typename T_CurlE,
+        typename T_CurlB
+    >
+        class YeePML
+    {
+    public:
+
+        using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
+        using CurrentInterpolation = T_CurrentInterpolation;
+
+        YeePML(MappingDesc cellDescription)
+        {
+            auto& solverPtr = getSolverPtr();
+            //bool isInitialized = solverPtr;
+            if( !solverPtr )
+                solverPtr.reset( new Solver( cellDescription ) );
+        }
+
+        void update_beforeCurrent(uint32_t const currentStep)
+        {
+            getSolverPtr()->update_beforeCurrent(currentStep);
+        }
+
+        void update_afterCurrent(uint32_t const currentStep)
+        {
+            getSolverPtr()->update_afterCurrent(currentStep);
+        }
 
         static pmacc::traits::StringProperty getStringProperties()
         {
-            pmacc::traits::StringProperty propList( "name", "YeePML" );
+            pmacc::traits::StringProperty propList("name", "YeePML");
             return propList;
         }
+
+    private:
+
+        using Solver = yeePML::Solver<
+            T_CurrentInterpolation,
+            T_CurlE,
+            T_CurlB
+        >;
+
+        static std::unique_ptr<Solver>& getSolverPtr()
+        {
+            static std::unique_ptr<Solver> instance;
+            return instance;
+        }
+
     };
 
 } // namespace maxwellSolver

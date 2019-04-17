@@ -43,7 +43,12 @@
 
 namespace picongpu
 {
-    using namespace pmacc;
+namespace fields
+{
+namespace maxwellSolver
+{
+namespace yeePML
+{
 
     // For the initial design just dump all PML-related values for a grid node here
     // (will probably be changed later)
@@ -51,8 +56,6 @@ namespace picongpu
     {
         float_X exy, exz, eyx, eyz, ezx, ezy;
         float_X bxy, bxz, byx, byz, bzx, bzy;
-        /// note to self: do not need to init with zeroes, as it will be done 'automatically' by setting all bytes to 0
-        /// etc.
     };
 
     class FieldPML : public SimulationFieldHelper<MappingDesc>, public ISimulationData
@@ -103,8 +106,10 @@ namespace picongpu
 
     private:
 
-        GridBuffer<ValueType, simDim> *fieldPML;
+        pmacc::GridBuffer<ValueType, simDim> *fieldPML;
     };
 
-
-}
+} // namespace yeePML
+} // namespace maxwellSolver
+} // namespace fields
+} // namespace picongpu

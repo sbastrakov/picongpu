@@ -55,8 +55,12 @@
 
 namespace picongpu
 {
-
-using namespace pmacc;
+namespace fields
+{
+namespace maxwellSolver
+{
+namespace yeePML
+{
 
 FieldPML::FieldPML( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription )
@@ -155,4 +159,7 @@ FieldPML::getCommTag( )
     return 0; /// todo
 }
 
-} //namespace picongpu
+} // namespace yeePML
+} // namespace maxwellSolver
+} // namespace fields
+} // namespace picongpu
