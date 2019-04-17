@@ -44,6 +44,7 @@
 #include <cstdint>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <numeric>
 
 
@@ -114,7 +115,7 @@ namespace maxwellSolver
     private:
 
         using YeeSolver = Yee< T_CurrentInterpolation, CurlE, CurlB >;
-        std::shared_ptr< FieldPML > fieldPML;
+        std::shared_ptr< FieldPML > splitFields;
 
         // Polynomial order of the absorber strength growth towards borders
         // (often denoted 'm' or 'n' in the literature)
@@ -204,7 +205,7 @@ namespace maxwellSolver
                 PMACC_KERNEL( yeePML::KernelUpdateBHalf< numWorkers/*, BlockArea*/ >{ } )
                     ( mapper.getGridDim(), numWorkers )(
                         CurlE(),
-                        this->fieldPML->getDeviceDataBox(),
+                        this->splitFields->getDeviceDataBox(),
                         this->fieldB->getDeviceDataBox(),
                         this->fieldE->getDeviceDataBox(),
                         mapper,
@@ -238,7 +239,7 @@ namespace maxwellSolver
                 PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers /*, BlockArea*/ >{ } )
                     ( mapper.getGridDim(), numWorkers )(
                         CurlE(),
-                        this->fieldPML->getDeviceDataBox(),
+                        this->splitFields->getDeviceDataBox(),
                         this->fieldE->getDeviceDataBox(),
                         this->fieldB->getDeviceDataBox(),
                         mapper,
@@ -251,8 +252,9 @@ namespace maxwellSolver
 
         YeePML(MappingDesc cellDescription) : Yee(cellDescription)
         {
-            DataConnector &dc = Environment<>::get().DataConnector();
-            this->fieldPML = dc.get< FieldPML >( FieldPML::getName(), true );
+            // Split fields are created here to not waste memory in case
+            // PML is not used
+            splitFields.reset( new FieldPML( cellDescription ) );
             initializeParameters();
         }
 
@@ -295,3 +297,5 @@ namespace maxwellSolver
 } // namespace maxwellSolver
 } // namespace fields
 } // picongpu
+
+#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.tpp"
