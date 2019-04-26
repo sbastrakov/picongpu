@@ -58,11 +58,10 @@ namespace yeePML
      */
     struct NodeValues
     {
-        float_X exy, exz, eyx, eyz, ezx, ezy;
-        float_X bxy, bxz, byx, byz, bzx, bzy;
+        float_X xy, xz, yx, yz, zx, zy;
     };
 
-    class SplitFields : public SimulationFieldHelper<MappingDesc>, public ISimulationData
+    class Field : public SimulationFieldHelper<MappingDesc>, public ISimulationData
     {
     public:
 
@@ -73,7 +72,7 @@ namespace yeePML
 
         typedef MappingDesc::SuperCellSize SuperCellSize;
 
-        SplitFields( MappingDesc cellDescription);
+        Field( MappingDesc cellDescription);
 
         virtual void reset(uint32_t currentStep);
 
@@ -87,8 +86,6 @@ namespace yeePML
          *  luminous intensity J) */
         HINLINE static std::vector<float_64> getUnitDimension();
 
-        static std::string getName();
-
         virtual EventTask asyncCommunication(EventTask serialEvent);
 
         DataBoxType getHostDataBox();
@@ -98,8 +95,6 @@ namespace yeePML
         DataBoxType getDeviceDataBox();
 
         GridBuffer<ValueType, simDim> &getGridBuffer();
-
-        SimulationDataId getUniqueId();
 
         void synchronize();
 
@@ -112,6 +107,48 @@ namespace yeePML
             simDim
         >;
         std::unique_ptr< Buffer > data;
+    };
+
+    class FieldE : public Field
+    {
+    public:
+
+        FieldE( MappingDesc cellDescription):
+            Field( cellDescription )
+        {
+        }
+
+        SimulationDataId getUniqueId( )
+        {
+            return getName();
+        }
+
+        static std::string getName( )
+        {
+            return "PML split E";
+        }
+
+    };
+
+    class FieldB : public Field
+    {
+    public:
+
+        FieldB( MappingDesc cellDescription):
+            Field( cellDescription )
+        {
+        }
+
+        SimulationDataId getUniqueId( )
+        {
+            return getName();
+        }
+
+        static std::string getName( )
+        {
+            return "PML split B";
+        }
+
     };
 
 } // namespace yeePML

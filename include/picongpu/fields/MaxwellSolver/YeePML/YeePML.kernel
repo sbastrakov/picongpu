@@ -21,6 +21,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp"
 #include <pmacc/algorithms/math/floatMath/floatingPoint.tpp>
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
@@ -36,19 +37,35 @@ namespace maxwellSolver
 {
 namespace yeePML
 {
-    using namespace pmacc;
 
+    using namespace pmacc;
     namespace detail
     {
 
-        struct Parameters
+        struct LocalParameters : public Parameters
         {
-            // Sizes are float to minimize conversions between
-            // integer and floating-point types
             floatD_X negativeBorderSize;
             floatD_X positiveBorderSize;
-            floatD_X normalizedSigmaMax;
-            uint32_t gradingOrder;
+
+            LocalParameters( Parameters const parameters,
+                Thickness const localThickness
+            ):
+                Parameters( parameters )
+            {
+                /* Convert size type here to avoid doing that in kernels,
+                * reasons for storing size as float_X as are given at
+                * KernelParameters definition.
+                */
+                for( auto axis = 0; axis < simDim; axis++ )
+                {
+                    negativeBorderSize[ axis ] = static_cast< float_X >(
+                        localThickness.negativeBorder[ axis ]
+                    );
+                    positiveBorderSize[ axis ] = static_cast< float_X >(
+                        localThickness.positiveBorder[ axis ]
+                    );
+                }
+            }
         };
 
         // Get relative depth of a given index in PML, result between 0 and 1
@@ -70,7 +87,7 @@ namespace yeePML
 
         DINLINE floatD_X getSigma(
             floatD_X cellIdx,
-            Parameters const parameters,
+            LocalParameters const parameters,
             DataSpace< simDim > const numLocalDomainCells
         )
         {
@@ -83,7 +100,7 @@ namespace yeePML
                     parameters.positiveBorderSize[ dim ],
                     numLocalDomainCells[ dim ]
                 );
-                float_X const gradingCoefficient = math::pow( relativeDepth, float_X( parameters.gradingOrder ) );
+                float_X const gradingCoefficient = math::pow( relativeDepth, float_X( parameters.sigmaKappaGradingOrder ) );
                 sigma[ dim ] = parameters.normalizedSigmaMax[ dim ] * gradingCoefficient;
             }
             return sigma;
@@ -120,8 +137,8 @@ namespace yeePML
          */
         template<
             typename T_Curl,
+            typename T_PMLEBox,
             typename T_EBox,
-            typename T_PMLBox,
             typename T_BBox,
             typename T_Mapping,
             typename T_Acc
@@ -129,11 +146,11 @@ namespace yeePML
         DINLINE void operator()(
             T_Acc const & acc,
             T_Curl const curl,
-            T_PMLBox splitFields,
+            T_PMLEBox splitE,
             T_EBox fieldE,
             T_BBox const fieldB,
             T_Mapping mapper,
-            detail::Parameters parameters
+            detail::LocalParameters parameters
         ) const
         {
             // All numbers, offsets and indexes in this kernel include guard
@@ -226,7 +243,7 @@ namespace yeePML
                         diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
                 ///std::cout << "E: cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
 
-                bool inPML = false;
+                bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
                 if( inPML )
                 {
                     // Update split fields
@@ -235,17 +252,17 @@ namespace yeePML
                     const typename Difference::template GetDifference< 1 > Dy;
                     const typename Difference::template GetDifference< 2 > Dz;
                     auto & const localB = cachedB.shift( cellIdxInSuperCell );
-                    splitFields( cellIdx ).eyx = damping.x() * splitFields( cellIdx ).eyx - diff.x() * c2 * Dx( localB ).z();
-                    splitFields( cellIdx ).ezx = damping.x() * splitFields( cellIdx ).ezx + diff.x() * c2 * Dx( localB ).y();
-                    splitFields( cellIdx ).exy = damping.y() * splitFields( cellIdx ).exy + diff.y() * c2 * Dy( localB ).z();
-                    splitFields( cellIdx ).ezy = damping.y() * splitFields( cellIdx ).ezy - diff.y() * c2 * Dy( localB ).x();
-                    splitFields( cellIdx ).exz = damping.z() * splitFields( cellIdx ).exz - diff.z() * c2 * Dz( localB ).y();
-                    splitFields( cellIdx ).eyz = damping.z() * splitFields( cellIdx ).eyz + diff.z() * c2 * Dz( localB ).x();
+                    splitE( cellIdx ).yx = damping.x() * splitE( cellIdx ).yx - diff.x() * c2 * Dx( localB ).z();
+                    splitE( cellIdx ).zx = damping.x() * splitE( cellIdx ).zx + diff.x() * c2 * Dx( localB ).y();
+                    splitE( cellIdx ).xy = damping.y() * splitE( cellIdx ).xy + diff.y() * c2 * Dy( localB ).z();
+                    splitE( cellIdx ).zy = damping.y() * splitE( cellIdx ).zy - diff.y() * c2 * Dy( localB ).x();
+                    splitE( cellIdx ).xz = damping.z() * splitE( cellIdx ).xz - diff.z() * c2 * Dz( localB ).y();
+                    splitE( cellIdx ).yz = damping.z() * splitE( cellIdx ).yz + diff.z() * c2 * Dz( localB ).x();
 
                     // Full fields are sums of split fields
-                    fieldE( cellIdx ).x() = splitFields( cellIdx ).exy + splitFields( cellIdx ).exz;
-                    fieldE( cellIdx ).y() = splitFields( cellIdx ).eyx + splitFields( cellIdx ).eyz;
-                    fieldE( cellIdx ).z() = splitFields( cellIdx ).ezx + splitFields( cellIdx ).ezy;
+                    fieldE( cellIdx ).x() = splitE( cellIdx ).xy + splitE( cellIdx ).xz;
+                    fieldE( cellIdx ).y() = splitE( cellIdx ).yx + splitE( cellIdx ).yz;
+                    fieldE( cellIdx ).z() = splitE( cellIdx ).zx + splitE( cellIdx ).zy;
                 }
                 else
                     fieldE( cellIdx ) += curl( cachedB.shift( cellIdxInSuperCell ) ) * c2 * dt;
@@ -283,7 +300,7 @@ namespace yeePML
          */
         template<
             typename T_Curl,
-            typename T_PMLBox,
+            typename T_PMLBBox,
             typename T_EBox,
             typename T_BBox,
             typename T_Mapping,
@@ -292,11 +309,11 @@ namespace yeePML
         DINLINE void operator()(
             T_Acc const & acc,
             T_Curl const curl,
-            T_PMLBox splitFields,
+            T_PMLBBox splitB,
             T_BBox fieldB,
             T_EBox const fieldE,
             T_Mapping mapper,
-            detail::Parameters parameters
+            detail::LocalParameters parameters
         ) const
         {
             // All numbers, offsets and indexes in this kernel include guard
@@ -371,7 +388,7 @@ namespace yeePML
                             diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
                     ///std::cout << "cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
 
-                    bool inPML = false;
+                    bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
                     if( inPML )
                     {
                         // Update split fields
@@ -380,17 +397,17 @@ namespace yeePML
                         const typename Difference::template GetDifference< 1 > Dy;
                         const typename Difference::template GetDifference< 2 > Dz;
                         auto & const localE = cachedE.shift( cellIdxInSuperCell );
-                        splitFields( cellIdx ).byx = damping.x() * splitFields( cellIdx ).byx + diff.x() * Dx( localE ).z();
-                        splitFields( cellIdx ).bzx = damping.x() * splitFields( cellIdx ).bzx - diff.x() * Dx( localE ).y();
-                        splitFields( cellIdx ).bxy = damping.y() * splitFields( cellIdx ).bxy - diff.y() * Dy( localE ).z();
-                        splitFields( cellIdx ).bzy = damping.y() * splitFields( cellIdx ).bzy + diff.y() * Dy( localE ).x();
-                        splitFields( cellIdx ).bxz = damping.z() * splitFields( cellIdx ).bxz + diff.z() * Dz( localE ).y();
-                        splitFields( cellIdx ).byz = damping.z() * splitFields( cellIdx ).byz - diff.z() * Dz( localE ).x();
+                        splitB( cellIdx ).yx = damping.x() * splitB( cellIdx ).yx + diff.x() * Dx( localE ).z();
+                        splitB( cellIdx ).zx = damping.x() * splitB( cellIdx ).zx - diff.x() * Dx( localE ).y();
+                        splitB( cellIdx ).xy = damping.y() * splitB( cellIdx ).xy - diff.y() * Dy( localE ).z();
+                        splitB( cellIdx ).zy = damping.y() * splitB( cellIdx ).zy + diff.y() * Dy( localE ).x();
+                        splitB( cellIdx ).xz = damping.z() * splitB( cellIdx ).xz + diff.z() * Dz( localE ).y();
+                        splitB( cellIdx ).yz = damping.z() * splitB( cellIdx ).yz - diff.z() * Dz( localE ).x();
 
                         // Full fields are sums of split fields
-                        fieldB( cellIdx ).x() = splitFields( cellIdx ).bxy + splitFields( cellIdx ).bxz;
-                        fieldB( cellIdx ).y() = splitFields( cellIdx ).byx + splitFields( cellIdx ).byz;
-                        fieldB( cellIdx ).z() = splitFields( cellIdx ).bzx + splitFields( cellIdx ).bzy;
+                        fieldB( cellIdx ).x() = splitB( cellIdx ).xy + splitB( cellIdx ).xz;
+                        fieldB( cellIdx ).y() = splitB( cellIdx ).yx + splitB( cellIdx ).yz;
+                        fieldB( cellIdx ).z() = splitB( cellIdx ).zx + splitB( cellIdx ).zy;
                     }
                     else
                     {

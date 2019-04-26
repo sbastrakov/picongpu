@@ -21,7 +21,8 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/Field.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/YeePML.kernel"
 #include "picongpu/fields/numericalCellTypes/NumericalCellTypes.hpp"
 
@@ -40,42 +41,20 @@ namespace fields
 namespace maxwellSolver
 {
 
+    /* Note: the yeePML namespace is only used for details and not the solver
+     * itself in order to be consistent with other field solvers.
+     */
     namespace yeePML
     {
     namespace detail
     {
 
-        /** Thickness of the layer in number of cells
-        */
-        struct Thickness
-        {
-            DataSpace< simDim > negativeBorder;
-            DataSpace< simDim > positiveBorder;
-
-            /** Provides element access with indexing of the old absorber:
-            *  axis is 0 = x, 1 = y, or 2 = z; direction is 0 = negative, 1 = positive
-            *  This is only for initialization convenience and so does not have a device version
-            */
-            int& operator()( uint32_t const axis, uint32_t const direction )
-            {
-                // Since this is not performance-critical at all, do range checks
-                if( axis >= simDim )
-                    throw std::out_of_range("In Thickness::operator() the axis = " +
-                        std::to_string( axis ) + " is invalid");
-                if( direction == 0 )
-                    return negativeBorder[ axis ];
-                else
-                    if( direction == 1 )
-                        return positiveBorder[ axis ];
-                    else
-                        throw std::out_of_range("In Thickness::operator() the direction = " +
-                            std::to_string( direction ) +  " is invalid");
-            }
-        };
-
         /**
-        * Solver implementation
-        */
+         * Implementation of Yee + PML solver updates of E and B.
+         *
+         * @tparam T_CurlE functor to compute curl of E
+         * @tparam T_CurlB functor to compute curl of B
+         */
         template<
             typename T_CurlE,
             typename T_CurlB
@@ -87,132 +66,192 @@ namespace maxwellSolver
             using CurlE = T_CurlE;
             using CurlB = T_CurlB;
 
+            // Helper types for configuring kernels
+            template< typename T_Curl >
+            using BlockDescription = pmacc::SuperCellDescription<
+                SuperCellSize,
+                typename T_Curl::LowerMargin,
+                typename T_Curl::UpperMargin
+            >;
+            template< uint32_t T_Area >
+            using AreaMapper = pmacc::AreaMapping<
+                T_Area,
+                MappingDesc
+            >;
+
             Solver( MappingDesc cellDescription ) :
-                cellDescription( cellDescription )
+                cellDescription{ cellDescription }
             {
-                // Split fields are created here to not waste memory in case
-                // PML is not used
-                DataConnector &dc = Environment<>::get().DataConnector();
-                fieldE = dc.get< FieldE >( FieldE::getName(), true );
-                fieldB = dc.get< FieldB >( FieldB::getName(), true );
-                dc.share( std::shared_ptr< ISimulationData >(
-                    new yeePML::SplitFields( cellDescription )
-                ));
-                splitFields = dc.get< yeePML::SplitFields >( yeePML::SplitFields::getName(), true );
-                initializeParameters();
+                initParameters( );
+                initFields( );
             }
 
-            template< uint32_t AREA >
+            //! Get a reference to (full) field E
+            picongpu::FieldE& getFieldE( )
+            {
+                return *( fieldE.get() );
+            }
+
+            //! Get a reference to (full) field B
+            picongpu::FieldB& getFieldB( )
+            {
+                return *( fieldB.get() );
+            }
+
+            /**
+             * Propagate B values in the given area by half a time step.
+             *
+             * @tparam T_Area area to apply updates to, the curl must be
+             * applicable to all points; normally CORE, BORDER, or CORE + BORDER
+             *
+             * @param currentStep index of the current time iteration
+             */
+            template< uint32_t T_Area >
             void updateBHalf( uint32_t const currentStep )
             {
-                typedef SuperCellDescription<
-                    SuperCellSize,
-                    typename CurlE::LowerMargin,
-                    typename CurlE::UpperMargin
-                > BlockArea;
-                AreaMapping< AREA, MappingDesc > mapper( cellDescription );
-                constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                    pmacc::math::CT::volume< SuperCellSize >::type::value
-                >::value;
-                // Note: here it is possible to check if PML is enabled in the local
-                // domain at all, and otherwise optimize by calling the normal Yee update,
-                // but we do not do that, as this is fragile wrt plans for close future changes
-                PMACC_KERNEL(yeePML::KernelUpdateBHalf< numWorkers, BlockArea >{ })
+                constexpr auto numWorkers = getNumWorkers();
+                using Kernel = yeePML::KernelUpdateBHalf<
+                    numWorkers,
+                    BlockDescription< CurlE >
+                >;
+                AreaMapper< T_Area > mapper{ cellDescription };
+                /* Note: here it is possible to first check if PML is enabled
+                 * in the local domain at all, and otherwise optimize by calling
+                 * the normal Yee update kernel. We do not do that, as this
+                 * would be fragile wrt future separation of PML into a plugin.
+                 */
+                PMACC_KERNEL( Kernel{ } )
                     ( mapper.getGridDim(), numWorkers )(
                         CurlE( ),
-                        this->splitFields->getDeviceDataBox(),
-                        this->fieldB->getDeviceDataBox(),
-                        this->fieldE->getDeviceDataBox(),
+                        splitB->getDeviceDataBox(),
+                        fieldB->getDeviceDataBox(),
+                        fieldE->getDeviceDataBox(),
                         mapper,
-                        computeParameters( currentStep )
-                        );
+                        getLocalParameters( currentStep )
+                    );
             }
 
-            template< uint32_t AREA >
+            /**
+            * Propagate E values in the given area by a time step.
+            *
+            * @tparam T_Area area to apply updates to, the curl must be
+            * applicable to all points; normally CORE, BORDER, or CORE + BORDER
+            *
+            * @param currentStep index of the current time iteration
+            */
+            template< uint32_t T_Area >
             void updateE( uint32_t currentStep )
             {
-                typedef SuperCellDescription<
-                    SuperCellSize,
-                    typename CurlB::LowerMargin,
-                    typename CurlB::UpperMargin
-                > BlockArea;
-                AreaMapping< AREA, MappingDesc > mapper( cellDescription );
-                constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                    pmacc::math::CT::volume< SuperCellSize >::type::value
-                >::value;
-                // Note: here it is possible to check if PML is enabled in the local
-                // domain at all, and otherwise optimize by calling the normal Yee update,
-                // but we do not do that, as this is fragile wrt plans for close future changes
-                PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers, BlockArea >{ } )
+                constexpr auto numWorkers = getNumWorkers();
+                using Kernel = yeePML::KernelUpdateE<
+                    numWorkers,
+                    BlockDescription< CurlB >
+                >;
+                AreaMapper< T_Area > mapper{ cellDescription };
+                // Note: optimization considerations same as in updateBHalf().
+                PMACC_KERNEL( Kernel{ } )
                     ( mapper.getGridDim(), numWorkers )(
-                        CurlE(),
-                        this->splitFields->getDeviceDataBox(),
-                        this->fieldE->getDeviceDataBox(),
-                        this->fieldB->getDeviceDataBox(),
+                        CurlB(),
+                        splitE->getDeviceDataBox(),
+                        fieldE->getDeviceDataBox(),
+                        fieldB->getDeviceDataBox(),
                         mapper,
-                        computeParameters( currentStep )
+                        getLocalParameters( currentStep )
                     );
             }
 
         private:
 
             // Yee solver data
-            std::shared_ptr< FieldE > fieldE;
-            std::shared_ptr< FieldB > fieldB;
+            std::shared_ptr< picongpu::FieldE > fieldE;
+            std::shared_ptr< picongpu::FieldB > fieldB;
             MappingDesc cellDescription;
 
-            // PML data
-            std::shared_ptr< yeePML::SplitFields > splitFields;
+            // PML field data
+            std::shared_ptr< yeePML::FieldE > splitE;
+            std::shared_ptr< yeePML::FieldB > splitB;
 
-
-            /* Thickness in terms of the global domain
+            // PML parameters
+            /**
+            * Thickness in terms of the global domain.
+            *
             * We store only global thickness, as the local one can change
-            * during the simulation
+            * during the simulation and so has to be recomputed each time step.
+            * There are no limitations on the size, as long as it fits a single
+            * layer of external local domains (near the global simulation area
+            * boundary) on each time step. In particular, PML is not required
+            * to be aligned with the BORDER area.
             */
             Thickness globalSize;
+            Parameters parameters;
 
-            // Strength-related parameters
-            float3_X sigmaMax;
-            // Polynomial order of the absorber strength growth towards borders
-            // (often denoted 'm' or 'n' in the literature)
-            uint32_t gradingOrder;
-
-            void initializeParameters( )
+            void initParameters( )
             {
                 globalSize = getGlobalThickness( );
-                gradingOrder = 4; // for now hardcoded with a good default value
-                                  // Sigma optimal is based on (7.66) in Taflove 3rd ed.,
-                                  // but uses PIC units and is divided by eps0
-                float_64 sigmaOptimal[3];
-                for( auto dim = 0; dim < 3; dim++ )
-                    sigmaOptimal[ dim ] = 0.8_X * ( gradingOrder + 1 ) * SPEED_OF_LIGHT / cellSize[ dim ];
-                // This can become a a parameter with some default between 0.7 and 1.0
-                constexpr float_X sigmaOptimalMultiplier = 1.0_X;
-                for( auto dim = 0; dim < 3; dim++ )
-                    sigmaMax[ dim ] = sigmaOptimalMultiplier * sigmaOptimal[ dim ];
+                parameters.sigmaKappaGradingOrder = SIGMA_GRADING_ORDER;
+                parameters.alphaGradingOrder = ALPHA_GRADING_ORDER;
+                for( auto dim = 0; dim < simDim; dim++ )
+                {
+                    parameters.normalizedSigmaMax[ dim ] = NORMALIZED_SIGMA_MAX[ dim ];
+                    parameters.kappaMax[ dim ] = KAPPA_MAX[ dim ];
+                    parameters.normalizedAlphaMax[ dim ] = NORMALIZED_ALPHA_MAX[ dim ];
+                }
             }
 
             Thickness getGlobalThickness( ) const
             {
                 Thickness globalThickness;
-                // For now thickness of the exponential damping absorber is used
                 for( auto axis = 0; axis < simDim; axis++ )
                     for( auto direction = 0; direction < 2; direction++ )
-                        globalThickness( axis, direction ) = ABSORBER_CELLS[ axis ][ direction ];
+                        globalThickness( axis, direction ) = NUM_CELLS[ axis ][ direction ];
                 return globalThickness;
             }
 
-            /** Get local PML thickness for the current time step
-            *  It depends on the current step because of the moving window
-            */
+            void initFields()
+            {
+                /* Split fields are created here (and not with normal E and B)
+                * in order to not waste memory in case PML is not used.
+                */
+                DataConnector & dc = Environment<>::get().DataConnector();
+                fieldE = dc.get< picongpu::FieldE >( picongpu::FieldE::getName(), true );
+                fieldB = dc.get< picongpu::FieldB >( picongpu::FieldB::getName(), true );
+                dc.share(
+                    std::shared_ptr< ISimulationData >(
+                        new yeePML::FieldE{ cellDescription }
+                        )
+                );
+                dc.share(
+                    std::shared_ptr< ISimulationData >(
+                        new yeePML::FieldB{ cellDescription }
+                        )
+                );
+                splitE = dc.get< yeePML::FieldE >( yeePML::FieldE::getName(), true );
+                splitB = dc.get< yeePML::FieldB >( yeePML::FieldB::getName(), true );
+            }
+
+            yeePML::detail::LocalParameters getLocalParameters(
+                uint32_t const currentStep
+            ) const
+            {
+                Thickness localThickness = getLocalThickness( currentStep );
+                checkLocalThickness( localThickness );
+                return yeePML::detail::LocalParameters( parameters, localThickness );
+            }
+
+            /**
+             * Get PML thickness for the local domain at the current time step.
+             * It depends on the current step because of the moving window.
+             */
             Thickness getLocalThickness( uint32_t const currentStep ) const
             {
-                auto & movingWindow = MovingWindow::getInstance();
+                /* The logic of the following checks is the same as in
+                 * FieldManipulator::absorbBorder(), to disable the absorber
+                 * at a border we set the corresponding thickness to 0.
+                 */
+                auto & const movingWindow = MovingWindow::getInstance( );
                 auto const numSlides = movingWindow.getSlideCounter( currentStep );
                 auto const numExchanges = NumberOfExchanges< simDim >::value;
-                auto const communicationMask = Environment< simDim >::get().GridController().getCommunicationMask();
-                // The logic of these checks is the same as in FieldManipulator::absorbBorder(),
-                // to disable the absorber at a border we set the corresponding thickness to 0
+                auto const communicationMask = Environment< simDim >::get( ).GridController( ).getCommunicationMask( );
                 Thickness localThickness = globalSize;
                 for( auto exchange = 1; exchange < numExchanges; ++exchange )
                 {
@@ -249,23 +288,25 @@ namespace maxwellSolver
                 return localThickness;
             }
 
-            yeePML::detail::Parameters computeParameters( uint32_t const currentStep ) const
+            //! Verify that PML fits the local domain
+            void checkLocalThickness( Thickness const localThickness ) const
             {
-                Thickness localThickness = getLocalThickness( currentStep );
-                yeePML::detail::Parameters parameters;
-                // Convert size type here to avoid doing that in kernels
-                for( auto axis = 0; axis < simDim; axis++ )
-                {
-                    parameters.negativeBorderSize[ axis ] = static_cast< float_X >(
-                        localThickness.negativeBorder[ axis ]
-                        );
-                    parameters.positiveBorderSize[ axis ] = static_cast< float_X >(
-                        localThickness.positiveBorder[ axis ]
-                        );
-                }
-                parameters.normalizedSigmaMax = this->sigmaMax;
-                parameters.gradingOrder = this->gradingOrder;
-                return parameters;
+                auto const localDomain = Environment< simDim >::get( ).SubGrid( ).getLocalDomain( );
+                auto const localPMLSize = localThickness.negativeBorder + localThickness.positiveBorder;
+                auto pmlFitsDomain = true;
+                for( auto dim = 0; dim < simDim; dim++ )
+                    if( localPMLSize[ dim ] > localDomain.size[ dim ] )
+                        pmlFitsDomain = false;
+                if( !pmlFitsDomain )
+                    throw std::out_of_range("Requisted PML size exceeds the local domain");
+            }
+
+            //! Get number of workers for kernels
+            static constexpr uint32_t getNumWorkers()
+            {
+                return pmacc::traits::GetNumWorkers<
+                    pmacc::math::CT::volume< SuperCellSize >::type::value
+                >::value;
             }
 
         };
@@ -275,6 +316,14 @@ namespace maxwellSolver
 
     /**
       * Yee solver with perfectly matched layer (PML) absorber.
+      *
+      * Follows implicitly defined interface of field solvers.
+      * Most of the actual solver is implemented by yeePML::detail::Solver.
+      *
+      * @tparam T_CurrentInterpolation current interpolation functor
+      * (not used in the implementation, but part of field solver interface)
+      * @tparam T_CurlE functor to compute curl of E
+      * @tparam T_CurlB functor to compute curl of B
       */
     template<
         typename T_CurrentInterpolation,
@@ -285,6 +334,7 @@ namespace maxwellSolver
     {
     public:
 
+        // Types required by field solver interface
         using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
         using CurrentInterpolation = T_CurrentInterpolation;
         using CurlE = T_CurlE;
@@ -293,42 +343,59 @@ namespace maxwellSolver
         YeePML( MappingDesc cellDescription ) :
             solver( cellDescription )
         {
-            DataConnector &dc = Environment<>::get().DataConnector();
-            fieldE = dc.get< FieldE >( FieldE::getName(), true );
-            fieldB = dc.get< FieldB >( FieldB::getName(), true );
         }
 
+        /**
+         * Perform the first part of E and B propagation by a time step.
+         *
+         * Together with update_afterCurrent() forms the full propagation.
+         *
+         * @param currentStep index of the current time iteration
+         */
         void update_beforeCurrent( uint32_t const currentStep )
         {
-            // These steps are the same as in the Yee solver,
-            // PML updates are done as part of solver.updateE(), solver.updateBHalf()
+            /* These steps are the same as in the Yee solver,
+             * PML updates are done as part of solver.updateE(),
+             * solver.updateBHalf()
+             */
             solver.updateBHalf < CORE + BORDER >( currentStep );
-            EventTask eRfieldB = fieldB->asyncCommunication( __getTransactionEvent() );
+            auto & fieldB = solver.getFieldB( );
+            EventTask eRfieldB = fieldB.asyncCommunication( __getTransactionEvent( ) );
 
             solver.updateE< CORE >( currentStep );
             __setTransactionEvent( eRfieldB );
             solver.updateE< BORDER >( currentStep );
         }
 
+        /**
+        * Perform the last part of E and B propagation by a time step.
+        *
+        * Together with update_beforeCurrent() forms the full propagation.
+        *
+        * @param currentStep index of the current time iteration
+        */
         void update_afterCurrent( uint32_t const currentStep )
         {
-            // These steps are the same as in the Yee solver,
-            // except the FieldManipulator::absorbBorder() is not called,
-            // PML updates are done as part of solver.updateE(), solver.updateBHalf()
+            /* These steps are the same as in the Yee solver,
+             * except the FieldManipulator::absorbBorder() is not called,
+             * PML updates are done as part of solver.updateBHalf().
+             */
             if( laserProfiles::Selected::INIT_TIME > 0.0_X )
-                LaserPhysics{}( currentStep );
+                LaserPhysics{ }( currentStep );
 
-            EventTask eRfieldE = fieldE->asyncCommunication( __getTransactionEvent() );
+            auto & fieldE = solver.getFieldE( );
+            EventTask eRfieldE = fieldE.asyncCommunication( __getTransactionEvent( ) );
 
             solver.updateBHalf< CORE >( currentStep );
             __setTransactionEvent( eRfieldE );
             solver.updateBHalf< BORDER >( currentStep );
 
-            EventTask eRfieldB = fieldB->asyncCommunication( __getTransactionEvent() );
+            auto & fieldB = solver.getFieldB();
+            EventTask eRfieldB = fieldB.asyncCommunication( __getTransactionEvent( ) );
             __setTransactionEvent( eRfieldB );
         }
 
-        static pmacc::traits::StringProperty getStringProperties()
+        static pmacc::traits::StringProperty getStringProperties( )
         {
             pmacc::traits::StringProperty propList( "name", "YeePML" );
             return propList;
@@ -337,8 +404,6 @@ namespace maxwellSolver
     private:
 
         yeePML::detail::Solver< CurlE, CurlB > solver;
-        std::shared_ptr< FieldE > fieldE;
-        std::shared_ptr< FieldB > fieldB;
 
     };
 
@@ -346,4 +411,4 @@ namespace maxwellSolver
 } // namespace fields
 } // namespace picongpu
 
-#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.tpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/Field.tpp"

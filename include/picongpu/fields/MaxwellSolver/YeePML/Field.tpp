@@ -22,7 +22,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/fields/MaxwellSolver/YeePML/SplitFields.hpp"
+#include "picongpu/fields/MaxwellSolver/YeePML/Field.hpp"
 
 #include <pmacc/eventSystem/EventSystem.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
@@ -62,7 +62,7 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-SplitFields::SplitFields( MappingDesc cellDescription ) :
+Field::Field( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription )
 {
     data.reset(
@@ -70,49 +70,44 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
     );
 }
 
-SimulationDataId SplitFields::getUniqueId( )
-{
-    return getName();
-}
-
-void SplitFields::synchronize( )
+void Field::synchronize( )
 {
     data->deviceToHost( );
 }
 
-void SplitFields::syncToDevice( )
+void Field::syncToDevice( )
 {
     data->hostToDevice( );
 }
 
-EventTask SplitFields::asyncCommunication( EventTask serialEvent )
+EventTask Field::asyncCommunication( EventTask serialEvent )
 {
     EventTask eB = data->asyncCommunication( serialEvent );
     return eB;
 }
 
-GridLayout<simDim> SplitFields::getGridLayout( )
+GridLayout<simDim> Field::getGridLayout( )
 {
     return cellDescription.getGridLayout( );
 }
 
-SplitFields::DataBoxType SplitFields::getHostDataBox( )
+Field::DataBoxType Field::getHostDataBox( )
 {
     return data->getHostBuffer( ).getDataBox( );
 }
 
-SplitFields::DataBoxType SplitFields::getDeviceDataBox( )
+Field::DataBoxType Field::getDeviceDataBox( )
 {
     return data->getDeviceBuffer( ).getDataBox( );
 }
 
-GridBuffer<SplitFields::ValueType, simDim> &SplitFields::getGridBuffer( )
+GridBuffer<Field::ValueType, simDim> &Field::getGridBuffer( )
 {
 
     return *data;
 }
 
-void SplitFields::reset( uint32_t )
+void Field::reset( uint32_t )
 {
     data->getHostBuffer( ).reset( true );
     data->getDeviceBuffer( ).reset( false );
@@ -120,24 +115,18 @@ void SplitFields::reset( uint32_t )
 
 
 HDINLINE
-SplitFields::UnitValueType
-SplitFields::getUnit( )
+Field::UnitValueType
+Field::getUnit( )
 {
     return UnitValueType( 1.0_X );
 }
 
 HINLINE
 std::vector<float_64>
-SplitFields::getUnitDimension( )
+Field::getUnitDimension( )
 {
     std::vector<float_64> unitDimension( 7, 0.0 );
     return unitDimension;
-}
-
-std::string
-SplitFields::getName( )
-{
-    return "PML split fields";
 }
 
 } // namespace yeePML

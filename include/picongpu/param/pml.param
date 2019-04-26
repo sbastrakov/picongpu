@@ -1,0 +1,133 @@
+/* Copyright 2019 Sergei Bastrakov
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+
+namespace picongpu
+{
+namespace fields
+{
+namespace maxwellSolver
+{
+namespace yeePML
+{
+
+    // The parameters in this file are only used if field solver is YeePML
+
+    constexpr uint32_t THICKNESS = 8;
+
+    /** Thickness of the absorbing layer, in number of cells
+     *
+     * PML is located inside the global simulation area, near the outer borders.
+     * Setting size to 0 results in disabling absorption at the corresponding
+     * boundary. Normally thickness is between 6 and 16 cells, with larger
+     * values providing less reflections.
+     * 8 cells should be good enough for most simulations. There are no
+     * requirements on thickness being a multiple of the supercell size.
+     * It is only required that PML is small enough to fit near-boundary local
+     * domains at all time steps.
+     * Unit: number of cells
+     */
+    constexpr uint32_t NUM_CELLS[ 3 ][ 2 ] = {
+        { THICKNESS, THICKNESS },  // x direction [negative, positive]
+        { THICKNESS, THICKNESS },  // y direction [negative, positive]
+        { THICKNESS, THICKNESS }   // z direction [negative, positive]
+    };
+
+    /** Order of polynomial grading for artificial electric conductivity
+     *
+     * The conductivity is scaling from 0 at the internal border of PML
+     * to the maximum value defined below at the external border. This
+     * value defines the order of such polynomial grading.
+     * Normally values are between 2 and 4, not required to be integer.
+     * Larger values provide more reflections near the internal border of PML,
+     * but less reflections near the external border.
+     * Unitless.
+     */
+    constexpr float_64 SIGMA_GRADING_ORDER = 4.0;
+
+    // Optimal value for SIGMA_MAX_SI according to (7.66) in Taflove 3rd ed.
+    constexpr float_64 SIGMA_OPT_SI[ 3 ] = {
+        0.8 * ( SIGMA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_WIDTH_SI ),
+        0.8 * ( SIGMA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_HEIGHT_SI ),
+        0.8 * ( SIGMA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_DEPTH_SI )
+    };
+
+    // Muptiplier to express SIGMA_MAX_SI with SIGMA_OPT_SI
+    constexpr float_64 SIGMA_OPT_MULTIPLIER = 1.0;
+
+    /** Max value of artificial electric conductivity in PML
+     *
+     * Components correspond to directions: element 0 corresponds to absorption
+     * along x direction, 1 = y, 2 = z. Max value is achieved at the external
+     * boundary of PML, details are given in comments for SIGMA_GRADING_ORDER.
+     * Larger values provide more reflections near the internal border of PML,
+     * but less reflections near the external border.
+     * Artificial magnetic permeability will be chosen to perfectly match this.
+     * Unit: siemens / m
+     */
+    constexpr float_64 SIGMA_MAX_SI[ 3 ] = {
+        SIGMA_OPT_SI[ 0 ] * SIGMA_OPT_MULTIPLIER,
+        SIGMA_OPT_SI[ 1 ] * SIGMA_OPT_MULTIPLIER,
+        SIGMA_OPT_SI[ 2 ] * SIGMA_OPT_MULTIPLIER
+    };
+
+    /** Max value of coordinate stretching coefficient in PML
+     *
+     * Components correspond to directions: element 0 corresponds to absorption
+     * along x direction, 1 = y, 2 = z. Max value is achieved at the external
+     * boundary of PML. Grading is the same as for electric conductivity,
+     * except the minimum value is 1.0.
+     * Values must be >= 1.0. Recommended values are between 7.0 and 20.0.
+     * Unitless
+     */
+    constexpr float_64 KAPPA_MAX[ 3 ] = {
+        15.0,
+        15.0,
+        15.0
+    };
+
+    /** Order of polynomial grading for complex frequency shift
+     *
+     * The complex frequency shift is downscaling from ALPHA_MAX_SI at the
+     * internal border of PML to 0 at the external border. This
+     * value defines the order of such polynomial grading.
+     * Recommended values are around 1.0.
+     * Unitless.
+     */
+    constexpr float_64 ALPHA_GRADING_ORDER = 1.0;
+
+    /** Complex frequency shift in PML
+     *
+     * Components correspond to directions: element 0 corresponds to absorption
+     * along x direction, 1 = y, 2 = z. Recommended values are between 0.15 and
+     * 0.3. Setting it to zero will make PML behave as uniaxial PML.
+     * Unit: siemens / m
+     */
+    constexpr float_64 ALPHA_MAX_SI[ 3 ] = {
+        0.24,
+        0.24,
+        0.24
+    };
+
+} // namespace yeePML
+} // namespace maxwellSolver
+} // namespace fields
+} // namespace picongpu
