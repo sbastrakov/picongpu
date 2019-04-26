@@ -29,6 +29,8 @@
 
 #include <algorithm>
 #include <numeric>
+#include <stdexcept>
+#include <string>
 
 
 namespace picongpu
@@ -38,213 +40,223 @@ namespace fields
 namespace maxwellSolver
 {
 
-    namespace yeePML
-    {
-    namespace detail
-    {
-        // For lack of a data type for exchange directions, introduce one
-        using ExchangeDirection = uint32_t;
-        using ExchangeDirections = std::vector< ExchangeDirection >;
-
-        // Get all exchanges for which PML can be used in the current domain
-        // Note that it does not have to be used due to other restrictions
-        ExchangeDirections getActiveDirections( uint32_t thickness[3][2] )
-        {
-            auto isActive = [&]( ExchangeDirection direction )
-            {
-                auto const communicationMask = Environment< simDim >::get().GridController().getCommunicationMask();
-                bool const hasNeighbor = communicationMask.isSet( direction );
-                if( hasNeighbor )
-                    return false;
-                auto const relativeMask = communicationMask.getRelativeDirections< simDim >( direction );
-                for( uint32_t dim = 0; dim < simDim; dim++ )
-                {
-                    // in relativeMask[ dim ] 1 is we are at "right" border, -1 is "left", 0 - "middle"
-                    if ( relativeMask[ dim ] )
-                    {
-                        int const idx = std::max( relativeMask[ dim ], 0 );
-                        if( thickness[ dim ][ idx ] != 0 )
-                            return true;
-                    }
-                }
-                return false;
-            };
-
-            ExchangeDirections allDirections( NumberOfExchanges< simDim >::value );
-            std::iota( allDirections.begin(), allDirections.end(), 0 );
-            ExchangeDirections activeDirections;
-            std::copy_if( allDirections.begin(), allDirections.end(), std::back_inserter( activeDirections ), isActive );
-            return activeDirections;
-        }
-
-    } // namespace detail
-    } // namespace yeePML
-
     /**
-      * Yee solver with split-field perfectly matched layer (PML).
+      * Yee solver with perfectly matched layer (PML) absorber.
       */
     template<
         typename T_CurrentInterpolation,
         typename T_CurlE,
         typename T_CurlB
     >
-    class YeePML : public Yee<
-        T_CurrentInterpolation,
-        T_CurlE,
-        T_CurlB
-    >
+    class YeePML
     {
     private:
 
-        using YeeSolver = Yee< 
-            T_CurrentInterpolation,
-            T_CurlE,
-            T_CurlB
-        >;
-        std::shared_ptr< yeePML::SplitFields > splitFields;
+        // Yee solver data
+        std::shared_ptr< FieldE > fieldE;
+        std::shared_ptr< FieldB > fieldB;
+        MappingDesc cellDescription;
 
+        // PML data
+        std::shared_ptr< yeePML::SplitFields > splitFields;
+        /** Thickness of the layer in number of cells
+         */
+        struct Thickness
+        {
+            DataSpace< simDim > negativeBorder;
+            DataSpace< simDim > positiveBorder;
+
+            /** Provides element access with indexing of the old absorber:
+             *  axis is 0 = x, 1 = y, or 2 = z; direction is 0 = negative, 1 = positive
+             *  This is only for initialization convenience and so does not have a device version
+             */
+            int& operator()( uint32_t const axis, uint32_t const direction )
+            {
+                // Since this is not performance-critical at all, do range checks
+                if( axis >= simDim )
+                    throw std::out_of_range("In Thickness::operator() the axis = " +
+                        std::to_string( axis ) + " is invalid");
+                if( direction == 0 )
+                    return negativeBorder[ axis ];
+                else
+                    if( direction == 1 )
+                        return positiveBorder[ axis ];
+                    else
+                        throw std::out_of_range("In Thickness::operator() the direction = " +
+                            std::to_string( direction ) +  " is invalid");
+            }
+        };
+
+        /* Thickness in terms of the global domain
+         * We store only global thickness, as the local one can change
+         * during the simulation
+         */
+        Thickness globalSize;
+
+        // Strength-related parameters
+        float3_X sigmaMax;
         // Polynomial order of the absorber strength growth towards borders
         // (often denoted 'm' or 'n' in the literature)
         uint32_t gradingOrder;
 
-        // These parameters are specific for each side,
-        // as a temporary solution sides are encoded in the absorber format (to be fixed)
-        uint32_t thickness[3][2]; // unit: cells
-        float3_X sigmaMax;
-        yeePML::detail::ExchangeDirections activeDirections;
-
-        void initializeParameters()
+        void initializeParameters( )
         {
-            // for now reuse parameters of the old absorber
-            // WARNING: this is only correct for a single process,
-            // TODO: for the general case needs to take into account domain decomposition
-            // so that thickness is 0 for "internal" boundaries between domains
-            for (int axis = 0; axis < 3; axis++)
-                for (int direction = 0; direction < 2; direction++) {
-                    thickness[axis][direction] = ABSORBER_CELLS[axis][direction];
-                }
-            activeDirections = yeePML::detail::getActiveDirections( thickness );
-            ///std::copy( activeDirections.begin(), activeDirections.end(), std::ostream_iterator< int >( std::cout, " " ) );
-
+            globalSize = getGlobalThickness( );
             gradingOrder = 4; // for now hardcoded with a good default value
-                              // Sigma optimal is based on (7.66) in Taflove 3rd ed., but uses PIC units and is divided by eps0
+            // Sigma optimal is based on (7.66) in Taflove 3rd ed.,
+            // but uses PIC units and is divided by eps0
             float_64 sigmaOptimal[3];
-            for( uint32_t dim = 0; dim < 3; dim++ )
+            for( auto dim = 0; dim < 3; dim++ )
                 sigmaOptimal[ dim ] = 0.8_X * ( gradingOrder + 1 ) * SPEED_OF_LIGHT / cellSize[ dim ];
-            /// todo: this should be a parameter with some default between 0.7 and 1.0
+            // This can become a a parameter with some default between 0.7 and 1.0
             constexpr float_X sigmaOptimalMultiplier = 1.0_X;
-            for( uint32_t dim = 0; dim < 3; dim++ )
+            for( auto dim = 0; dim < 3; dim++ )
                 sigmaMax[ dim ] = sigmaOptimalMultiplier * sigmaOptimal[ dim ];
         }
 
-        bool isEnabled( uint32_t const exchangeIdx, uint32_t const currentStep ) const
+        Thickness getGlobalThickness( ) const
         {
-            // this logic is copied from the old absorber,
-            // after checking it seems PML should use the same logic
-            /* allow to enable the absorber on the top side if the laser
-            * initialization plane in y direction is *not* in cell zero
-            */
-            const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter( currentStep );
-            if( fields::laserProfiles::Selected::initPlaneY == 0 )
+            Thickness globalThickness;
+            // For now thickness of the exponential damping absorber is used
+            for( auto axis = 0; axis < simDim; axis++ )
+                for( auto direction = 0; direction < 2; direction++ )
+                    globalThickness( axis, direction ) = ABSORBER_CELLS[ axis ][ direction ];
+            return globalThickness;
+        }
+
+        /** Get local PML thickness for the current time step
+         *  It depends on the current step because of the moving window
+         */
+        Thickness getLocalThickness( uint32_t const currentStep ) const
+        {
+            auto & movingWindow = MovingWindow::getInstance();
+            auto const numSlides = movingWindow.getSlideCounter( currentStep );
+            auto const numExchanges = NumberOfExchanges< simDim >::value;
+            auto const communicationMask = Environment< simDim >::get().GridController().getCommunicationMask();
+            // The logic of these checks is the same as in FieldManipulator::absorbBorder(),
+            // to disable the absorber at a border we set the corresponding thickness to 0
+            Thickness localThickness = globalSize;
+            for( auto exchange = 1; exchange < numExchanges; ++exchange )
             {
-                /* disable the absorber on top side if
-                *      no slide was performed and
-                *      laser init time is not over
-                */
-                if (numSlides == 0 && ((currentStep * DELTA_T) <= fields::laserProfiles::Selected::INIT_TIME))
+                // Ignore directions except left, right, top, bottom, back, front
+                if( FRONT % exchange != 0 )
+                    continue;
+
+                // Transform exchange into a pair of axis and direction
+                uint32_t axis = 0;
+                if( exchange >= BOTTOM && exchange <= TOP )
+                    axis = 1;
+                if( exchange >= BACK )
+                    axis = 2;
+                uint32_t direction = exchange % 2;
+
+                // No PML at the borders between two local domains
+                bool hasNeighbour = communicationMask.isSet( exchange );
+                if( hasNeighbour )
+                    localThickness( axis, direction ) = 0;
+
+                // Disable PML during laser initialization
+                if( fields::laserProfiles::Selected::initPlaneY == 0 )
                 {
-                    /* disable absorber on top side */
-                    if( exchangeIdx == TOP )
-                        return false;
+                    bool isLaserInitializationOver =
+                        (currentStep * DELTA_T) > fields::laserProfiles::Selected::INIT_TIME;
+                    if( numSlides == 0 && !isLaserInitializationOver && exchange == TOP )
+                        localThickness( axis, direction ) = 0;
                 }
+
+                // Disable PML at the far side of the moving window
+                if( movingWindow.isSlidingWindowActive( currentStep ) && exchange == BOTTOM )
+                    localThickness( axis, direction ) = 0;
             }
-
-            /* if sliding window is active we disable absorber on bottom side*/
-            if (MovingWindow::getInstance().isSlidingWindowActive(currentStep) && exchangeIdx == BOTTOM)
-                return false;
-
-            return true;
+            return localThickness;
         }
 
-        void updateBHalfPML( uint32_t const currentStep )
+        yeePML::detail::Parameters computeParameters( uint32_t const currentStep ) const
         {
-            for( auto direction: activeDirections )
+            Thickness localThickness = getLocalThickness( currentStep );
+            yeePML::detail::Parameters parameters;
+            // Convert size type here to avoid doing that in kernels
+            for( auto axis = 0; axis < simDim; axis++ )
             {
-                if( !isEnabled( direction, currentStep ) )
-                    continue;
-
-                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, direction );
-                constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                    pmacc::math::CT::volume< SuperCellSize >::type::value
-                >::value;
-                /// Temporarily disable cacheing as it is not clear how to load
-                /// exactly what we need and not go outside of the area
-                ///typedef SuperCellDescription<
-                ///    SuperCellSize,
-                ///    typename CurlE::LowerMargin,
-                ///    typename CurlE::UpperMargin
-                ///> BlockArea;
-
-                yeePML::detail::Parameters parameters;
-                parameters.normalizedSigmaMax = this->sigmaMax;
-                parameters.gradingOrder = this->gradingOrder;
-                PMACC_KERNEL( yeePML::KernelUpdateBHalf< numWorkers/*, BlockArea*/ >{ } )
-                    ( mapper.getGridDim(), numWorkers )(
-                        CurlE(),
-                        this->splitFields->getDeviceDataBox(),
-                        this->fieldB->getDeviceDataBox(),
-                        this->fieldE->getDeviceDataBox(),
-                        mapper,
-                        parameters
-                        );
+                parameters.negativeBorderSize[ axis ] = static_cast< float_X >(
+                    localThickness.negativeBorder[ axis ]
+                );
+                parameters.positiveBorderSize[ axis ] = static_cast< float_X >(
+                    localThickness.positiveBorder[ axis ]
+                );
             }
+            parameters.normalizedSigmaMax = this->sigmaMax;
+            parameters.gradingOrder = this->gradingOrder;
+            return parameters;
         }
 
-        void updateEPML( uint32_t currentStep )
+        template< uint32_t AREA >
+        void updateBHalf( uint32_t const currentStep )
         {
-            for( auto direction: activeDirections )
-            {
-                if( !isEnabled( direction, currentStep ) )
-                    continue;
+            typedef SuperCellDescription<
+                SuperCellSize,
+                typename CurlE::LowerMargin,
+                typename CurlE::UpperMargin
+            > BlockArea;
+            AreaMapping< AREA, MappingDesc > mapper( cellDescription );
+            constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
+                pmacc::math::CT::volume< SuperCellSize >::type::value
+            >::value;
+            // Note: here it is possible to check if PML is enabled in the local
+            // domain at all, and otherwise optimize by calling the normal Yee update,
+            // but we do not do that, as this is fragile wrt plans for close future changes
+            PMACC_KERNEL(yeePML::KernelUpdateBHalf< numWorkers, BlockArea >{ })
+                ( mapper.getGridDim(), numWorkers )(
+                    CurlE( ),
+                    this->splitFields->getDeviceDataBox(),
+                    this->fieldB->getDeviceDataBox(),
+                    this->fieldE->getDeviceDataBox(),
+                    mapper,
+                    computeParameters( currentStep )
+                );
+        }
 
-                ExchangeMapping< GUARD, MappingDesc > mapper( m_cellDescription, direction );
-                constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                    pmacc::math::CT::volume< SuperCellSize >::type::value
-                >::value;
-                /// Temporarily disable cacheing as it is not clear how to load
-                /// exactly what we need and not go outside of the area
-                ///typedef SuperCellDescription<
-                ///    SuperCellSize,
-                ///    typename CurlB::LowerMargin,
-                ///    typename CurlB::UpperMargin
-                ///> BlockArea;
-
-                yeePML::detail::Parameters parameters;
-                parameters.normalizedSigmaMax = this->sigmaMax;
-                parameters.gradingOrder = this->gradingOrder;
-                PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers /*, BlockArea*/ >{ } )
-                    ( mapper.getGridDim(), numWorkers )(
-                        CurlE(),
-                        this->splitFields->getDeviceDataBox(),
-                        this->fieldE->getDeviceDataBox(),
-                        this->fieldB->getDeviceDataBox(),
-                        mapper,
-                        parameters
-                        );
-            }
+        template< uint32_t AREA >
+        void updateE( uint32_t currentStep )
+        {
+            typedef SuperCellDescription<
+                SuperCellSize,
+                typename CurlB::LowerMargin,
+                typename CurlB::UpperMargin
+            > BlockArea;
+            AreaMapping< AREA, MappingDesc > mapper( cellDescription );
+            constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
+                pmacc::math::CT::volume< SuperCellSize >::type::value
+            >::value;
+            // Note: here it is possible to check if PML is enabled in the local
+            // domain at all, and otherwise optimize by calling the normal Yee update,
+            // but we do not do that, as this is fragile wrt plans for close future changes
+            PMACC_KERNEL( yeePML::KernelUpdateE< numWorkers, BlockArea >{ } )
+                ( mapper.getGridDim(), numWorkers )(
+                    CurlE(),
+                    this->splitFields->getDeviceDataBox(),
+                    this->fieldE->getDeviceDataBox(),
+                    this->fieldB->getDeviceDataBox(),
+                    mapper,
+                    computeParameters( currentStep )
+                );
         }
 
     public:
 
+        using NummericalCellType = picongpu::numericalCellTypes::YeeCell;
         using CurrentInterpolation = T_CurrentInterpolation;
         using CurlE = T_CurlE;
         using CurlB = T_CurlB;
 
-        YeePML(MappingDesc cellDescription) : Yee(cellDescription)
+        YeePML( MappingDesc cellDescription ) :
+            cellDescription( cellDescription )
         {
             // Split fields are created here to not waste memory in case
             // PML is not used
             DataConnector &dc = Environment<>::get().DataConnector();
+            fieldE = dc.get< FieldE >( FieldE::getName(), true );
+            fieldB = dc.get< FieldB >( FieldB::getName(), true );
             dc.share(std::shared_ptr< ISimulationData >(new yeePML::SplitFields(cellDescription)));
             splitFields = dc.get< yeePML::SplitFields >( yeePML::SplitFields::getName(), true );
             initializeParameters();
@@ -252,28 +264,29 @@ namespace maxwellSolver
 
         void update_beforeCurrent( uint32_t const currentStep )
         {
-            // here we need up-to-date E everywhere, including PML for near-PML border
-            YeeSolver::updateBHalf< CORE + BORDER >();
-            updateBHalfPML( currentStep );
+            // Steps are the same as in the Yee solver,
+            // PML updates are done as part of updateE(), updateBHalf()
+            updateBHalf < CORE + BORDER >( currentStep );
             EventTask eRfieldB = fieldB->asyncCommunication( __getTransactionEvent() );
 
-            YeeSolver::updateE< CORE >();
+            updateE< CORE >( currentStep );
             __setTransactionEvent( eRfieldB );
-            YeeSolver::updateE< BORDER >();
+            updateE< BORDER >( currentStep );
         }
 
         void update_afterCurrent( uint32_t const currentStep )
         {
-            updateEPML( currentStep );
+            // Steps are the same as in the Yee solver,
+            // except the FieldManipulator::absorbBorder() is not called,
+            // PML updates are done as part of updateE(), updateBHalf()
             if( laserProfiles::Selected::INIT_TIME > 0.0_X )
                 LaserPhysics{}( currentStep );
 
             EventTask eRfieldE = fieldE->asyncCommunication( __getTransactionEvent() );
 
-            YeeSolver::updateBHalf< CORE >();
+            updateBHalf< CORE >( currentStep );
             __setTransactionEvent( eRfieldE );
-            YeeSolver::updateBHalf< BORDER >();
-            updateBHalfPML( currentStep );
+            updateBHalf< BORDER >( currentStep );
 
             EventTask eRfieldB = fieldB->asyncCommunication( __getTransactionEvent() );
             __setTransactionEvent( eRfieldB );
