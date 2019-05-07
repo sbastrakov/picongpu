@@ -251,11 +251,7 @@ namespace yeePML
                 bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
                 if( inPML )
                 {
-                    const float3_X damping(
-                        math::exp( -sigma[0] * dt ),
-                        math::exp( -sigma[1] * dt ),
-                        math::exp( -sigma[2] * dt )
-                    );
+                    auto const damping = math::exp( -sigma * dt );
                     auto diff = float3_X::create( dt );
                     for ( uint32_t dim = 0; dim < 3; dim++ )
                         if ( sigma[ dim ] )
@@ -403,11 +399,7 @@ namespace yeePML
                     bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
                     if( inPML )
                     {
-                        float3_X const damping(
-                            math::exp( -sigma[0] * halfDt ),
-                            math::exp( -sigma[1] * halfDt ),
-                            math::exp( -sigma[2] * halfDt )
-                        );
+                        auto const damping = math::exp( -sigma * halfDt );
                         auto diff = float3_X::create( halfDt );
                         for ( auto dim = 0; dim < 3; dim++ )
                             if( sigma[ dim ] )
