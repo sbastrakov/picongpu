@@ -1,5 +1,5 @@
 /* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
- *                     Benjamin Worpitz
+ *                     Benjamin Worpitz, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -52,10 +52,7 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-    /**
-     * For now store all PML values together.
-     * This will probably be changed later.
-     */
+    //! Additional node values for E or B in PML
     struct NodeValues
     {
         float_X xy, xz, yx, yz, zx, zy;
@@ -66,7 +63,7 @@ namespace yeePML
     public:
 
         using ValueType = NodeValues;
-        typedef float_X UnitValueType; // this is a stub for now
+        using UnitValueType = float_X ;
 
         typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
@@ -125,7 +122,7 @@ namespace yeePML
 
         static std::string getName( )
         {
-            return "PML split E";
+            return "PML E components";
         }
 
     };
@@ -146,7 +143,7 @@ namespace yeePML
 
         static std::string getName( )
         {
-            return "PML split B";
+            return "PML B components";
         }
 
     };

@@ -1,5 +1,5 @@
 /* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
- *                     Richard Pausch, Benjamin Worpitz
+ *                     Richard Pausch, Benjamin Worpitz, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -62,72 +62,72 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-Field::Field( MappingDesc cellDescription ) :
-SimulationFieldHelper<MappingDesc>( cellDescription )
-{
-    data.reset(
-        new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) )
-    );
-}
+    Field::Field( MappingDesc cellDescription ) :
+    SimulationFieldHelper<MappingDesc>( cellDescription )
+    {
+        data.reset(
+            new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) )
+        );
+    }
 
-void Field::synchronize( )
-{
-    data->deviceToHost( );
-}
+    void Field::synchronize( )
+    {
+        data->deviceToHost( );
+    }
 
-void Field::syncToDevice( )
-{
-    data->hostToDevice( );
-}
+    void Field::syncToDevice( )
+    {
+        data->hostToDevice( );
+    }
 
-EventTask Field::asyncCommunication( EventTask serialEvent )
-{
-    EventTask eB = data->asyncCommunication( serialEvent );
-    return eB;
-}
+    EventTask Field::asyncCommunication( EventTask serialEvent )
+    {
+        EventTask eB = data->asyncCommunication( serialEvent );
+        return eB;
+    }
 
-GridLayout<simDim> Field::getGridLayout( )
-{
-    return cellDescription.getGridLayout( );
-}
+    GridLayout<simDim> Field::getGridLayout( )
+    {
+        return cellDescription.getGridLayout( );
+    }
 
-Field::DataBoxType Field::getHostDataBox( )
-{
-    return data->getHostBuffer( ).getDataBox( );
-}
+    Field::DataBoxType Field::getHostDataBox( )
+    {
+        return data->getHostBuffer( ).getDataBox( );
+    }
 
-Field::DataBoxType Field::getDeviceDataBox( )
-{
-    return data->getDeviceBuffer( ).getDataBox( );
-}
+    Field::DataBoxType Field::getDeviceDataBox( )
+    {
+        return data->getDeviceBuffer( ).getDataBox( );
+    }
 
-GridBuffer<Field::ValueType, simDim> &Field::getGridBuffer( )
-{
+    GridBuffer<Field::ValueType, simDim> &Field::getGridBuffer( )
+    {
 
-    return *data;
-}
+        return *data;
+    }
 
-void Field::reset( uint32_t )
-{
-    data->getHostBuffer( ).reset( true );
-    data->getDeviceBuffer( ).reset( false );
-}
+    void Field::reset( uint32_t )
+    {
+        data->getHostBuffer( ).reset( true );
+        data->getDeviceBuffer( ).reset( false );
+    }
 
 
-HDINLINE
-Field::UnitValueType
-Field::getUnit( )
-{
-    return UnitValueType( 1.0_X );
-}
+    HDINLINE
+    Field::UnitValueType
+    Field::getUnit( )
+    {
+        return UnitValueType( 1.0_X );
+    }
 
-HINLINE
-std::vector<float_64>
-Field::getUnitDimension( )
-{
-    std::vector<float_64> unitDimension( 7, 0.0 );
-    return unitDimension;
-}
+    HINLINE
+    std::vector<float_64>
+    Field::getUnitDimension( )
+    {
+        std::vector<float_64> unitDimension( 7, 0.0 );
+        return unitDimension;
+    }
 
 } // namespace yeePML
 } // namespace maxwellSolver

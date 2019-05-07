@@ -98,8 +98,7 @@ namespace maxwellSolver
                 return *( fieldB.get() );
             }
 
-            /**
-             * Propagate B values in the given area by half a time step.
+            /** Propagate B values in the given area by half a time step.
              *
              * @tparam T_Area area to apply updates to, the curl must be
              * applicable to all points; normally CORE, BORDER, or CORE + BORDER
@@ -255,7 +254,7 @@ namespace maxwellSolver
                 Thickness localThickness = globalSize;
                 for( auto exchange = 1; exchange < numExchanges; ++exchange )
                 {
-                    // Ignore directions except left, right, top, bottom, back, front
+                    // Skip directions except left, right, top, bottom, back, front
                     if( FRONT % exchange != 0 )
                         continue;
 
