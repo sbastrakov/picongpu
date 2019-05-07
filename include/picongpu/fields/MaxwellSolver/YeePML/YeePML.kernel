@@ -251,7 +251,7 @@ namespace yeePML
                     const typename Difference::template GetDifference< 0 > Dx;
                     const typename Difference::template GetDifference< 1 > Dy;
                     const typename Difference::template GetDifference< 2 > Dz;
-                    auto & const localB = cachedB.shift( cellIdxInSuperCell );
+                    auto const localB = cachedB.shift( cellIdxInSuperCell );
                     splitE( cellIdx ).yx = damping.x() * splitE( cellIdx ).yx - diff.x() * c2 * Dx( localB ).z();
                     splitE( cellIdx ).zx = damping.x() * splitE( cellIdx ).zx + diff.x() * c2 * Dx( localB ).y();
                     splitE( cellIdx ).xy = damping.y() * splitE( cellIdx ).xy + diff.y() * c2 * Dy( localB ).z();
@@ -396,7 +396,7 @@ namespace yeePML
                         const typename Difference::template GetDifference< 0 > Dx;
                         const typename Difference::template GetDifference< 1 > Dy;
                         const typename Difference::template GetDifference< 2 > Dz;
-                        auto & const localE = cachedE.shift( cellIdxInSuperCell );
+                        auto const localE = cachedE.shift( cellIdxInSuperCell );
                         splitB( cellIdx ).yx = damping.x() * splitB( cellIdx ).yx + diff.x() * Dx( localE ).z();
                         splitB( cellIdx ).zx = damping.x() * splitB( cellIdx ).zx - diff.x() * Dx( localE ).y();
                         splitB( cellIdx ).xy = damping.y() * splitB( cellIdx ).xy - diff.y() * Dy( localE ).z();

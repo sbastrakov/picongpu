@@ -1,0 +1,16 @@
+hostname
+
+------------------------------
+- - - - - job epilog - - - - -
+------------------------------
+Job ID: 1586747
+was running on nodes: kepler001
+by user: bastra54
+in partition: k20
+using account: k20
+number of CPUs used: 1
+------------------------------
+walltime reqd: 2-00:00:00
+walltime used: 00:00:02
+------------------------------
+

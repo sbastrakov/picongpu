@@ -248,7 +248,7 @@ namespace maxwellSolver
                  * FieldManipulator::absorbBorder(), to disable the absorber
                  * at a border we set the corresponding thickness to 0.
                  */
-                auto & const movingWindow = MovingWindow::getInstance( );
+                auto & movingWindow = MovingWindow::getInstance( );
                 auto const numSlides = movingWindow.getSlideCounter( currentStep );
                 auto const numExchanges = NumberOfExchanges< simDim >::value;
                 auto const communicationMask = Environment< simDim >::get( ).GridController( ).getCommunicationMask( );
