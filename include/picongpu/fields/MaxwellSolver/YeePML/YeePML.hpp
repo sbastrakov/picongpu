@@ -49,8 +49,7 @@ namespace maxwellSolver
     namespace detail
     {
 
-        /**
-         * Implementation of Yee + PML solver updates of E and B.
+        /** Implementation of Yee + PML solver updates of E and B.
          *
          * @tparam T_CurlE functor to compute curl of E
          * @tparam T_CurlB functor to compute curl of B
@@ -66,6 +65,87 @@ namespace maxwellSolver
             using CurlE = T_CurlE;
             using CurlB = T_CurlB;
 
+            Solver( MappingDesc cellDescription ) :
+                cellDescription{ cellDescription }
+            {
+                initParameters( );
+                initFields( );
+            }
+
+            //! Get a reference to (full) field E
+            picongpu::FieldE& getFieldE( )
+            {
+                return *( fieldE.get( ) );
+            }
+
+            //! Get a reference to (full) field B
+            picongpu::FieldB& getFieldB( )
+            {
+                return *( fieldB.get( ) );
+            }
+
+            /** Propagate B values in the given area by half a time step.
+             *
+             * @tparam T_Area area to apply updates to, the curl must be
+             * applicable to all points; normally CORE, BORDER, or CORE + BORDER
+             *
+             * @param currentStep index of the current time iteration
+             */
+            template< uint32_t T_Area >
+            void updateBHalf( uint32_t const currentStep )
+            {
+                constexpr auto numWorkers = getNumWorkers( );
+                using Kernel = yeePML::KernelUpdateBHalf<
+                    numWorkers,
+                    BlockDescription< CurlE >
+                >;
+                AreaMapper< T_Area > mapper{ cellDescription };
+                /* Note: here it is possible to first check if PML is enabled
+                 * in the local domain at all, and otherwise optimize by calling
+                 * the normal Yee update kernel. We do not do that, as this
+                 * would be fragile wrt future separation of PML into a plugin.
+                 */
+                PMACC_KERNEL( Kernel{ } )
+                    ( mapper.getGridDim( ), numWorkers )(
+                        CurlE( ),
+                        psiB->getDeviceDataBox( ),
+                        fieldB->getDeviceDataBox( ),
+                        fieldE->getDeviceDataBox( ),
+                        mapper,
+                        getLocalParameters( mapper, currentStep )
+                    );
+            }
+
+            /** Propagate E values in the given area by a time step.
+             *
+             * @tparam T_Area area to apply updates to, the curl must be
+             * applicable to all points; normally CORE, BORDER, or CORE + BORDER
+             *
+             * @param currentStep index of the current time iteration
+             */
+            template< uint32_t T_Area >
+            void updateE( uint32_t currentStep )
+            {
+                constexpr auto numWorkers = getNumWorkers( );
+                using Kernel = yeePML::KernelUpdateE<
+                    numWorkers,
+                    BlockDescription< CurlB >
+                >;
+                AreaMapper< T_Area > mapper{ cellDescription };
+                // Note: optimization considerations same as in updateBHalf().
+                PMACC_KERNEL( Kernel{ } )
+                    ( mapper.getGridDim( ), numWorkers )(
+                        CurlB( ),
+                        psiE->getDeviceDataBox( ),
+                        fieldE->getDeviceDataBox( ),
+                        fieldB->getDeviceDataBox( ),
+                        mapper,
+                        getLocalParameters( mapper, currentStep )
+                    );
+            }
+
+        private:
+
             // Helper types for configuring kernels
             template< typename T_Curl >
             using BlockDescription = pmacc::SuperCellDescription<
@@ -79,108 +159,24 @@ namespace maxwellSolver
                 MappingDesc
             >;
 
-            Solver( MappingDesc cellDescription ) :
-                cellDescription{ cellDescription }
-            {
-                initParameters( );
-                initFields( );
-            }
-
-            //! Get a reference to (full) field E
-            picongpu::FieldE& getFieldE( )
-            {
-                return *( fieldE.get() );
-            }
-
-            //! Get a reference to (full) field B
-            picongpu::FieldB& getFieldB( )
-            {
-                return *( fieldB.get() );
-            }
-
-            /** Propagate B values in the given area by half a time step.
-             *
-             * @tparam T_Area area to apply updates to, the curl must be
-             * applicable to all points; normally CORE, BORDER, or CORE + BORDER
-             *
-             * @param currentStep index of the current time iteration
-             */
-            template< uint32_t T_Area >
-            void updateBHalf( uint32_t const currentStep )
-            {
-                constexpr auto numWorkers = getNumWorkers();
-                using Kernel = yeePML::KernelUpdateBHalf<
-                    numWorkers,
-                    BlockDescription< CurlE >
-                >;
-                AreaMapper< T_Area > mapper{ cellDescription };
-                /* Note: here it is possible to first check if PML is enabled
-                 * in the local domain at all, and otherwise optimize by calling
-                 * the normal Yee update kernel. We do not do that, as this
-                 * would be fragile wrt future separation of PML into a plugin.
-                 */
-                PMACC_KERNEL( Kernel{ } )
-                    ( mapper.getGridDim(), numWorkers )(
-                        CurlE( ),
-                        splitB->getDeviceDataBox(),
-                        fieldB->getDeviceDataBox(),
-                        fieldE->getDeviceDataBox(),
-                        mapper,
-                        getLocalParameters( currentStep )
-                    );
-            }
-
-            /**
-            * Propagate E values in the given area by a time step.
-            *
-            * @tparam T_Area area to apply updates to, the curl must be
-            * applicable to all points; normally CORE, BORDER, or CORE + BORDER
-            *
-            * @param currentStep index of the current time iteration
-            */
-            template< uint32_t T_Area >
-            void updateE( uint32_t currentStep )
-            {
-                constexpr auto numWorkers = getNumWorkers();
-                using Kernel = yeePML::KernelUpdateE<
-                    numWorkers,
-                    BlockDescription< CurlB >
-                >;
-                AreaMapper< T_Area > mapper{ cellDescription };
-                // Note: optimization considerations same as in updateBHalf().
-                PMACC_KERNEL( Kernel{ } )
-                    ( mapper.getGridDim(), numWorkers )(
-                        CurlB(),
-                        splitE->getDeviceDataBox(),
-                        fieldE->getDeviceDataBox(),
-                        fieldB->getDeviceDataBox(),
-                        mapper,
-                        getLocalParameters( currentStep )
-                    );
-            }
-
-        private:
-
             // Yee solver data
             std::shared_ptr< picongpu::FieldE > fieldE;
             std::shared_ptr< picongpu::FieldB > fieldB;
             MappingDesc cellDescription;
 
             // PML field data
-            std::shared_ptr< yeePML::FieldE > splitE;
-            std::shared_ptr< yeePML::FieldB > splitB;
+            std::shared_ptr< yeePML::FieldE > psiE;
+            std::shared_ptr< yeePML::FieldB > psiB;
 
-            // PML parameters
-            /**
-            * Thickness in terms of the global domain.
-            *
-            * We store only global thickness, as the local one can change
-            * during the simulation and so has to be recomputed each time step.
-            * There are no limitations on the size, as long as it fits a single
-            * layer of external local domains (near the global simulation area
-            * boundary) on each time step. In particular, PML is not required
-            * to be aligned with the BORDER area.
-            */
+            /** Thickness in terms of the global domain.
+             *
+             * We store only global thickness, as the local one can change
+             * during the simulation and so has to be recomputed each time step.
+             * There are no limitations on the size, as long as it fits a single
+             * layer of external local domains (near the global simulation area
+             * boundary) on each time step. In particular, PML is not required
+             * to be aligned with the BORDER area.
+             */
             Thickness globalSize;
             Parameters parameters;
 
@@ -224,17 +220,24 @@ namespace maxwellSolver
                         new yeePML::FieldB{ cellDescription }
                         )
                 );
-                splitE = dc.get< yeePML::FieldE >( yeePML::FieldE::getName(), true );
-                splitB = dc.get< yeePML::FieldB >( yeePML::FieldB::getName(), true );
+                psiE = dc.get< yeePML::FieldE >( yeePML::FieldE::getName(), true );
+                psiB = dc.get< yeePML::FieldB >( yeePML::FieldB::getName(), true );
             }
 
-            yeePML::detail::LocalParameters getLocalParameters(
+            template< uint32_t T_Area >
+            yeePML::LocalParameters getLocalParameters(
+                AreaMapper< T_Area > & mapper,
                 uint32_t const currentStep
             ) const
             {
                 Thickness localThickness = getLocalThickness( currentStep );
                 checkLocalThickness( localThickness );
-                return yeePML::detail::LocalParameters( parameters, localThickness );
+                return yeePML::LocalParameters(
+                    parameters,
+                    localThickness,
+                    mapper.getGridSuperCells() * SuperCellSize::toRT(),
+                    mapper.getGuardingSuperCells() * SuperCellSize::toRT()
+                );
             }
 
             /**

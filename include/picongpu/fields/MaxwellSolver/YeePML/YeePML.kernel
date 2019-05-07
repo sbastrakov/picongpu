@@ -38,26 +38,34 @@ namespace maxwellSolver
 namespace yeePML
 {
 
-    using namespace pmacc;
+    //! Parameters of PML for the local domain
+    struct LocalParameters : public Parameters
+    {
+        //! PML size in cells, stored as floats to avoid type casts later
+        floatD_X const negativeBorderSize;
+        floatD_X const positiveBorderSize;
+
+        //! Local domain characteristics, including guard cells
+        DataSpace< simDim > const numLocalDomainCells;
+        DataSpace< simDim > const numGuardCells;
+
+        LocalParameters(
+            Parameters const parameters,
+            Thickness const localThickness,
+            DataSpace< simDim > const numLocalDomainCells,
+            DataSpace< simDim > const numGuardCells
+        ):
+            Parameters( parameters ),
+            negativeBorderSize( precisionCast< float_X >( localThickness.negativeBorder ) ),
+            positiveBorderSize( precisionCast< float_X >( localThickness.positiveBorder ) ),
+            numLocalDomainCells( numLocalDomainCells ),
+            numGuardCells( numGuardCells )
+        {
+        }
+    };
+
     namespace detail
     {
-        // Parameters of PML for the local domain
-        struct LocalParameters : public Parameters
-        {
-            // Size in cells, stored as floats to avoid type casts later
-            floatD_X negativeBorderSize;
-            floatD_X positiveBorderSize;
-
-            LocalParameters( Parameters const parameters,
-                Thickness const localThickness
-            ):
-                Parameters( parameters ),
-                negativeBorderSize( precisionCast< float_X >( localThickness.negativeBorder ) ),
-                positiveBorderSize( precisionCast< float_X >( localThickness.positiveBorder ) )
-            {
-            }
-        };
-
         /* Get relative depth of a given index in PML for 1D.
          * Index and local domain size include the guard.
          * So index == numGuardCells corresponds to the external negative PML
@@ -91,25 +99,23 @@ namespace yeePML
         DINLINE void getAbsorptionParameters(
             floatD_X cellIdx,
             LocalParameters const parameters,
-            DataSpace< simDim > const numLocalDomainCells,
-            DataSpace< simDim > const numGuardCells,
-            float3_X * sigma,
-            float3_X * kappa,
-            float3_X * alpha
+            float3_X & normalizedSigma,
+            float3_X & kappa,
+            float3_X & normalizedAlpha
         )
         {
             // initialize with values for non-PML area
-            *sigma = float3_X::create( 0._X );
-            *kappa = float3_X::create( 1._X );
-            *alpha = float3_X::create( 0._X );
+            normalizedSigma = float3_X::create( 0._X );
+            kappa = float3_X::create( 1._X );
+            normalizedAlpha = float3_X::create( 0._X );
             for( auto dim = 0; dim < simDim; dim++ )
             {
                 auto const relativeDepth = getRelativeDepth(
                     cellIdx[ dim ],
                     parameters.negativeBorderSize[ dim ],
                     parameters.positiveBorderSize[ dim ],
-                    numLocalDomainCells[ dim ],
-                    numGuardCells[ dim ]
+                    parameters.numLocalDomainCells[ dim ],
+                    parameters.numGuardCells[ dim ]
                 );
                 // Since normally most points are not in PML, avoid costly
                 // computing in this case
@@ -119,19 +125,55 @@ namespace yeePML
                         relativeDepth,
                         parameters.sigmaKappaGradingOrder
                     );
-                    (*sigma)[ dim ] = parameters.normalizedSigmaMax[ dim ] *
+                    normalizedSigma[ dim ] = parameters.normalizedSigmaMax[ dim ] *
                         sigmaKappaGradingCoeff;
-                    (*kappa)[ dim ] = 1._X + ( parameters.kappaMax[ dim ] - 1._X ) *
+                    kappa[ dim ] = 1._X + ( parameters.kappaMax[ dim ] - 1._X ) *
                         sigmaKappaGradingCoeff;
                     // note that this is only correct when relativeDepth != 0
                     auto const alphaGradingCoeff = math::pow(
                         1._X - relativeDepth,
                         parameters.sigmaKappaGradingOrder
                     );
-                    (*alpha)[ dim ] = parameters.normalizedAlphaMax[ dim ] *
+                    normalizedAlpha[ dim ] = parameters.normalizedAlphaMax[ dim ] *
                         alphaGradingCoeff;
                 }
             }
+        }
+
+        DINLINE void getCoefficients(
+            floatD_X idx,
+            LocalParameters const parameters,
+            float_X const dt,
+            float3_X & kappa,
+            float3_X & damping,
+            float3_X & diff
+        )
+        {
+            float3_X normalizedSigma, normalizedAlpha;
+            getAbsorptionParameters(
+                idx,
+                parameters,
+                normalizedSigma,
+                kappa,
+                normalizedAlpha
+            );
+            // Taflove 3rd ed. (7.102)
+            damping = math::exp( -( normalizedSigma / kappa + normalizedAlpha ) * dt );
+            diff = float3_X::create( dt );
+            for ( auto dim = 0; dim < 3; dim++ )
+                if( normalizedSigma[ dim ] )
+                    diff[ dim ] = normalizedSigma[ dim ] * ( damping[ dim ] - 1.0_X ) /
+                        ( kappa[ dim ] * EPS0 * ( normalizedSigma[ dim ] +
+                        normalizedAlpha[ dim ] * kappa[ dim ] ) );
+        }
+
+        DINLINE bool isInPML( float3_X const damping )
+        {
+            /* Each damping component is < 1 when absorption is enabled
+             * along this direction and == 1 otherwise.
+             * So a product is 1 in the internal area and < 1 in PML
+             */
+            return damping.x() * damping.y() * damping.z() != 1.0_X;
         }
 
     } // namespace detail
@@ -142,7 +184,7 @@ namespace yeePML
      * @tparam T_BlockDescription field (electric and magnetic) domain description
      */
     template<
-        uint32_t T_workers,
+        uint32_t T_numWorkers,
         typename T_BlockDescription
     >
     struct KernelUpdateE
@@ -151,7 +193,7 @@ namespace yeePML
          *
          * @tparam T_Curl curl functor type
          * @tparam T_EBox pmacc::DataBox, electric field box type
-         * @tparam T_SplitEBox PML split electric field box type
+         * @tparam T_PMLEBox PML split electric field box type
          * @tparam T_BBox pmacc::DataBox, magnetic field box type
          * @tparam T_Mapping mapper functor type
          * @tparam T_Acc alpaka accelerator type
@@ -174,26 +216,22 @@ namespace yeePML
         DINLINE void operator()(
             T_Acc const & acc,
             T_Curl const curl,
-            T_PMLEBox splitE,
+            T_PMLEBox psiE,
             T_EBox fieldE,
             T_BBox const fieldB,
             T_Mapping mapper,
-            detail::LocalParameters parameters
+            LocalParameters parameters
         ) const
         {
             // All numbers, offsets and indexes in this kernel include guard
-            auto const numGuardSuperCells = mapper.getGuardingSuperCells();
-            DataSpace< simDim > numGuardCells( numGuardSuperCells * SuperCellSize::toRT() );
-            DataSpace< simDim > const numLocalDomainCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
-
             // local index (inside the local domain), including guards
-            DataSpace< simDim > const superCellIdx( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
             // starting cell index in the current supercell
-            DataSpace< simDim > const startCellIdx = superCellIdx * MappingDesc::SuperCellSize::toRT();
+            auto const startCellIdx = mapper.getSuperCellIndex(
+                DataSpace< simDim >( blockIdx ) ) * MappingDesc::SuperCellSize::toRT( );
 
-            // Cache E values for the block
+            // Cache B values for the block
             using namespace mappings::threads;
-            constexpr uint32_t numWorkers = T_workers;
+            constexpr uint32_t numWorkers = T_numWorkers;
             uint32_t const workerIdx = threadIdx.x;
             nvidia::functors::Assign assign;
             auto fieldBBlock = fieldB.shift( startCellIdx );
@@ -206,8 +244,8 @@ namespace yeePML
                 typename T_BBox::ValueType
             >(
                 acc,
-                T_BlockDescription()
-                );
+                T_BlockDescription( )
+            );
             collectiveCacheB(
                 acc,
                 assign,
@@ -220,65 +258,65 @@ namespace yeePML
             constexpr float_X dt = DELTA_T;
 
             // Parallel processing of cells
-            constexpr uint32_t numCellsPerSuperCell = pmacc::math::CT::volume< SuperCellSize >::type::value;
+            constexpr uint32_t numCellsPerSuperCell =
+                pmacc::math::CT::volume< SuperCellSize >::type::value;
             ForEachIdx<
                 IdxConfig<
-                numCellsPerSuperCell,
-                numWorkers
+                    numCellsPerSuperCell,
+                    numWorkers
                 >
             >{ workerIdx }(
                 [&](
                     uint32_t const linearIdx,
                     uint32_t const
-                    )
-            {
-                // cellIdx is cell index in local domain
-                DataSpace< simDim > const cellIdxInSuperCell = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
-                auto cellIdx = startCellIdx + cellIdxInSuperCell;
-
-                auto const pmlIdx = precisionCast< float_X >( cellIdx );
-                float3_X sigma, kappa, alpha;
-                detail::getAbsorptionParameters(
-                    pmlIdx,
-                    parameters,
-                    numLocalDomainCells,
-                    numGuardCells,
-                    &sigma,
-                    &kappa,
-                    &alpha
-                );
-
-                bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
-                if( inPML )
+                )
                 {
-                    auto const damping = math::exp( -sigma * dt );
-                    auto diff = float3_X::create( dt );
-                    for ( uint32_t dim = 0; dim < 3; dim++ )
-                        if ( sigma[ dim ] )
-                            diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
-                    ///std::cout << "E: cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
+                    // cellIdx is cell index in local domain
+                    DataSpace< simDim > const cellIdxInSuperCell = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
+                    auto cellIdx = startCellIdx + cellIdxInSuperCell;
 
-                    // Update split fields
-                    using Difference = typename T_Curl::Difference;
-                    const typename Difference::template GetDifference< 0 > Dx;
-                    const typename Difference::template GetDifference< 1 > Dy;
-                    const typename Difference::template GetDifference< 2 > Dz;
-                    auto const localB = cachedB.shift( cellIdxInSuperCell );
-                    splitE( cellIdx ).yx = damping.x() * splitE( cellIdx ).yx - diff.x() * c2 * Dx( localB ).z();
-                    splitE( cellIdx ).zx = damping.x() * splitE( cellIdx ).zx + diff.x() * c2 * Dx( localB ).y();
-                    splitE( cellIdx ).xy = damping.y() * splitE( cellIdx ).xy + diff.y() * c2 * Dy( localB ).z();
-                    splitE( cellIdx ).zy = damping.y() * splitE( cellIdx ).zy - diff.y() * c2 * Dy( localB ).x();
-                    splitE( cellIdx ).xz = damping.z() * splitE( cellIdx ).xz - diff.z() * c2 * Dz( localB ).y();
-                    splitE( cellIdx ).yz = damping.z() * splitE( cellIdx ).yz + diff.z() * c2 * Dz( localB ).x();
+                    float3_X kappa, damping, diff;
+                    auto const pmlIdx = precisionCast< float_X >( cellIdx );
+                    detail::getCoefficients(
+                        pmlIdx,
+                        parameters,
+                        dt,
+                        kappa,
+                        damping,
+                        diff
+                    );
 
-                    // Full fields are sums of split fields
-                    fieldE( cellIdx ).x() = splitE( cellIdx ).xy + splitE( cellIdx ).xz;
-                    fieldE( cellIdx ).y() = splitE( cellIdx ).yx + splitE( cellIdx ).yz;
-                    fieldE( cellIdx ).z() = splitE( cellIdx ).zx + splitE( cellIdx ).zy;
+                    if( detail::isInPML( damping ) )
+                    {
+                        // Update split fields
+                        using Difference = typename T_Curl::Difference;
+                        const typename Difference::template GetDifference< 0 > Dx;
+                        const typename Difference::template GetDifference< 1 > Dy;
+                        const typename Difference::template GetDifference< 2 > Dz;
+                        auto const localB = cachedB.shift( cellIdxInSuperCell );
+                        auto const dBxDy = Dy( localB ).x( );
+                        auto const dBxDz = Dz( localB ).x( );
+                        auto const dByDx = Dx( localB ).y( );
+                        auto const dByDz = Dz( localB ).y( );
+                        auto const dBzDx = Dx( localB ).z( );
+                        auto const dBzDy = Dy( localB ).z( );
+                        psiE( cellIdx ).yx = damping.x() * psiE( cellIdx ).yx - diff.x() * dBzDx;
+                        psiE( cellIdx ).zx = damping.x() * psiE( cellIdx ).zx + diff.x() * dByDx;
+                        psiE( cellIdx ).xy = damping.y() * psiE( cellIdx ).xy + diff.y() * dBzDy;
+                        psiE( cellIdx ).zy = damping.y() * psiE( cellIdx ).zy - diff.y() * dBxDy;
+                        psiE( cellIdx ).xz = damping.z() * psiE( cellIdx ).xz - diff.z() * dByDz;
+                        psiE( cellIdx ).yz = damping.z() * psiE( cellIdx ).yz + diff.z() * dBxDz;
+                        // Update full fields
+                        fieldE( cellIdx ).x() += (dBzDy / kappa.y() - dByDz / kappa.z() +
+                            psiE( cellIdx ).xy - psiE( cellIdx ).xz ) * c2 * dt;
+                        fieldE( cellIdx ).y() += (dBxDz / kappa.z() - dBzDx / kappa.x() +
+                            psiE( cellIdx ).yz - psiE( cellIdx ).yx ) * c2 * dt;
+                        fieldE( cellIdx ).z() += (dByDx / kappa.x() - dBxDy / kappa.y() +
+                            psiE( cellIdx ).zx - psiE( cellIdx ).zy ) * c2 * dt;
+                    }
+                    else
+                        fieldE( cellIdx ) += curl( cachedB.shift( cellIdxInSuperCell ) ) * c2 * dt;
                 }
-                else
-                    fieldE( cellIdx ) += curl( cachedB.shift( cellIdxInSuperCell ) ) * c2 * dt;
-            }
             );
         }
     };
@@ -289,7 +327,7 @@ namespace yeePML
      * @tparam T_BlockDescription field (electric and magnetic) domain description
      */
     template<
-        uint32_t T_workers,
+        uint32_t T_numWorkers,
         typename T_BlockDescription
     >
     struct KernelUpdateBHalf
@@ -299,7 +337,7 @@ namespace yeePML
          * @tparam T_Curl curl functor type
          * @tparam T_EBox pmacc::DataBox, electric field box type
          * @tparam T_BBox pmacc::DataBox, magnetic field box type
-         * @tparam T_SplitBBox PML split magnetic field box type
+         * @tparam T_PMLBBox PML split magnetic field box type
          * @tparam T_Mapping mapper functor type
          * @tparam T_Acc alpaka accelerator type
          *
@@ -321,18 +359,14 @@ namespace yeePML
         DINLINE void operator()(
             T_Acc const & acc,
             T_Curl const curl,
-            T_PMLBBox splitB,
+            T_PMLBBox psiB,
             T_BBox fieldB,
             T_EBox const fieldE,
             T_Mapping mapper,
-            detail::LocalParameters parameters
+            LocalParameters parameters
         ) const
         {
             // All numbers, offsets and indexes in this kernel include guard
-            auto const numGuardSuperCells = mapper.getGuardingSuperCells();
-            DataSpace< simDim > numGuardCells( numGuardSuperCells * SuperCellSize::toRT() );
-            DataSpace< simDim > const numLocalDomainCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
-
             // local index (inside the local domain), including guards
             DataSpace< simDim > const superCellIdx( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
             // starting cell index in the current supercell
@@ -340,7 +374,7 @@ namespace yeePML
 
             // Cache E values for the block
             using namespace mappings::threads;
-            constexpr uint32_t numWorkers = T_workers;
+            constexpr uint32_t numWorkers = T_numWorkers;
             uint32_t const workerIdx = threadIdx.x;
             nvidia::functors::Assign assign;
             auto fieldEBlock = fieldE.shift( startCellIdx );
@@ -381,53 +415,49 @@ namespace yeePML
                     auto cellIdx = startCellIdx + cellIdxInSuperCell;
 
                     constexpr float_X halfDt = 0.5_X * DELTA_T;
-                    // Shift indexes so that 0 is start of the local domain without guard
+                    float3_X kappa, damping, diff;
                     // With the current grid for B need to shift by a half cell
                     auto const pmlIdx = float3_X::create( 0.5_X ) +
                         precisionCast< float_X >( cellIdx );
-                    float3_X sigma, kappa, alpha;
-                    detail::getAbsorptionParameters(
+                    detail::getCoefficients(
                         pmlIdx,
                         parameters,
-                        numLocalDomainCells,
-                        numGuardCells,
-                        &sigma,
-                        &kappa,
-                        &alpha
+                        halfDt,
+                        kappa,
+                        damping,
+                        diff
                     );
 
-                    bool inPML = ( sigma.x( ) + sigma.y( ) + sigma.z( ) > 0.0 );
-                    if( inPML )
+                    if( detail::isInPML( damping ) )
                     {
-                        auto const damping = math::exp( -sigma * halfDt );
-                        auto diff = float3_X::create( halfDt );
-                        for ( auto dim = 0; dim < 3; dim++ )
-                            if( sigma[ dim ] )
-                                diff[ dim ] = ( 1.0_X - damping[ dim ] ) / sigma[ dim ];
-                        ///std::cout << "cellIdx = " << cellIdx << ", damping = " << damping << ", diff = " << diff << "\n";
-
-                        // Update split fields
+                        // Update PML fields
                         using Difference = typename T_Curl::Difference;
                         const typename Difference::template GetDifference< 0 > Dx;
                         const typename Difference::template GetDifference< 1 > Dy;
                         const typename Difference::template GetDifference< 2 > Dz;
                         auto const localE = cachedE.shift( cellIdxInSuperCell );
-                        splitB( cellIdx ).yx = damping.x() * splitB( cellIdx ).yx + diff.x() * Dx( localE ).z();
-                        splitB( cellIdx ).zx = damping.x() * splitB( cellIdx ).zx - diff.x() * Dx( localE ).y();
-                        splitB( cellIdx ).xy = damping.y() * splitB( cellIdx ).xy - diff.y() * Dy( localE ).z();
-                        splitB( cellIdx ).zy = damping.y() * splitB( cellIdx ).zy + diff.y() * Dy( localE ).x();
-                        splitB( cellIdx ).xz = damping.z() * splitB( cellIdx ).xz + diff.z() * Dz( localE ).y();
-                        splitB( cellIdx ).yz = damping.z() * splitB( cellIdx ).yz - diff.z() * Dz( localE ).x();
-
-                        // Full fields are sums of split fields
-                        fieldB( cellIdx ).x() = splitB( cellIdx ).xy + splitB( cellIdx ).xz;
-                        fieldB( cellIdx ).y() = splitB( cellIdx ).yx + splitB( cellIdx ).yz;
-                        fieldB( cellIdx ).z() = splitB( cellIdx ).zx + splitB( cellIdx ).zy;
+                        auto const dExDy = Dy( localE ).x( );
+                        auto const dExDz = Dz( localE ).x( );
+                        auto const dEyDx = Dx( localE ).y( );
+                        auto const dEyDz = Dz( localE ).y( );
+                        auto const dEzDx = Dx( localE ).z( );
+                        auto const dEzDy = Dy( localE ).z( );
+                        psiB( cellIdx ).yx = damping.x() * psiB( cellIdx ).yx + diff.x() * dEzDx;
+                        psiB( cellIdx ).zx = damping.x() * psiB( cellIdx ).zx - diff.x() * dEyDx;
+                        psiB( cellIdx ).xy = damping.y() * psiB( cellIdx ).xy - diff.y() * dEzDy;
+                        psiB( cellIdx ).zy = damping.y() * psiB( cellIdx ).zy + diff.y() * dExDy;
+                        psiB( cellIdx ).xz = damping.z() * psiB( cellIdx ).xz + diff.z() * dEyDz;
+                        psiB( cellIdx ).yz = damping.z() * psiB( cellIdx ).yz - diff.z() * dExDz;
+                        // Update full fields
+                        fieldB( cellIdx ).x() += ( dEyDz / kappa.z() - dEzDy / kappa.y() +
+                            psiB( cellIdx ).xz - psiB( cellIdx ).xy ) * halfDt;
+                        fieldB( cellIdx ).y() += ( dEzDx / kappa.x() - dExDz / kappa.z() +
+                            psiB( cellIdx ).yx - psiB( cellIdx ).yz ) * halfDt;
+                        fieldB( cellIdx ).z() += ( dExDy / kappa.y() - dEyDx / kappa.x() +
+                            psiB( cellIdx ).zy - psiB( cellIdx ).zx ) * halfDt;
                     }
                     else
-                    {
                         fieldB( cellIdx ) -= curl( cachedE.shift( cellIdxInSuperCell ) ) * halfDt;
-                    }
                 }
             );
         }
