@@ -19,8 +19,12 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
-#include <pmacc/algorithms/math/floatMath/floatingPoint.tpp>
+#include "pmacc/dimensions/DataSpace.hpp"
+#include "pmacc/algorithms/math/floatMath/floatingPoint.tpp"
+
+#include <cstdint>
+#include <stdexcept>
+#include <string>
 
 
 namespace picongpu
@@ -34,14 +38,15 @@ namespace yeePML
 
     /** Parameters of PML, except thickness
      *
-     * Detailed description and recommended ranges are given in pml.param,
+     * A detailed description and recommended ranges are given in pml.param,
      * normalizations and unit conversions in pml.unitless.
      */
     struct Parameters
     {
         /** Max value of artificial electric conductivity
          *
-         * Components correspond to directions. Normalized by eps0.
+         * Components correspond to directions. Normalized, so that
+         * normalizedSigma = sigma / eps0 = sigma* / mue0.
          * Unit: 1/unit_time in PIC units
          */
         floatD_X normalizedSigmaMax;
@@ -77,20 +82,20 @@ namespace yeePML
     //! Thickness of PML at each border, in number of cells
     struct Thickness
     {
-        // Negative is at the local domain sides minimum in coordinates
+        //! Negative border is at the local domain sides minimum in coordinates
         DataSpace< simDim > negativeBorder;
-        // Positive is at the local domain sides maximum in coordinates
+        //! Positive border is at the local domain sides maximum in coordinates
         DataSpace< simDim > positiveBorder;
 
         /** Element access with indexing used in the .param file
-        *
-        * This is only for initialization convenience and so does not have
-        * a device version. Since this is not performance-critical at all,
-        * do range checks on parameters.
-        *
-        * @param axis 0 = x, 1 = y, 2 = z
-        * @param direction 0 = negative, 1 = positive
-        */
+         *
+         * This is only for initialization convenience and so does not have
+         * a device version. Since this is not performance-critical at all,
+         * do range checks on parameters.
+         *
+         * @param axis 0 = x, 1 = y, 2 = z
+         * @param direction 0 = negative, 1 = positive
+         */
         int & operator()( uint32_t const axis, uint32_t const direction )
         {
             if( axis >= simDim )

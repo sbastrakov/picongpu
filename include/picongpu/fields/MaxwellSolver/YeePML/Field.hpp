@@ -58,6 +58,7 @@ namespace yeePML
         float_X xy, xz, yx, yz, zx, zy;
     };
 
+    //! Base class for field in PML
     class Field : public SimulationFieldHelper<MappingDesc>, public ISimulationData
     {
     public:
@@ -106,6 +107,7 @@ namespace yeePML
         std::unique_ptr< Buffer > data;
     };
 
+    //! Additional electric field components in PML
     class FieldE : public Field
     {
     public:
@@ -127,6 +129,7 @@ namespace yeePML
 
     };
 
+    //! Additional magnetic field components in PML
     class FieldB : public Field
     {
     public:

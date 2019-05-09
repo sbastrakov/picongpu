@@ -28,10 +28,7 @@
 
 #include <pmacc/traits/GetStringProperties.hpp>
 
-#include <algorithm>
-#include <numeric>
 #include <stdexcept>
-#include <string>
 
 
 namespace picongpu
@@ -41,7 +38,7 @@ namespace fields
 namespace maxwellSolver
 {
 
-    /* Note: the yeePML namespace is only used for details and not the solver
+    /* Note: the yeePML namespace is only used for details and not the YeePML
      * itself in order to be consistent with other field solvers.
      */
     namespace yeePML
@@ -49,7 +46,18 @@ namespace maxwellSolver
     namespace detail
     {
 
-        /** Implementation of Yee + PML solver updates of E and B.
+        /** Implementation of Yee + PML solver updates of E and B
+         *
+         * Implementation is based on the paper J.A. Roden, S.D. Gedney.
+         * Convolution PML (CPML): An efficient FDTD implementation of the
+         * CFS - PML for arbitrary media. Microwave and optical technology
+         * letters. 27 (5), 334-339 (2000).
+         * https://doi.org/10.1002/1098-2760(20001205)27:5%3C334::AID-MOP14%3E3.0.CO;2-A
+         * This paper is later referred to as [Roden, Gedney].
+         * There is a more detailed description in section 7.9 of A. Taflove,
+         * S.C. Hagness. Computational Electrodynamics. The Finite-Difference
+         * Time-Domain Method. Third Edition. Artech house, Boston (2005),
+         * referred to as [Taflove, Hagness].
          *
          * @tparam T_CurlE functor to compute curl of E
          * @tparam T_CurlB functor to compute curl of B
@@ -65,26 +73,26 @@ namespace maxwellSolver
             using CurlE = T_CurlE;
             using CurlB = T_CurlB;
 
-            Solver( MappingDesc cellDescription ) :
+            Solver( MappingDesc const cellDescription ) :
                 cellDescription{ cellDescription }
             {
                 initParameters( );
                 initFields( );
             }
 
-            //! Get a reference to (full) field E
-            picongpu::FieldE& getFieldE( )
+            //! Get a reference to field E
+            picongpu::FieldE & getFieldE( )
             {
                 return *( fieldE.get( ) );
             }
 
-            //! Get a reference to (full) field B
-            picongpu::FieldB& getFieldB( )
+            //! Get a reference to field B
+            picongpu::FieldB & getFieldB( )
             {
                 return *( fieldB.get( ) );
             }
 
-            /** Propagate B values in the given area by half a time step.
+            /** Propagate B values in the given area by half a time step
              *
              * @tparam T_Area area to apply updates to, the curl must be
              * applicable to all points; normally CORE, BORDER, or CORE + BORDER
@@ -107,12 +115,12 @@ namespace maxwellSolver
                  */
                 PMACC_KERNEL( Kernel{ } )
                     ( mapper.getGridDim( ), numWorkers )(
-                        CurlE( ),
-                        psiB->getDeviceDataBox( ),
-                        fieldB->getDeviceDataBox( ),
-                        fieldE->getDeviceDataBox( ),
                         mapper,
-                        getLocalParameters( mapper, currentStep )
+                        getLocalParameters( mapper, currentStep ),
+                        CurlE( ),
+                        fieldE->getDeviceDataBox( ),
+                        fieldB->getDeviceDataBox( ),
+                        psiB->getDeviceDataBox( )
                     );
             }
 
@@ -132,15 +140,15 @@ namespace maxwellSolver
                     BlockDescription< CurlB >
                 >;
                 AreaMapper< T_Area > mapper{ cellDescription };
-                // Note: optimization considerations same as in updateBHalf().
+                // Note: optimization considerations same as in updateBHalf( ).
                 PMACC_KERNEL( Kernel{ } )
                     ( mapper.getGridDim( ), numWorkers )(
-                        CurlB( ),
-                        psiE->getDeviceDataBox( ),
-                        fieldE->getDeviceDataBox( ),
-                        fieldB->getDeviceDataBox( ),
                         mapper,
-                        getLocalParameters( mapper, currentStep )
+                        getLocalParameters( mapper, currentStep ),
+                        CurlB( ),
+                        fieldB->getDeviceDataBox( ),
+                        fieldE->getDeviceDataBox( ),
+                        psiE->getDeviceDataBox( )
                     );
             }
 
@@ -164,7 +172,9 @@ namespace maxwellSolver
             std::shared_ptr< picongpu::FieldB > fieldB;
             MappingDesc cellDescription;
 
-            // PML field data
+            /* PML convolutional field data, defined as in [Taflove, Hagness],
+             * eq. (7.105a,b), and similar for other components
+             */
             std::shared_ptr< yeePML::FieldE > psiE;
             std::shared_ptr< yeePML::FieldB > psiB;
 
@@ -183,7 +193,7 @@ namespace maxwellSolver
             void initParameters( )
             {
                 globalSize = getGlobalThickness( );
-                parameters.sigmaKappaGradingOrder = SIGMA_GRADING_ORDER;
+                parameters.sigmaKappaGradingOrder = SIGMA_KAPPA_GRADING_ORDER;
                 parameters.alphaGradingOrder = ALPHA_GRADING_ORDER;
                 for( auto dim = 0; dim < simDim; dim++ )
                 {
@@ -300,7 +310,7 @@ namespace maxwellSolver
                     if( localPMLSize[ dim ] > localDomain.size[ dim ] )
                         pmlFitsDomain = false;
                 if( !pmlFitsDomain )
-                    throw std::out_of_range("Requisted PML size exceeds the local domain");
+                    throw std::out_of_range( "Requisted PML size exceeds the local domain" );
             }
 
             //! Get number of workers for kernels
@@ -316,17 +326,30 @@ namespace maxwellSolver
     } // namespace detail
     } // namespace yeePML
 
-    /**
-      * Yee solver with perfectly matched layer (PML) absorber.
-      *
-      * Follows implicitly defined interface of field solvers.
-      * Most of the actual solver is implemented by yeePML::detail::Solver.
-      *
-      * @tparam T_CurrentInterpolation current interpolation functor
-      * (not used in the implementation, but part of field solver interface)
-      * @tparam T_CurlE functor to compute curl of E
-      * @tparam T_CurlB functor to compute curl of B
-      */
+    /** Yee field solver with perfectly matched layer (PML) absorber
+     *
+     * Absorption is done using convolutional perfectly matched layer (CPML),
+     * implemented according to [Roden, Gedney] and [Taflove, Hagness].
+     *
+     * This class template is a public interface to be used, e.g. in .param
+     * files and is compatible with other field solvers. Parameters of PML
+     * are taken from pml.param, pml.unitless.
+     *
+     * Enabling this solver results in more memory being used on a device:
+     * 12 additional scalar field values per each grid cell of a local domain.
+     * Another limitation is not full persistency with checkpointing: the
+     * additional values are not saved and so set to 0 after loading a
+     * checkpoint (which in some cases still provides proper absorption, but
+     * it is not guaranteed and results will differ due to checkpointing).
+     *
+     * This class template implements the general flow of CORE and BORDER field
+     * updates and communication. The numerical schemes to perform the updates
+     * are implemented by yeePML::detail::Solver.
+     *
+     * @tparam T_CurrentInterpolation current interpolation functor
+     * @tparam T_CurlE functor to compute curl of E
+     * @tparam T_CurlB functor to compute curl of B
+     */
     template<
         typename T_CurrentInterpolation,
         typename T_CurlE,
@@ -342,13 +365,12 @@ namespace maxwellSolver
         using CurlE = T_CurlE;
         using CurlB = T_CurlB;
 
-        YeePML( MappingDesc cellDescription ) :
+        YeePML( MappingDesc const cellDescription ) :
             solver( cellDescription )
         {
         }
 
-        /**
-         * Perform the first part of E and B propagation by a time step.
+        /** Perform the first part of E and B propagation by a time step.
          *
          * Together with update_afterCurrent() forms the full propagation.
          *
@@ -369,13 +391,12 @@ namespace maxwellSolver
             solver.updateE< BORDER >( currentStep );
         }
 
-        /**
-        * Perform the last part of E and B propagation by a time step.
-        *
-        * Together with update_beforeCurrent() forms the full propagation.
-        *
-        * @param currentStep index of the current time iteration
-        */
+        /** Perform the last part of E and B propagation by a time step
+         *
+         * Together with update_beforeCurrent() forms the full propagation.
+         *
+         * @param currentStep index of the current time iteration
+         */
         void update_afterCurrent( uint32_t const currentStep )
         {
             /* These steps are the same as in the Yee solver,
