@@ -30,6 +30,7 @@
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
+#include <pmacc/memory/MakeUnique.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
 #include <pmacc/mpi/reduceMethods/Reduce.hpp>
 #include <pmacc/nvidia/functors/Add.hpp>
@@ -42,6 +43,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace picongpu
 {
@@ -54,19 +56,23 @@ namespace po = boost::program_options;
  * from the particle positions obtained from PIConGPU.
  **/
 
-template <class ParticlesType> class Saxs : public ISimulationPlugin
+template< typename ParticlesType >
+class Saxs : public ISimulationPlugin
 {
-  private:
+private:
     using SuperCellSize = MappingDesc::SuperCellSize;
 
+    using FloatBuffer = GridBuffer< float_64, DIM1 >;
+    using IntBuffer = GridBuffer< int64_t, DIM1 >;
+
     //! The real part of structure factor
-    GridBuffer<float1_64, DIM1> *sumfcoskr;
+    std::unique_ptr< FloatBuffer > sumfcoskr;
     //! The imaginary part of structure factor
-    GridBuffer<float1_64, DIM1> *sumfsinkr;
+    std::unique_ptr< FloatBuffer > sumfsinkr;
     //! Number of real particles
-    GridBuffer<float1_64, DIM1> *np;
+    std::unique_ptr< FloatBuffer > np;
     //! Number of macro particles
-    GridBuffer<int64_t, DIM1> *nmp;
+    std::unique_ptr< IntBuffer > nmp;
 
     MappingDesc *cellDescription;
     std::string notifyPeriod;
@@ -82,12 +88,12 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
      **/
     float3_64 q_min, q_max, q_step;
     //! Number of scattering vectors
-    unsigned int n_qx, n_qy, n_qz, n_q;
+    DataSpace< 3 > numVectors;
 
-    float1_64 *sumfcoskr_master;
-    float1_64 *sumfsinkr_master;
-    float1_64 *intensity_master;
-    float1_64 np_master;
+    std::vector< float_64 > sumfcoskr_master;
+    std::vector< float_64 > sumfsinkr_master;
+    std::vector< float_64 > intensity_master;
+    float_64 np_master;
     int64_t nmp_master;
 
     bool isMaster;
@@ -102,8 +108,7 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
               "SAXS: calculate the SAXS scattering intensity of a species"),
           speciesName(ParticlesType::FrameType::getName()),
           pluginPrefix(speciesName + std::string("_saxs")),
-          filename_prefix(pluginPrefix), sumfcoskr(nullptr), sumfsinkr(nullptr),
-          np(nullptr), nmp(nullptr), cellDescription(nullptr), isMaster(false),
+          filename_prefix(pluginPrefix), cellDescription(nullptr), isMaster(false),
           currentStep(0)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
@@ -148,11 +153,11 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
             po::value<float_64>(&q_min[2])->default_value(-5),
             "reciprocal space range qz_min (A^-1)")(
             (pluginPrefix + ".n_qx").c_str(),
-            po::value<unsigned int>(&n_qx)->default_value(100),
+            po::value<int>(&numVectors[0])->default_value(100),
             "Number of qx")((pluginPrefix + ".n_qy").c_str(),
-            po::value<unsigned int>(&n_qy)->default_value(100),
+            po::value<int>(&numVectors[1])->default_value(100),
             "Number of qy")((pluginPrefix + ".n_qz").c_str(),
-            po::value<unsigned int>(&n_qz)->default_value(1), "Number of qz");
+            po::value<int>(&numVectors[2])->default_value(1), "Number of qz");
     }
 
     std::string pluginGetName() const { return pluginName; }
@@ -185,16 +190,17 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
         if (!notifyPeriod.empty())
         {
             isMaster = reduce.hasResult(mpi::reduceMethods::Reduce());
-            n_q = n_qx * n_qy * n_qz;
-            sumfcoskr = new GridBuffer<float1_64, DIM1>(DataSpace<DIM1>(n_q));
-            sumfsinkr = new GridBuffer<float1_64, DIM1>(DataSpace<DIM1>(n_q));
+            auto totalNumVectors = numVectors.productOfComponents( );
+            auto size = DataSpace< DIM1 >( totalNumVectors );
+            sumfcoskr = pmacc::memory::makeUnique< FloatBuffer >( size );
+            sumfsinkr = pmacc::memory::makeUnique< FloatBuffer >( size );
             // allocate one float on GPU and host
-            np = new GridBuffer<float1_64, DIM1>(DataSpace<DIM1>(1));
+            np = pmacc::memory::makeUnique< FloatBuffer >( DataSpace< DIM1 >( 1 ) );
             // allocate one int on GPU and host
-            nmp = new GridBuffer<int64_t, DIM1>(DataSpace<DIM1>(1));
-            sumfcoskr_master = new float1_64[n_q];
-            sumfsinkr_master = new float1_64[n_q];
-            intensity_master = new float1_64[n_q];
+            nmp = pmacc::memory::makeUnique< IntBuffer >( DataSpace< DIM1 >( 1 ) );
+            sumfcoskr_master.resize( totalNumVectors );
+            sumfsinkr_master.resize( totalNumVectors );
+            intensity_master.resize( totalNumVectors );
             Environment<>::get().PluginConnector().setNotificationPeriod(
                 this, notifyPeriod);
             pmacc::Filesystem<simDim> &fs =
@@ -214,7 +220,7 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
      * @param intensity
      * @param name The name of output file
      **/
-    void writeIntensity(float1_64 *intensity, std::string name)
+    void writeIntensity(const std::vector< float_64 > & intensity, std::string name)
     {
         std::ofstream ofile;
         ofile.open(name.c_str(), std::ofstream::out | std::ostream::trunc);
@@ -222,26 +228,20 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
         {
             std::cerr << "Can't open file [" << name
                       << "] for output, disable plugin output.\n";
-            isMaster =
-                false; // no Master anymore -> no process is able to write
+            isMaster = false; // no Master anymore -> no process is able to write
         }
         else
         {
-            int i_x, i_y, i_z;
-            float3_64 q;
-
-            ofile << n_q << "\n";
+            auto const totalNumVectors = numVectors.productOfComponents( );
+            ofile << totalNumVectors << "\n";
             ofile << "# qx qy qz intensity \n";
-            for (unsigned int i = 0; i < n_q; i++)
+            for( int i = 0; i < totalNumVectors; i++ )
             {
-                i_z = i % n_qz;
-                i_y = (i / n_qz) % n_qy;
-                i_x = i / (n_qz * n_qy);
-                q[0] = q_min[0] + q_step[0] * i_x;
-                q[1] = q_min[1] + q_step[1] * i_y;
-                q[2] = q_min[2] + q_step[2] * i_z;
-                ofile << q[0] << " " << q[1] << " " << q[2] << " "
-                      << intensity[i][0] << "\n";
+                int i_z = i % numVectors.z( );
+                int i_y = ( i / numVectors.z( ) ) % numVectors.y( );
+                int i_x = i / ( numVectors.z( ) * numVectors.y( ) );
+                float3_64 q = q_min + q_step * float3_64( i_x, i_y, i_z );
+                ofile << q << " " << intensity[ i ] << "\n";
             }
             ofile.close();
         }
@@ -254,7 +254,7 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
      * @param nmp_master The number of macro particles
      * @param name The name of output file
      **/
-    void writeLog(float1_64 np_master, int64_t nmp_master, std::string name)
+    void writeLog(float_64 np_master, int64_t nmp_master, std::string name)
     {
         std::ofstream ofile;
         ofile.open(name.c_str(), std::ofstream::out | std::ostream::trunc);
@@ -262,16 +262,14 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
         {
             std::cerr << "Can't open file [" << name
                       << "] for output, disable plugin output.\n";
-            isMaster =
-                false; // no Master anymore -> no process is able to write
+            isMaster = false; // no Master anymore -> no process is able to write
         }
         else
         {
             ofile << "Number of particles:"
-                  << " " << np_master.x() << "\n";
+                  << " " << np_master << "\n";
             ofile << "Number of macro particles:"
                   << " " << nmp_master << "\n";
-
             ofile.close();
         }
     }
@@ -280,11 +278,6 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
     {
         if (!notifyPeriod.empty())
         {
-            __delete(sumfcoskr);
-            __delete(sumfsinkr);
-            __delete(np);
-            __delete(nmp);
-            __deleteArray(intensity_master);
             CUDA_CHECK(cudaGetLastError());
         }
     }
@@ -303,27 +296,44 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
      *  copyIntensityDeviceToHost should be called before */
     void collectIntensityOnMaster()
     {
-        reduce(nvidia::functors::Add(), sumfcoskr_master,
-            sumfcoskr->getHostBuffer().getBasePointer(), n_q,
-            mpi::reduceMethods::Reduce());
-        reduce(nvidia::functors::Add(), sumfsinkr_master,
-            sumfsinkr->getHostBuffer().getBasePointer(), n_q,
-            mpi::reduceMethods::Reduce());
-        reduce(nvidia::functors::Add(), &np_master,
-            np->getHostBuffer().getBasePointer(), 1,
-            mpi::reduceMethods::Reduce());
-        reduce(nvidia::functors::Add(), &nmp_master,
-            nmp->getHostBuffer().getBasePointer(), 1,
-            mpi::reduceMethods::Reduce());
+        auto const totalNumVectors = numVectors.productOfComponents( );
+        reduce(
+            nvidia::functors::Add( ),
+            sumfcoskr_master.data( ),
+            sumfcoskr->getHostBuffer( ).getBasePointer( ),
+            totalNumVectors,
+            mpi::reduceMethods::Reduce( )
+        );
+        reduce(
+            nvidia::functors::Add( ),
+            sumfsinkr_master.data( ),
+            sumfsinkr->getHostBuffer( ).getBasePointer(),
+            totalNumVectors,
+            mpi::reduceMethods::Reduce( )
+        );
+        reduce(
+            nvidia::functors::Add( ),
+            &np_master,
+            np->getHostBuffer( ).getBasePointer( ),
+            1,
+            mpi::reduceMethods::Reduce( )
+        );
+        reduce(
+            nvidia::functors::Add( ),
+            &nmp_master,
+            nmp->getHostBuffer( ).getBasePointer( ),
+            1,
+            mpi::reduceMethods::Reduce( )
+        );
 
         // Calculate intensity on master
         if (isMaster)
         {
-            for (unsigned int i = 0; i < n_q; i++)
+            for( int i = 0; i < totalNumVectors; i++ )
                 intensity_master[i] =
                     (sumfcoskr_master[i] * sumfcoskr_master[i] +
                         sumfsinkr_master[i] * sumfsinkr_master[i]) /
-                    np_master.x();
+                    np_master;
 
             std::stringstream o_step;
             o_step << currentStep;
@@ -359,55 +369,52 @@ template <class ParticlesType> class Saxs : public ISimulationPlugin
         DataSpace<simDim> globalOffset(subGrid.getLocalDomain().offset);
 
         constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-            pmacc::math::CT::volume<SuperCellSize>::type::value>::value;
+            pmacc::math::CT::volume< SuperCellSize >::type::value
+        >::value;
 
         // initialize variables with zero
-        sumfcoskr->getDeviceBuffer().setValue(0.0);
-        sumfsinkr->getDeviceBuffer().setValue(0.0);
-        np->getDeviceBuffer().setValue(0.0);
-        nmp->getDeviceBuffer().setValue(0.0);
+        sumfcoskr->getDeviceBuffer( ).setValue( 0.0 );
+        sumfsinkr->getDeviceBuffer( ).setValue( 0.0 );
+        np->getDeviceBuffer( ).setValue( 0.0 );
+        nmp->getDeviceBuffer( ).setValue( 0.0 );
 
-        // calculate q_step
-        q_step[0] = (q_max[0] - q_min[0]) / n_qx;
-        q_step[1] = (q_max[1] - q_min[1]) / n_qy;
-        q_step[2] = (q_max[2] - q_min[2]) / n_qz;
+        q_step = ( q_max - q_min ) / precisionCast< float_64 >( numVectors );
 
         // PIC-like kernel call of the SAXS kernel
+        auto const totalNumVectors = numVectors.productOfComponents( );
+        auto const numBlocks = ( totalNumVectors + numWorkers - 1 ) / numWorkers;
         PMACC_KERNEL(
-            KernelSaxs< numWorkers >{}
+            KernelSaxs< numWorkers >{ }
         )(
-            1,
+            numBlocks,
             numWorkers
         )(
             // Pointer to particles memory on the device
-            particles->getDeviceParticlesBox(),
+            particles->getDeviceParticlesBox( ),
             // Pointer to memory of sumfcoskr & sumfsinkr on the device
-            sumfcoskr->getDeviceBuffer().getDataBox(),
-            sumfsinkr->getDeviceBuffer().getDataBox(),
-            np->getDeviceBuffer().getDataBox(),
-            nmp->getDeviceBuffer().getDataBox(),
+            sumfcoskr->getDeviceBuffer( ).getDataBox( ),
+            sumfsinkr->getDeviceBuffer( ).getDataBox( ),
+            np->getDeviceBuffer( ).getDataBox( ),
+            nmp->getDeviceBuffer( ).getDataBox( ),
             globalOffset,
             currentStep,
             *cellDescription,
-            subGrid.getGlobalDomain().size,
+            subGrid.getGlobalDomain( ).size,
             q_min,
             q_max,
             q_step,
-            n_qx,
-            n_qy,
-            n_qz,
-            n_q
+            numVectors
         );
 
-        dc.releaseData(ParticlesType::FrameType::getName());
+        dc.releaseData( ParticlesType::FrameType::getName( ) );
 
         collectDataGPUToMaster();
 
         // reset amplitudes on GPU back to zero
-        sumfcoskr->getDeviceBuffer().reset(false);
-        sumfsinkr->getDeviceBuffer().reset(false);
-        np->getDeviceBuffer().reset(false);
-        nmp->getDeviceBuffer().reset(false);
+        sumfcoskr->getDeviceBuffer( ).reset( false );
+        sumfsinkr->getDeviceBuffer( ).reset( false );
+        np->getDeviceBuffer( ).reset( false );
+        nmp->getDeviceBuffer( ).reset( false );
     }
 };
 

@@ -1,6 +1,6 @@
 /* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
  *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz,
- *                     Juncheng E
+ *                     Juncheng E, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -49,7 +49,8 @@ namespace picongpu
  *
  * @tparam T_numWorkers number of workers
  */
-template <uint32_t T_numWorkers> struct KernelSaxs
+template < uint32_t T_numWorkers >
+struct KernelSaxs
 {
     /**
      * The SAXS kernel calculates for all particles on the device the
@@ -91,10 +92,7 @@ template <uint32_t T_numWorkers> struct KernelSaxs
         float3_64 q_min,
         float3_64 q_max,
         float3_64 q_step,
-        unsigned int n_qx,
-        unsigned int n_qy,
-        unsigned int n_qz,
-        unsigned int n_q
+        DataSpace< 3 > numVectors
     ) const
     {
         using namespace mappings::threads;
@@ -108,6 +106,7 @@ template <uint32_t T_numWorkers> struct KernelSaxs
         using FramePtr = typename ParBox::FramePtr;
 
         uint32_t const workerIdx = threadIdx.x;
+        uint32_t const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
         constexpr int blockSize =
             pmacc::math::CT::volume<SuperCellSize>::type::value;
@@ -137,7 +136,7 @@ template <uint32_t T_numWorkers> struct KernelSaxs
         /* go over all super cells on GPU
          * but ignore all guarding supercells
          */
-        for (int super_cell_index = 0; super_cell_index <= numSuperCells;
+        for (int super_cell_index = 0; super_cell_index < numSuperCells;
              ++super_cell_index)
         {
             // select SuperCell and add one sided guard again
@@ -230,41 +229,36 @@ template <uint32_t T_numWorkers> struct KernelSaxs
                 // meter -> Angstrom
                 float_64 const meter2angstrom = 1e10;
 
-                // run over all q for this thread
-                for (int idx = workerIdx; idx < n_q; idx += T_numWorkers)
+                // Initialize in register memory
+                float_64 sumfcoskr_r = 0.;
+                float_64 sumfsinkr_r = 0.;
+                float3_64 q_r;
+                float_64 dotkr;
+
+                int i_z = globalWorkerIdx % numVectors.z( );
+                int i_y = ( globalWorkerIdx / numVectors.z( ) ) % numVectors.y( );
+                int i_x = globalWorkerIdx / ( numVectors.z( ) * numVectors.y( ) );
+
+                q_r[0] = q_min[0] + q_step[0] * i_x;
+                q_r[1] = q_min[1] + q_step[1] * i_y;
+                q_r[2] = q_min[2] + q_step[2] * i_z;
+
+                // Particle loop: thread runs through loaded particle data
+                for (int j = 0; j < particlesInFrame; ++j)
                 {
-                    // Initialize in register memory
-                    float1_64 sumfcoskr_r = 0.;
-                    float1_64 sumfsinkr_r = 0.;
-                    float3_64 q_r;
-                    float_64 dotkr;
-
-                    int i_z = idx % n_qz;
-                    int i_y = (idx / n_qz) % n_qy;
-                    int i_x = idx / (n_qz * n_qy);
-
-                    q_r[0] = q_min[0] + q_step[0] * i_x;
-                    q_r[1] = q_min[1] + q_step[1] * i_y;
-                    q_r[2] = q_min[2] + q_step[2] * i_z;
-
-
-                    // Particle loop: thread runs through loaded particle data
-                    for (int j = 0; j < particlesInFrame; ++j)
-                    {
-                        dotkr = (q_r[0] * r_s[j][0] + q_r[1] * r_s[j][1] +
-                                    q_r[2] * r_s[j][2]) *
-                                meter2angstrom * UNIT_LENGTH; // PIConGPU unit
-                                // 1e10 * UNIT_LENGTH; // PIConGPU unit
-                        sumfcoskr_r += math::cos(dotkr) * saxsWeighting_s[j];
-                        sumfsinkr_r += math::sin(dotkr) * saxsWeighting_s[j];
-                        if (idx == 0)
-                            np_s += saxsWeighting_s[j];
-                    } // END: Particle loop
-
-                    sumfcoskr[idx] += sumfcoskr_r;
-                    sumfsinkr[idx] += sumfsinkr_r;
-
-                } // end q (frequency) loop
+                    dotkr = (q_r[0] * r_s[j][0] + q_r[1] * r_s[j][1] +
+                                q_r[2] * r_s[j][2]) *
+                           meter2angstrom * UNIT_LENGTH; // PIConGPU unit
+                            // 1e10 * UNIT_LENGTH; // PIConGPU unit
+                    float_64 sinValue, cosValue;
+                    math::sincos( dotkr, sinValue, cosValue );
+                    sumfcoskr_r += cosValue * saxsWeighting_s[j];
+                    sumfsinkr_r += sinValue * saxsWeighting_s[j];
+                    if( globalWorkerIdx == 0 )
+                        np_s += saxsWeighting_s[ j ];
+                }
+                sumfcoskr[ globalWorkerIdx ] += sumfcoskr_r;
+                sumfsinkr[ globalWorkerIdx ] += sumfsinkr_r;
 
                 // wait till all  for this super cell are done
                 __syncthreads();
@@ -279,8 +273,8 @@ template <uint32_t T_numWorkers> struct KernelSaxs
                 particlesInFrame = frameSize;
                 frame = pb.getPreviousFrame(frame);
                 // in the master thread of a block
-                if (workerIdx == 0)
-                    np[0] += np_s;
+                if( globalWorkerIdx == 0 )
+                    np[ 0 ] += np_s;
             } // end while(frame.isValid())
 
         } // end loop over all super cells
