@@ -89,9 +89,9 @@ struct KernelSaxs
         uint32_t currentStep,
         Mapping mapper,
         DataSpace<simDim> simBoxSize,
-        float3_64 q_min,
-        float3_64 q_max,
-        float3_64 q_step,
+        float3_X q_min,
+        float3_X q_max,
+        float3_X q_step,
         DataSpace< 3 > numVectors
     ) const
     {
@@ -112,12 +112,12 @@ struct KernelSaxs
             pmacc::math::CT::volume<SuperCellSize>::type::value;
 
         // vectorial part of the integrand in the Jackson formula
-        PMACC_SMEM(acc, r_s, memory::Array<picongpu::float3_64, blockSize>);
+        PMACC_SMEM(acc, r_s, memory::Array<picongpu::float3_X, blockSize>);
 
         // storage for macro particle weighting
         PMACC_SMEM(acc, saxsWeighting_s, memory::Array<float_X, blockSize>);
 
-        PMACC_SMEM(acc, np_s, float_64);
+        PMACC_SMEM(acc, np_s, float_X);
 
         // get extent of guarding super cells (needed to ignore them)
         DataSpace<simDim> const guardingSuperCells =
@@ -227,13 +227,13 @@ struct KernelSaxs
                                  // particle data
 
                 // meter -> Angstrom
-                float_64 const meter2angstrom = 1e10;
+                float_X const meter2angstrom = 1e10;
 
                 // Initialize in register memory
-                float_64 sumfcoskr_r = 0.;
-                float_64 sumfsinkr_r = 0.;
-                float3_64 q_r;
-                float_64 dotkr;
+                float_X sumfcoskr_r = 0._X;
+                float_X sumfsinkr_r = 0._X;
+                float3_X q_r;
+                float_X dotkr;
 
                 int i_z = globalWorkerIdx % numVectors.z( );
                 int i_y = ( globalWorkerIdx / numVectors.z( ) ) % numVectors.y( );
@@ -250,7 +250,7 @@ struct KernelSaxs
                                 q_r[2] * r_s[j][2]) *
                            meter2angstrom * UNIT_LENGTH; // PIConGPU unit
                             // 1e10 * UNIT_LENGTH; // PIConGPU unit
-                    float_64 sinValue, cosValue;
+                    float_X sinValue, cosValue;
                     math::sincos( dotkr, sinValue, cosValue );
                     sumfcoskr_r += cosValue * saxsWeighting_s[j];
                     sumfsinkr_r += sinValue * saxsWeighting_s[j];

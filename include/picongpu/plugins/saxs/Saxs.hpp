@@ -62,7 +62,7 @@ class Saxs : public ISimulationPlugin
 private:
     using SuperCellSize = MappingDesc::SuperCellSize;
 
-    using FloatBuffer = GridBuffer< float_64, DIM1 >;
+    using FloatBuffer = GridBuffer< float_X, DIM1 >;
     using IntBuffer = GridBuffer< int64_t, DIM1 >;
 
     //! The real part of structure factor
@@ -86,14 +86,14 @@ private:
      * 4*pi*sin(theta)/lambda, where 2theta is the angle
      * between scattered and incident beam
      **/
-    float3_64 q_min, q_max, q_step;
+    float3_X q_min, q_max, q_step;
     //! Number of scattering vectors
     DataSpace< 3 > numVectors;
 
-    std::vector< float_64 > sumfcoskr_master;
-    std::vector< float_64 > sumfsinkr_master;
-    std::vector< float_64 > intensity_master;
-    float_64 np_master;
+    std::vector< float_X > sumfcoskr_master;
+    std::vector< float_X > sumfsinkr_master;
+    std::vector< float_X > intensity_master;
+    float_X np_master;
     int64_t nmp_master;
 
     bool isMaster;
@@ -135,22 +135,22 @@ private:
             po::value<std::string>(&notifyPeriod),
             "enable plugin [for each n-th step]")(
             (pluginPrefix + ".qx_max").c_str(),
-            po::value<float_64>(&q_max[0])->default_value(5),
+            po::value<float_X>(&q_max[0])->default_value(5),
             "reciprocal space range qx_max (A^-1)")(
             (pluginPrefix + ".qy_max").c_str(),
-            po::value<float_64>(&q_max[1])->default_value(5),
+            po::value<float_X>(&q_max[1])->default_value(5),
             "reciprocal space range qy_max (A^-1)")(
             (pluginPrefix + ".qz_max").c_str(),
-            po::value<float_64>(&q_max[2])->default_value(5),
+            po::value<float_X>(&q_max[2])->default_value(5),
             "reciprocal space range qz_max (A^-1)")(
             (pluginPrefix + ".qx_min").c_str(),
-            po::value<float_64>(&q_min[0])->default_value(-5),
+            po::value<float_X>(&q_min[0])->default_value(-5),
             "reciprocal space range qx_min (A^-1)")(
             (pluginPrefix + ".qy_min").c_str(),
-            po::value<float_64>(&q_min[1])->default_value(-5),
+            po::value<float_X>(&q_min[1])->default_value(-5),
             "reciprocal space range qy_min (A^-1)")(
             (pluginPrefix + ".qz_min").c_str(),
-            po::value<float_64>(&q_min[2])->default_value(-5),
+            po::value<float_X>(&q_min[2])->default_value(-5),
             "reciprocal space range qz_min (A^-1)")(
             (pluginPrefix + ".n_qx").c_str(),
             po::value<int>(&numVectors[0])->default_value(100),
@@ -220,7 +220,7 @@ private:
      * @param intensity
      * @param name The name of output file
      **/
-    void writeIntensity(const std::vector< float_64 > & intensity, std::string name)
+    void writeIntensity(const std::vector< float_X > & intensity, std::string name)
     {
         std::ofstream ofile;
         ofile.open(name.c_str(), std::ofstream::out | std::ostream::trunc);
@@ -240,7 +240,7 @@ private:
                 int i_z = i % numVectors.z( );
                 int i_y = ( i / numVectors.z( ) ) % numVectors.y( );
                 int i_x = i / ( numVectors.z( ) * numVectors.y( ) );
-                float3_64 q = q_min + q_step * float3_64( i_x, i_y, i_z );
+                auto const q = q_min + q_step * float3_X( i_x, i_y, i_z );
                 ofile << q << " " << intensity[ i ] << "\n";
             }
             ofile.close();
@@ -254,7 +254,11 @@ private:
      * @param nmp_master The number of macro particles
      * @param name The name of output file
      **/
-    void writeLog(float_64 np_master, int64_t nmp_master, std::string name)
+    void writeLog(
+        float_X np_master,
+        int64_t nmp_master,
+        std::string name
+    )
     {
         std::ofstream ofile;
         ofile.open(name.c_str(), std::ofstream::out | std::ostream::trunc);
@@ -378,7 +382,7 @@ private:
         np->getDeviceBuffer( ).setValue( 0.0 );
         nmp->getDeviceBuffer( ).setValue( 0.0 );
 
-        q_step = ( q_max - q_min ) / precisionCast< float_64 >( numVectors );
+        q_step = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
 
         // PIC-like kernel call of the SAXS kernel
         auto const totalNumVectors = numVectors.productOfComponents( );
