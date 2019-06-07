@@ -85,10 +85,9 @@ struct KernelSaxs
         DBox sumfsinkr,
         DBox_np np,
         DBox_nmp nmp,
-        DataSpace<simDim> globalOffset,
-        uint32_t currentStep,
+        DataSpace< simDim > globalOffset,
         Mapping mapper,
-        DataSpace<simDim> simBoxSize,
+        DataSpace< simDim > simBoxSize,
         float3_X q_min,
         float3_X q_max,
         float3_X q_step,
@@ -107,6 +106,7 @@ struct KernelSaxs
 
         uint32_t const workerIdx = threadIdx.x;
         uint32_t const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
+        /// todo add check for index out of bounds
 
         constexpr int blockSize =
             pmacc::math::CT::volume<SuperCellSize>::type::value;
@@ -116,8 +116,6 @@ struct KernelSaxs
 
         // storage for macro particle weighting
         PMACC_SMEM(acc, saxsWeighting_s, memory::Array<float_X, blockSize>);
-
-        PMACC_SMEM(acc, np_s, float_X);
 
         // get extent of guarding super cells (needed to ignore them)
         DataSpace<simDim> const guardingSuperCells =
@@ -132,6 +130,10 @@ struct KernelSaxs
 
         // get absolute number of relevant super cells
         int const numSuperCells = superCellsCount.productOfComponents();
+
+        float_X sumfcoskr_r = 0._X;
+        float_X sumfsinkr_r = 0._X;
+        float_X np_r = 0._X;
 
         /* go over all super cells on GPU
          * but ignore all guarding supercells
@@ -174,7 +176,7 @@ struct KernelSaxs
                  * particles in this frame.
                  */
                 onlyMaster([&](uint32_t const, uint32_t const) {
-                    np_s = 0;
+                    np_r = 0;
                     nmp[0] += particlesInFrame;
                 });
 
@@ -230,8 +232,6 @@ struct KernelSaxs
                 float_X const meter2angstrom = 1e10;
 
                 // Initialize in register memory
-                float_X sumfcoskr_r = 0._X;
-                float_X sumfsinkr_r = 0._X;
                 float3_X q_r;
                 float_X dotkr;
 
@@ -254,11 +254,8 @@ struct KernelSaxs
                     math::sincos( dotkr, sinValue, cosValue );
                     sumfcoskr_r += cosValue * saxsWeighting_s[j];
                     sumfsinkr_r += sinValue * saxsWeighting_s[j];
-                    if( globalWorkerIdx == 0 )
-                        np_s += saxsWeighting_s[ j ];
+                    np_r += saxsWeighting_s[ j ];
                 }
-                sumfcoskr[ globalWorkerIdx ] += sumfcoskr_r;
-                sumfsinkr[ globalWorkerIdx ] += sumfsinkr_r;
 
                 // wait till all  for this super cell are done
                 __syncthreads();
@@ -272,12 +269,16 @@ struct KernelSaxs
                  */
                 particlesInFrame = frameSize;
                 frame = pb.getPreviousFrame(frame);
-                // in the master thread of a block
-                if( globalWorkerIdx == 0 )
-                    np[ 0 ] += np_s;
             } // end while(frame.isValid())
 
         } // end loop over all super cells
+
+        // write results to global memory
+        sumfcoskr[ globalWorkerIdx ] += sumfcoskr_r;
+        sumfsinkr[ globalWorkerIdx ] += sumfsinkr_r;
+        // total weight of particles is written by a single thread per GPU
+        if( globalWorkerIdx == 0 )
+            np[ 0 ] += np_r;
 
     } // end SAXS kernel
 };

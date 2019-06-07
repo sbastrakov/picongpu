@@ -401,7 +401,6 @@ private:
             np->getDeviceBuffer( ).getDataBox( ),
             nmp->getDeviceBuffer( ).getDataBox( ),
             globalOffset,
-            currentStep,
             *cellDescription,
             subGrid.getGlobalDomain( ).size,
             q_min,
