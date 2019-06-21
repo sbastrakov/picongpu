@@ -23,6 +23,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
+#include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
 #include "picongpu/plugins/ISimulationPlugin.hpp"
 #include "picongpu/plugins/common/stringHelpers.hpp"
 #include "picongpu/plugins/saxs/Saxs.kernel"
@@ -125,7 +126,6 @@ private:
      */
     void notify(uint32_t currentStep)
     {
-        std::cout << "SAXS plugin enabled" << std::endl;
         calculateSAXS(currentStep);
     }
 
@@ -421,4 +421,33 @@ private:
     }
 };
 
+namespace particles
+{
+namespace traits
+{
+    template<
+        typename T_Species,
+        typename T_UnspecifiedSpecies
+    >
+    struct SpeciesEligibleForSolver<
+        T_Species,
+        Saxs< T_UnspecifiedSpecies >
+    >
+    {
+        using FrameType = typename T_Species::FrameType;
+
+        using RequiredIdentifiers = MakeSeq_t<
+            localCellIdx,
+            position<>,
+            weighting
+        >;
+
+        using type = typename pmacc::traits::HasIdentifiers<
+            FrameType,
+            RequiredIdentifiers
+        >::type;
+    };
+
+} // namespace traits
+} // namespace particles
 } // namespace picongpu
