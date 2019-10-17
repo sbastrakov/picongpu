@@ -69,8 +69,7 @@ using ParticleFlagsElectrons = MakeSeq_t<
     interpolation< UsedField2Particle >,
     current< UsedParticleCurrentSolver >,
     massRatio< MassRatioElectrons >,
-    chargeRatio< ChargeRatioElectrons >,
-    exchangeMemCfg< ElectronExchangeMemCfg >
+    chargeRatio< ChargeRatioElectrons >
 >;
 
 /* define species electrons */

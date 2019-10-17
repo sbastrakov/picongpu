@@ -44,7 +44,7 @@ namespace particles
             densityProfiles::FreeFormula,
             startPosition::Random,
             PIC_Electrons
-        <
+        >
     >;
 
 } // namespace particles
