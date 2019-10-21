@@ -41,6 +41,13 @@
 #include <string>
 #include <vector>
 
+#ifndef PMACC_NVPROF_SUPPORT_ENABLED
+#   define PMACC_NVPROF_SUPPORT_ENABLED == 0
+#endif
+
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+#   include <cuda_profiler_api.h>
+#endif
 
 namespace pmacc
 {
@@ -263,6 +270,9 @@ public:
             /* dump 0% output */
             dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+            cudaProfilerStart();
+#endif
 
             /** \todo currently we assume this is the only point in the simulation
              *        that is allowed to manipulate `currentStep`. Else, one needs to
@@ -286,6 +296,10 @@ public:
                 /* dump at the beginning of the simulated step */
                 dumpOneStep(currentStep);
             }
+
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+            cudaProfilerStop();
+#endif
 
             // simulatation end
             Environment<>::get().Manager().waitForAllTasks();
