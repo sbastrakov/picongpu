@@ -47,7 +47,7 @@ namespace picongpu
         const templates::twts::EField twtsFieldE4;
 
         /* Constructor is host-only, because of subGrid and halfSimSize initialization */
-        HINLINE FieldBackgroundE( const float3_64 unitField ) : 
+        HINLINE FieldBackgroundE( const float3_64 unitField ) :
 
             m_unitField( unitField ),
 
@@ -94,7 +94,7 @@ namespace picongpu
                 false,
                 /* Polarization of TWTS laser field */
                 templates::twts::EField::LINEAR_X ),
-                
+
             twtsFieldE3(
                 /* focus_y [m], the distance to the laser focus in y-direction */
                 30.0e-6,
@@ -169,7 +169,7 @@ namespace picongpu
             /* constexpr float_64 _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0; */
 
             /** unit: none */
-            const float_64 _A0  = 3.25;
+            const float_64 _A0  = 3.25 * 0.01; //reduced for FOM benchmark
 
             /** unit: Volt /meter */
             /*\todo #738 implement math::vector, native type operations */
@@ -257,7 +257,7 @@ namespace picongpu
                 false,
                 /* Polarization of TWTS laser field */
                 templates::twts::BField::LINEAR_X ),
-                
+
             twtsFieldB3(
                 /* focus_y [m], the distance to the laser focus in y-direction */
                 30.0e-6,
@@ -331,7 +331,7 @@ namespace picongpu
             /* constexpr float_64 _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0; */
 
             /** unit: none */
-            constexpr float_64 _A0  = 3.25;
+            constexpr float_64 _A0  = 3.25 * 0.01; //reduced for FOM benchmark
 
             /** unit: Volt /meter */
             const float3_64 invUnitField = float3_64( 1.0 / m_unitField[0],

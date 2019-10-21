@@ -44,6 +44,14 @@ namespace particles
             densityProfiles::FreeFormula,
             startPosition::Random,
             PIC_Electrons
+        >,
+        Manipulate<
+            manipulators::AssignYDriftPositive,
+            PIC_Electrons
+        >,
+        Manipulate<
+            manipulators::AddTemperature,
+            PIC_Electrons
         >
     >;
 
