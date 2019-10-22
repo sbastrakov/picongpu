@@ -157,7 +157,7 @@ namespace densityProfiles
                 return REL_DENSITY * REL_DENSITY_BASE; // = BASE_DENSITY_SI = 0.32+e19 cm^-3
 #endif
             // homogeneous density
-            return REL_DENSITY * REL_DENSITY_BASE;
+            return REL_DENSITY * REL_DENSITY_HIGH;
         }
     };
 
