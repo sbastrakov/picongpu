@@ -4,7 +4,7 @@
 
 * Use `CurrentSolver::EmZ`? Currently activated. Michael says yes. Publication still to be done!
 
-* Use particle shape P4S? Currently activated. A higher one is available but is way slower at negligible accuracy increase, according to @psychocoderHPC.
+* Use `particles::shapes::PCS`? Currently activated. A higher one is available (`P4S`) but is way slower at negligible accuracy increase, according to @psychocoderHPC.
 
 * Use `particles::pusher::Vay`? Currently activated. @Klaus: What is the exact difference to `Boris`?
 
