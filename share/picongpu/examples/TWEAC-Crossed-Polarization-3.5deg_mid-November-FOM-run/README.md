@@ -51,10 +51,12 @@
 
 ## In `*.cfg`
 
-* remove periodic boundaries
+* Remove periodic boundaries
 
-* activate moving window
+* Activate moving window
 
-* increase number of time steps
+* Increase number of time steps
 
-* increase run time
+* Increase run time
+
+* Add plugins (counter, diagnostics, output, checkpoints,...)
