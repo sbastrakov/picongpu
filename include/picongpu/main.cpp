@@ -73,6 +73,7 @@ namespace
                 break;
         };
 
+        Environment<>::get().globalSync();
         double const startMpiFinalize = pmacc::PerfData::inst().getTime();
         // finalize the pmacc context */
         pmacc::Environment<>::get( ).finalize( );

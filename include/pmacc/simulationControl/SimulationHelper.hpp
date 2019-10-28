@@ -357,7 +357,7 @@ public:
 #endif
 
             // simulatation end
-            Environment<>::get().Manager().waitForAllTasks();
+            Environment<>::get().globalSync();
             double const endSimBody = PerfData::inst().getTime();
             PerfData::inst().pushRegions( "pmacc-simulation-body", endSimBody -startSimBody, currentStep );
 
