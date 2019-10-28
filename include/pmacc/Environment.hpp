@@ -38,6 +38,7 @@
 #include "pmacc/Environment.def"
 #include "pmacc/communication/manager_common.hpp"
 #include "pmacc/assert.hpp"
+#include "pmacc/simulationControl/PerfData.hpp"
 
 #include <mpi.h>
 
@@ -140,6 +141,12 @@ namespace detail
     {
         Environment()
         {
+        }
+
+        void globalSync()
+        {
+            Manager().waitForAllTasks();
+            MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
         }
 
         /** cleanup the environment */
@@ -417,10 +424,15 @@ namespace detail
 
     void EnvironmentContext::init()
     {
+        double const startMpiInit = PerfData::inst().getTime();
+
         m_isMpiInitialized = true;
 
         // MPI_Init with NULL is allowed since MPI 2.0
         MPI_CHECK(MPI_Init(NULL,NULL));
+
+        double const endMpiInit = PerfData::inst().getTime();
+        PerfData::inst().pushRegions( "mpi-init", endMpiInit - startMpiInit);
     }
 
     void EnvironmentContext::finalize()
