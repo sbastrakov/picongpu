@@ -432,7 +432,7 @@ namespace detail
         MPI_CHECK(MPI_Init(NULL,NULL));
 
         double const endMpiInit = PerfData::inst().getTime();
-        PerfData::inst().pushRegions( "mpi-init", endMpiInit - startMpiInit);
+        PerfData::inst().pushRegions( "plain-mpi-init", endMpiInit - startMpiInit);
     }
 
     void EnvironmentContext::finalize()
@@ -447,7 +447,10 @@ namespace detail
              * The gpu context is freed by the `StreamController`, because
              * MPI and CUDA are independent.
              */
+            double const startMpiFinalize = pmacc::PerfData::inst().getTime();
             MPI_CHECK(MPI_Finalize());
+            double const endMpiFinalize = PerfData::inst().getTime();
+            pmacc::PerfData::inst().pushRegions( "plain-mpi-finalize", endMpiFinalize - startMpiFinalize);
         }
     }
 
