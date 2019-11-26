@@ -114,6 +114,20 @@ namespace picongpu
      */
     value_identifier(flylite::Superconfig, superconfig, flylite::Superconfig::create(0.));
 
+
+    alias( atomicLevels );
+    /** atomic levels
+     * 
+     * atomic levels must be defined for each ion seperatly by giving the number
+     * of moddeled atomic Levels  N and specializing the general representation of
+     * atomicPhysics.param.
+     */
+    value_identifier(
+        atomicPhysics::stateRepresentation< 4u >, // 4u =^= unsigned int 4 (=N)
+        hydrogen_levels,                          // name used in species Definition
+        atomicPhysics::stateRepresentation::create( 0. ) //initialization with zero
+    )
+
     /** Total cell index of a particle.
      *
      *  The total cell index is a
