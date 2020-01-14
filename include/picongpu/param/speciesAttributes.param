@@ -115,7 +115,7 @@ namespace picongpu
     value_identifier(flylite::Superconfig, superconfig, flylite::Superconfig::create(0.));
 
     //atomic State Example
-    constexpr uint8_t numberLevels_hydrogen = 4u;  // 4u =^= unsigned int 4
+    constexpr uint8_t numberLevels_Hydrogen = 4u;  // 4u =^= unsigned int 4
 
     alias( atomicConfigNumber );
     /** atomicConfigNumber
