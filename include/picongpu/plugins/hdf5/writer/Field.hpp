@@ -63,6 +63,8 @@ struct Field
         typedef typename PICToSplash<float_X>::type SplashFloatXType;
 
         const uint32_t nComponents = GetNComponents<ValueType>::value;
+        if( nComponents == 6)
+            std::cerr << "\n   DEBUG: writeField(): " << name << "\n";
 
         SplashType splashType;
         ColTypeDouble ctDouble;
@@ -85,7 +87,7 @@ struct Field
 
         /*data to describe source buffer*/
         GridLayout<simDim> field_layout = params->gridLayout;
-        DataSpace<simDim> field_no_guard = params->window.localDimensions.size;
+        DataSpace<simDim> field_no_guard = field_layout.getDataSpaceWithoutGuarding(); ///params->window.localDimensions.size;
         DataSpace<simDim> field_guard = field_layout.getGuard() + params->localWindowToDomainOffset;
         /* globalSlideOffset due to gpu slides between origin at time step 0
          * and origin at current time step
@@ -110,9 +112,24 @@ struct Field
         splashGlobalOffsetFile[1] = std::max(0, localDomain.offset[1] -
                                              params->window.globalDimensions.offset[1]);
 
+                                                        
+                                             
         size_t tmpArraySize = field_no_guard.productOfComponents();
         ComponentType* tmpArray = new ComponentType[tmpArraySize];
 
+        if( nComponents == 6)
+        {
+            /// ugly temporary fix
+            splashGlobalDomainSize = Dimensions(tmpArraySize, 1, 1);
+            splashGlobalOffsetFile = Dimensions(0, 0, 0);
+            splashGlobalDomainOffset = Dimensions(0, 0, 0);
+            
+            std::cerr << "\n   DEBUG: field_guard = " << field_guard[0] << " "
+                << field_guard[1] << " " << field_guard[2] << "\n";
+            std::cerr << "\n   DEBUG: field_no_guard = " << field_no_guard[0] << " "
+                << field_no_guard[1] << " " << field_no_guard[2] << "\n\n";                
+        }
+        
         typedef DataBoxDim1Access<NativeDataBoxType > D1Box;
         D1Box d1Access(dataBox.shift(field_guard), field_no_guard);
 
@@ -138,6 +155,16 @@ struct Field
                 sizeSrcData[d] = field_no_guard[d];
             }
 
+            if( nComponents == 6)
+            {
+                std::cerr << "\n   DEBUG: splashGlobalDomainSize = " << splashGlobalDomainSize[0] << " "
+                    << splashGlobalDomainSize[1] << " " << splashGlobalDomainSize[2] << "\n";
+                std::cerr << "\n   DEBUG: splashGlobalOffsetFile = " << splashGlobalOffsetFile[0] << " "
+                    << splashGlobalOffsetFile[1] << " " << splashGlobalOffsetFile[2] << "\n";
+                std::cerr << "\n   DEBUG: sizeSrcData = " << sizeSrcData[0] << " "
+                    << sizeSrcData[1] << " " << sizeSrcData[2] << "\n";                      
+            }
+            
             // avoid deadlock between not finished pmacc tasks and mpi calls in splash/HDF5
             __getTransactionEvent().waitForFinished();
             params->dataCollector->writeDomain(params->currentStep,             /* id == time step */
@@ -154,6 +181,11 @@ struct Field
                                                DomainCollector::GridType,
                                                tmpArray);
 
+            if( nComponents == 6)
+            {
+                std::cerr << "    Finished writing!\n";
+            }
+                                               
             /* attributes */
             params->dataCollector->writeAttribute(params->currentStep,
                                                   splashFloatXType, datasetName.str().c_str(),

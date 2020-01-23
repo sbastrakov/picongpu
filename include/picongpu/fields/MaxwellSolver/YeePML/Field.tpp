@@ -272,6 +272,7 @@ namespace yeePML
             gridLayout,
             globalThickness
         );
+        std::cerr << "\n   DEBUG: PML field linear size = " << size[0] << "\n\n";
         auto const guardSize = pmacc::DataSpace< simDim >::create( 0 );
         auto const layout = pmacc::GridLayout< simDim >(
             size,

@@ -55,6 +55,9 @@ public:
         log<picLog::INPUT_OUTPUT > ("Begin loading field '%1%'") % objectName;
         const DataSpace<simDim> field_guard = field.getGridLayout().getGuard();
 
+        if( numComponents == 6)
+            std::cerr << "\n   DEBUG: loadField(): " << objectName << "\n";
+        
         const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(params->currentStep);
         const pmacc::Selection<simDim>& localDomain = Environment<simDim>::get().SubGrid().getLocalDomain();
 
@@ -84,6 +87,20 @@ public:
         // avoid deadlock between not finished pmacc tasks and mpi calls in splash/HDF5
         __getTransactionEvent().waitForFinished();
 
+        if( numComponents == 6)
+        {
+            /// ugly temporary fix
+            GridLayout<simDim> field_layout = params->gridLayout;
+            DataSpace<simDim> field_no_guard = field_layout.getDataSpaceWithoutGuarding();
+            size_t tmpArraySize = field_no_guard.productOfComponents();
+            local_domain_size = Dimensions(tmpArraySize, 1, 1);
+            domain_offset = Dimensions(0, 0, 0);
+            
+            std::cerr << "\n   DEBUG: local_domain_size = " << local_domain_size[0] << " "
+                << local_domain_size[1] << " " << local_domain_size[2] << "\n";
+             
+        }
+        
         auto destBox = field.getHostBuffer().getDataBox();
         for (uint32_t i = 0; i < numComponents; ++i)
         {
@@ -101,12 +118,18 @@ public:
 
             int elementCount = params->window.localDimensions.size.productOfComponents();
 
+            if( numComponents == 6)
+                elementCount = local_domain_size[0];
+            
             for (int linearId = 0; linearId < elementCount; ++linearId)
             {
                 /* calculate index inside the moving window domain which is located on the local grid*/
                 DataSpace<simDim> destIdx = DataSpaceOperations<simDim>::map(params->window.localDimensions.size, linearId);
                 /* jump over guard and local sliding window offset*/
                 destIdx += field_guard + params->localWindowToDomainOffset;
+                
+                if( numComponents == 6)
+                    destIdx = DataSpace<simDim>(linearId, 0, 0);
 
                 destBox(destIdx)[i] = ((float_X*) (field_container->getIndex(0)->getData()))[linearId];
             }
@@ -164,6 +187,7 @@ public:
 
         /* load field without copying data to host */
         std::shared_ptr< FieldType > field = dc.get< FieldType >( FieldType::getName(), true );
+        tp->gridLayout = field->getGridLayout();
 
         /* load from HDF5 */
         RestartFieldLoader::loadField(
