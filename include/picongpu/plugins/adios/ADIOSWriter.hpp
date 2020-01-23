@@ -28,6 +28,7 @@
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
 #include "picongpu/plugins/misc/SpeciesFilter.hpp"
 #include "picongpu/particles/filter/filter.hpp"
+#include "picongpu/traits/IsFieldDomainBound.hpp"
 
 #include <pmacc/particles/frame_types.hpp>
 #include <pmacc/particles/IdProvider.def>
@@ -411,12 +412,12 @@ private:
     /**
      * Write calculated fields to adios file.
      */
-    template< typename T >
+    template< typename T_Field >
     struct GetFields
     {
     private:
-        typedef typename T::ValueType ValueType;
-        typedef typename GetComponentsType<ValueType>::type ComponentType;
+        using ValueType = typename T_Field::ValueType;
+        using ComponentType = typename GetComponentsType<ValueType>::type;
 
     public:
 
@@ -425,18 +426,22 @@ private:
 #ifndef __CUDA_ARCH__
             DataConnector &dc = Environment<simDim>::get().DataConnector();
 
-            auto field = dc.get< T >( T::getName() );
+            auto field = dc.get< T_Field >( T_Field::getName() );
             params->gridLayout = field->getGridLayout();
+            const bool isDomainBound = traits::IsFieldDomainBound< T_Field >::value;
 
             PICToAdios<ComponentType> adiosType;
-            ADIOSWriter::template writeField<ComponentType>(params,
-                       sizeof(ComponentType),
-                       adiosType.type,
-                       GetNComponents<ValueType>::value,
-                       T::getName(),
-                       field->getHostDataBox().getPointer());
+            ADIOSWriter::template writeField<ComponentType>(
+                params,
+                sizeof(ComponentType),
+                adiosType.type,
+                GetNComponents<ValueType>::value,
+                T_Field::getName(),
+                field->getHostDataBox().getPointer(),
+                isDomainBound
+            );
 
-            dc.releaseData( T::getName() );
+            dc.releaseData( T_Field::getName() );
 #endif
         }
 
@@ -506,13 +511,17 @@ private:
             PICToAdios<ComponentType> adiosType;
 
             params->gridLayout = fieldTmp->getGridLayout();
+            const bool isDomainBound = traits::IsFieldDomainBound< FieldTmp >::value;
             /*write data to ADIOS file*/
-            ADIOSWriter::template writeField<ComponentType>(params,
-                       sizeof(ComponentType),
-                       adiosType.type,
-                       components,
-                       getName(),
-                       fieldTmp->getHostDataBox().getPointer());
+            ADIOSWriter::template writeField<ComponentType>(
+                params,
+                sizeof(ComponentType),
+                adiosType.type,
+                components,
+                getName(),
+                fieldTmp->getHostDataBox().getPointer(),
+                isDomainBound
+            );
 
             dc.releaseData( FieldTmp::getUniqueId( 0 ) );
 
@@ -1160,7 +1169,8 @@ private:
     static void writeField(ThreadParams *params, const uint32_t sizePtrType,
                            ADIOS_DATATYPES adiosType,
                            const uint32_t nComponents, const std::string name,
-                           void *ptr)
+                           void *ptr,
+                           const bool isDomainBound)
     {
         log<picLog::INPUT_OUTPUT > ("ADIOS: write field: %1% %2% %3%") %
             name % nComponents % ptr;
@@ -1173,6 +1183,17 @@ private:
         DataSpace<simDim> field_full = field_layout.getDataSpace();
         DataSpace<simDim> field_no_guard = params->window.localDimensions.size;
         DataSpace<simDim> field_guard = field_layout.getGuard() + params->localWindowToDomainOffset;
+
+        /* Patch for non-domain-bound fields
+         * This is an ugly fix to allow output of reduced 1d PML buffers,
+         * that are the same size on each domain.
+         * This code is to be replaced with the openPMD output plugin soon.
+         */
+        if( !isDomainBound )
+        {
+            field_no_guard = field_layout.getDataSpaceWithoutGuarding();
+            field_guard = field_layout.getGuard();
+        }
 
         /* write the actual field data */
         for (uint32_t d = 0; d < nComponents; d++)
