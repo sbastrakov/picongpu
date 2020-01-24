@@ -10,7 +10,7 @@ export MY_NAME="$(whoami) <$MY_MAIL>"
 
 # Project Information ######################################## (edit this line)
 #   - project account for computing time
-export proj="CSC380"
+export proj=<yourProject>
 
 # Text Editor for Tools ###################################### (edit this line)
 #   - examples: "nano", "vim", "emacs -nw", "vi" or without terminal: "gedit"
