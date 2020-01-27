@@ -53,6 +53,9 @@ export PATH=/sw/summit/cuda/10.1.243/nsight-systems/2020.1.0/bin:$PATH
 export PATH=/sw/summit/cuda/10.1.243/nsight-compute/:$PATH
 
 # helper variables and tools ##################################################
+#Optional pointer to a top-level PIConGPU git repo rather than a src directory
+#export PICONGPUHOME=$HOME/<$MY_PICONGPU_REPO_TOPLEVEL>
+#export PICSRC=$PICONGPUHOME
 export PICSRC=$HOME/src/picongpu
 export PIC_EXAMPLES=$PICSRC/share/picongpu/examples
 export PIC_BACKEND="cuda:70"
@@ -63,7 +66,9 @@ export PATH=$PATH:$PICSRC/src/tools/bin
 
 export PYTHONPATH=$PICSRC/lib/python:$PYTHONPATH
 
-alias getNode="bsub -P $proj -W 2:00 -nnodes 1 -Is /bin/bash"
+#This command requests an interactive session. It was suggested that using
+#more nodes with less time would have better scheduling priority.
+alias getNode="bsub -P $proj -W 1:00 -nnodes 2 -Is /bin/bash"
 
 # "tbg" default options #######################################################
 export TBG_SUBMIT="bsub"
