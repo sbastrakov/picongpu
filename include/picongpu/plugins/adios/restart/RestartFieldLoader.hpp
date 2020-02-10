@@ -90,7 +90,7 @@ public:
             auto const rank = gridController.getGlobalRank();
             domain_offset = DataSpace<simDim>::create( 0 );
             domain_offset[ 0 ] = rank * elementCount;
-            local_domain_size = DataSpace<simDim>::create( 0 );
+            local_domain_size = DataSpace<simDim>::create( 1 );
             local_domain_size[ 0 ] = elementCount;
             useLinearIdxAsDestination = true;
         }
