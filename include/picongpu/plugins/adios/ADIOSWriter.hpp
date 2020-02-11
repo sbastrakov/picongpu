@@ -1,5 +1,5 @@
 /* Copyright 2014-2020 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
- *                     Benjamin Worpitz, Alexander Grund
+ *                     Benjamin Worpitz, Alexander Grund, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -87,6 +87,7 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <cstdint>
 
 
 namespace picongpu
@@ -563,15 +564,15 @@ private:
         {
             DataConnector &dc = Environment<>::get().DataConnector();
             auto field = dc.get< T_Field >( T_Field::getName() );
-            fieldSizeDims = field.getGridLayout().getDataSpaceWithoutGuarding();
+            fieldsSizeDims = precisionCast< uint64_t >( field->getGridLayout().getDataSpaceWithoutGuarding() );
             dc.releaseData( T_Field::getName() );
             auto const & gridController = Environment<simDim>::get().GridController();
             auto const numRanks = gridController.getGlobalSize();
             auto const rank = gridController.getGlobalRank();
             fieldsGlobalSizeDims = pmacc::math::UInt64<simDim>::create( 1 );
-            fieldsGlobalSizeDims[ 0 ] = numRanks * fieldSizeDims[ 0 ];
+            fieldsGlobalSizeDims[ 0 ] = numRanks * fieldsSizeDims[ 0 ];
             fieldsOffsetDims = pmacc::math::UInt64<simDim>::create( 0 );
-            fieldsOffsetDims[ 0 ] = rank * fieldSizeDims[ 0 ];
+            fieldsOffsetDims[ 0 ] = rank * fieldsSizeDims[ 0 ];
         }
 
         for( uint32_t c = 0; c < nComponents; c++ )
@@ -711,7 +712,7 @@ private:
             {
                 DataConnector &dc = Environment<>::get().DataConnector();
                 auto field = dc.get< T >( T::getName() );
-                localSize = field.getGridLayout().getDataSpaceWithoutGuarding();
+                localSize = field->getGridLayout().getDataSpaceWithoutGuarding();
                 dc.releaseData( T::getName() );
             }
 
@@ -795,7 +796,7 @@ private:
             {
                 DataConnector &dc = Environment<>::get().DataConnector();
                 auto field = dc.get< FieldTmp >( FieldTmp::getName() );
-                localSize = field.getGridLayout().getDataSpaceWithoutGuarding();
+                localSize = field->getGridLayout().getDataSpaceWithoutGuarding();
                 dc.releaseData( FieldTmp::getName() );
             }
 
@@ -822,7 +823,7 @@ private:
             const float_X timeOffset = 0.0;
 
             PICToAdios<ComponentType> adiosType;
-            defineFieldVar< T >(params, components, adiosType.type, getName(), getUnit(),
+            defineFieldVar< FieldTmp >(params, components, adiosType.type, getName(), getUnit(),
                 FieldTmp::getUnitDimension<Solver>(), inCellPosition, timeOffset);
         }
 

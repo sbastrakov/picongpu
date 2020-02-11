@@ -1,5 +1,5 @@
 /* Copyright 2014-2020 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
- *                     Benjamin Worpitz
+ *                     Benjamin Worpitz, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
