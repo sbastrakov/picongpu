@@ -529,6 +529,7 @@ private:
 
     };
 
+    template< typename T_Field >
     static void defineFieldVar(ThreadParams* params,
         uint32_t nComponents, ADIOS_DATATYPES adiosType, const std::string name,
         std::vector<float_64> unit, std::vector<float_64> unitDimension,
@@ -549,6 +550,30 @@ private:
         const std::string recordName( params->adiosBasePath +
             std::string(ADIOS_PATH_FIELDS) + name );
 
+        auto fieldsSizeDims = params->fieldsSizeDims;
+        auto fieldsGlobalSizeDims = params->fieldsGlobalSizeDims;
+        auto fieldsOffsetDims = params->fieldsOffsetDims;
+
+        /* Patch for non-domain-bound fields
+         * This is an ugly fix to allow output of reduced 1d PML buffers,
+         * that are the same size on each domain.
+         * This code is to be replaced with the openPMD output plugin soon.
+         */
+        if( !traits::IsFieldDomainBound< T_Field >::value )
+        {
+            DataConnector &dc = Environment<>::get().DataConnector();
+            auto field = dc.get< T_Field >( T_Field::getName() );
+            fieldSizeDims = field.getGridLayout().getDataSpaceWithoutGuarding();
+            dc.releaseData( T_Field::getName() );
+            auto const & gridController = Environment<simDim>::get().GridController();
+            auto const numRanks = gridController.getGlobalSize();
+            auto const rank = gridController.getGlobalRank();
+            fieldsGlobalSizeDims = pmacc::math::UInt64<simDim>::create( 1 );
+            fieldsGlobalSizeDims[ 0 ] = numRanks * fieldSizeDims[ 0 ];
+            fieldsOffsetDims = pmacc::math::UInt64<simDim>::create( 0 );
+            fieldsOffsetDims[ 0 ] = rank * fieldSizeDims[ 0 ];
+        }
+
         for( uint32_t c = 0; c < nComponents; c++ )
         {
             std::string datasetName = recordName;
@@ -562,9 +587,9 @@ private:
                     datasetName.c_str(),
                     path,
                     adiosType,
-                    params->fieldsSizeDims,
-                    params->fieldsGlobalSizeDims,
-                    params->fieldsOffsetDims,
+                    fieldsSizeDims,
+                    fieldsGlobalSizeDims,
+                    fieldsOffsetDims,
                     true,
                     params->adiosCompression);
 
@@ -676,9 +701,23 @@ private:
 #ifndef __CUDA_ARCH__
             const uint32_t components = T::numComponents;
 
+            auto localSize = params->window.localDimensions.size;
+            /* Patch for non-domain-bound fields
+             * This is an ugly fix to allow output of reduced 1d PML buffers,
+             * that are the same size on each domain.
+             * This code is to be replaced with the openPMD output plugin soon.
+             */
+            if( !traits::IsFieldDomainBound< T >::value )
+            {
+                DataConnector &dc = Environment<>::get().DataConnector();
+                auto field = dc.get< T >( T::getName() );
+                localSize = field.getGridLayout().getDataSpaceWithoutGuarding();
+                dc.releaseData( T::getName() );
+            }
+
             // adios buffer size for this dataset (all components)
             uint64_t localGroupSize =
-                    params->window.localDimensions.size.productOfComponents() *
+                    localSize.productOfComponents() *
                     sizeof(ComponentType) *
                     components;
 
@@ -700,9 +739,8 @@ private:
              *        implementation */
             const float_X timeOffset = 0.0;
 
-
             PICToAdios<ComponentType> adiosType;
-            defineFieldVar(params, components, adiosType.type, T::getName(), getUnit(),
+            defineFieldVar< T >(params, components, adiosType.type, T::getName(), getUnit(),
                 T::getUnitDimension(), inCellPosition, timeOffset);
 #endif
         }
@@ -747,9 +785,23 @@ private:
         {
             const uint32_t components = GetNComponents<ValueType>::value;
 
+            auto localSize = params->window.localDimensions.size;
+            /* Patch for non-domain-bound fields
+            * This is an ugly fix to allow output of reduced 1d PML buffers,
+            * that are the same size on each domain.
+            * This code is to be replaced with the openPMD output plugin soon.
+            */
+            if( !traits::IsFieldDomainBound< FieldTmp >::value )
+            {
+                DataConnector &dc = Environment<>::get().DataConnector();
+                auto field = dc.get< FieldTmp >( FieldTmp::getName() );
+                localSize = field.getGridLayout().getDataSpaceWithoutGuarding();
+                dc.releaseData( FieldTmp::getName() );
+            }
+
             // adios buffer size for this dataset (all components)
             uint64_t localGroupSize =
-                    params->window.localDimensions.size.productOfComponents() *
+                    localSize.productOfComponents() *
                     sizeof(ComponentType) *
                     components;
 
@@ -770,7 +822,7 @@ private:
             const float_X timeOffset = 0.0;
 
             PICToAdios<ComponentType> adiosType;
-            defineFieldVar(params, components, adiosType.type, getName(), getUnit(),
+            defineFieldVar< T >(params, components, adiosType.type, getName(), getUnit(),
                 FieldTmp::getUnitDimension<Solver>(), inCellPosition, timeOffset);
         }
 
@@ -1106,6 +1158,7 @@ private:
         mThreadParams.fullFilename = full_filename.str();
         mThreadParams.adiosFileHandle = ADIOS_INVALID_HANDLE;
 
+        // Note: here we always allocate for the domain-bound fields
         mThreadParams.fieldBfr = new float_X[mThreadParams.window.localDimensions.size.productOfComponents()];
 
         std::stringstream adiosPathBase;
@@ -1183,16 +1236,23 @@ private:
         DataSpace<simDim> field_full = field_layout.getDataSpace();
         DataSpace<simDim> field_no_guard = params->window.localDimensions.size;
         DataSpace<simDim> field_guard = field_layout.getGuard() + params->localWindowToDomainOffset;
+        float_X * dstBuffer = params->fieldBfr;
 
         /* Patch for non-domain-bound fields
          * This is an ugly fix to allow output of reduced 1d PML buffers,
          * that are the same size on each domain.
          * This code is to be replaced with the openPMD output plugin soon.
          */
+        std::vector< float_X > nonDomainBoundStorage;
         if( !isDomainBound )
         {
             field_no_guard = field_layout.getDataSpaceWithoutGuarding();
             field_guard = field_layout.getGuard();
+            /* Since params->fieldBfr allocation was of different size,
+             * for this case allocate a new chunk for memory for dstBuffer
+             */
+            nonDomainBoundStorage.resize( field_no_guard.productOfComponents() );
+            dstBuffer = nonDomainBoundStorage.data();
         }
 
         /* write the actual field data */
@@ -1224,7 +1284,7 @@ private:
                         size_t index_src = base_index_src + (x + field_guard[0]) * nComponents + d;
                         size_t index_dst = base_index_dst + x;
 
-                        params->fieldBfr[index_dst] = ((float_X*)ptr)[index_src];
+                        dstBuffer[index_dst] = ((float_X*)ptr)[index_src];
                     }
                 }
             }
@@ -1235,7 +1295,7 @@ private:
 
             int64_t adiosFieldVarId = *(params->adiosFieldVarIds.begin());
             params->adiosFieldVarIds.pop_front();
-            ADIOS_CMD(adios_write_byid(params->adiosFileHandle, adiosFieldVarId, params->fieldBfr));
+            ADIOS_CMD(adios_write_byid(params->adiosFileHandle, adiosFieldVarId, dstBuffer));
         }
     }
 
