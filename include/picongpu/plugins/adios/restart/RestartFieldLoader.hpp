@@ -74,6 +74,7 @@ public:
 
         DataSpace<simDim> domain_offset = localDomain.offset;
         DataSpace<simDim> local_domain_size = params->window.localDimensions.size;
+        int elementCount = params->window.localDimensions.size.productOfComponents();
         bool useLinearIdxAsDestination = false;
 
         /* Patch for non-domain-bound fields
@@ -85,7 +86,7 @@ public:
         {
             auto const field_layout = params->gridLayout;
             auto const field_no_guard = field_layout.getDataSpaceWithoutGuarding();
-            auto const elementCount = field_no_guard.productOfComponents();
+            elementCount = field_no_guard.productOfComponents();
             auto const & gridController = Environment<simDim>::get().GridController();
             auto const rank = gridController.getGlobalRank();
             domain_offset = DataSpace<simDim>::create( 0 );
@@ -93,6 +94,8 @@ public:
             local_domain_size = DataSpace<simDim>::create( 1 );
             local_domain_size[ 0 ] = elementCount;
             useLinearIdxAsDestination = true;
+            
+            std::cout << "\n\nPML start\nelementCount = " << elementCount << "\n";
         }
 
         auto destBox = field.getHostBuffer().getDataBox();
@@ -131,6 +134,10 @@ public:
                 count[d] = local_domain_size.revert()[d];
             }
 
+            std::cout << "start = " << start[0] << " " << start[1] << " " << start[2] << "\n";
+            std::cout << "count = " << count[0] << " " << count[1] << " " << count[2] << "\n";
+            std::cout << "local_domain_size = " << local_domain_size[0] << " " << local_domain_size[1] << " " << local_domain_size[2] << "\n";
+            
             ADIOS_SELECTION* fSel = adios_selection_boundingbox( varInfo->ndim, start, count );
 
             /* specify what we want to read, but start reading at below at
@@ -151,7 +158,7 @@ public:
             /* start a blocking read of all scheduled variables */
             ADIOS_CMD(adios_perform_reads( params->fp, 1 ));
 
-            int elementCount = params->window.localDimensions.size.productOfComponents();
+            ///int elementCount = params->window.localDimensions.size.productOfComponents();
 
             #pragma omp parallel for
             for (int linearId = 0; linearId < elementCount; ++linearId)
@@ -205,6 +212,7 @@ public:
 
         /* load field without copying data to host */
         auto field = dc.get< T_Field >( T_Field::getName(), true );
+        tp->gridLayout = field->getGridLayout();
 
         /* load from ADIOS */
         bool const isDomainBound = traits::IsFieldDomainBound< T_Field >::value;

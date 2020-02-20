@@ -1,5 +1,5 @@
 /* Copyright 2014-2020 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
- *                     Benjamin Worpitz, Alexander Grund, Sergei Bastrakov
+ *                     Benjamin Worpitz, Alexander Grund
  *
  * This file is part of PIConGPU.
  *
@@ -87,7 +87,6 @@
 #include <string>
 #include <list>
 #include <vector>
-#include <cstdint>
 
 
 namespace picongpu
@@ -564,7 +563,7 @@ private:
         {
             DataConnector &dc = Environment<>::get().DataConnector();
             auto field = dc.get< T_Field >( T_Field::getName() );
-            fieldsSizeDims = precisionCast< uint64_t >( field->getGridLayout().getDataSpaceWithoutGuarding() );
+            fieldsSizeDims = precisionCast<uint64_t >(field->getGridLayout().getDataSpaceWithoutGuarding());
             dc.releaseData( T_Field::getName() );
             auto const & gridController = Environment<simDim>::get().GridController();
             auto const numRanks = gridController.getGlobalSize();
@@ -572,13 +571,9 @@ private:
             fieldsGlobalSizeDims = pmacc::math::UInt64<simDim>::create( 1 );
             fieldsGlobalSizeDims[ 0 ] = numRanks * fieldsSizeDims[ 0 ];
             fieldsOffsetDims = pmacc::math::UInt64<simDim>::create( 0 );
-            fieldsOffsetDims[ 0 ] = rank * fieldsSizeDims[ 0 ];           
+            fieldsOffsetDims[ 0 ] = rank * fieldsSizeDims[ 0 ];
         }
 
-         std::cout << "fieldsSizeDims = " << fieldsSizeDims[0] << " " << fieldsSizeDims[1] << " " << fieldsSizeDims[2] << "\n";
-         std::cout << "fieldsGlobalSizeDims = " << fieldsGlobalSizeDims[0] << " " << fieldsGlobalSizeDims[1] << " " << fieldsGlobalSizeDims[2] << "\n";
-         std::cout << "fieldsOffsetDims = " << fieldsOffsetDims[0] << " " << fieldsOffsetDims[1] << " " << fieldsOffsetDims[2] << "\n";
-        
         for( uint32_t c = 0; c < nComponents; c++ )
         {
             std::string datasetName = recordName;
