@@ -294,6 +294,22 @@ struct KernelMoveAndMarkParticles
             numWorkers
         >;
 
+        // Note: allocated before other shared memory to ensure alignment
+        auto cachedB = CachedBox::create<
+            0,
+            typename T_BBox::ValueType
+        >(
+            acc,
+            T_DataDomain( )
+        );
+        auto cachedE = CachedBox::create<
+            1,
+            typename T_EBox::ValueType
+        >(
+            acc,
+            T_DataDomain( )
+        );
+
         PMACC_SMEM(
             acc,
             mustShift,
@@ -323,21 +339,6 @@ struct KernelMoveAndMarkParticles
 
         frame = pb.getLastFrame( block );
         particlesInSuperCell = pb.getSuperCell( block ).getSizeLastFrame( );
-
-        auto cachedB = CachedBox::create<
-            0,
-            typename T_BBox::ValueType
-        >(
-            acc,
-            T_DataDomain( )
-        );
-        auto cachedE = CachedBox::create<
-            1,
-            typename T_EBox::ValueType
-        >(
-            acc,
-            T_DataDomain( )
-        );
 
         __syncthreads();
 
