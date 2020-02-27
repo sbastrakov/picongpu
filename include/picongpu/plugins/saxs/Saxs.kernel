@@ -1,4 +1,4 @@
-/* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+/* Copyright 2013-2020 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
  *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz,
  *                     Juncheng E, Sergei Bastrakov
  *
@@ -21,266 +21,312 @@
 
 #pragma once
 
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include "picongpu/simulation_defines.hpp"
 
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
-#include <pmacc/mappings/kernel/AreaMapping.hpp>
-
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/memory/Array.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
-#include <pmacc/mpi/MPIReduce.hpp>
-#include <pmacc/mpi/reduceMethods/Reduce.hpp>
 #include <pmacc/nvidia/atomic.hpp>
 #include <pmacc/nvidia/functors/Add.hpp>
 
-#include "sys/stat.h"
+#include <cstdint>
+
 
 namespace picongpu
 {
-
-/** calculate the scattering of a species
- *
- * @tparam T_numWorkers number of workers
- */
-template < uint32_t T_numWorkers >
-struct KernelSaxs
+namespace plugins
 {
-    /**
-     * The SAXS kernel calculates for all particles on the device the
-     * scattering intensity for input calculation ranges.
-     * The parallelization is as follows:
-     *  - The number of threads per block is equal to the number of cells per
-     *    super cells which is also equal to the number of particles per frame
-     *
-     * The procedure starts with calculating unique ids for the threads and
-     * initializing the shared memory.
-     * Then a loop over all super cells starts.
-     * Every thread loads a particle from that super cell and calculates its
-     * scattering structure factor.
-     * For every Particle
-     * exists therefore a unique space within the shared memory.
-     * After that, a thread calculates for a specific scattering vector of all
-     * particles.
-     */
-    template <
+namespace saxs
+{
+namespace detail
+{
+
+    //! Internal representation of results
+    struct Result
+    {
+        float_X sumfcoskr = 0._X;
+        float_X sumfsinkr = 0._X;
+        float_X totalWeighting = 0._X;
+        uint32_t totalNumMacroparticles = 0u;
+
+        Result & operator+=( Result const & other )
+        {
+            sumfcoskr += other.sumfcoskr;
+            sumfsinkr += other.sumfsinkr;
+            totalWeighting += other.totalWeighting;
+            totalNumMacroparticles += other.totalNumMacroparticles;
+            return *this;
+        }
+
+    };
+
+    template<
+        uint32_t T_numWorkers,
+        typename T_Acc,
         typename ParBox,
-        typename DBox,
-        typename DBox_np,
-        typename DBox_nmp,
-        typename Mapping,
-        typename T_Acc>
-    DINLINE
-    void
-    operator()(
+        typename T_Mapping,
+        typename T_CachedPositionArray,
+        typename T_CachedWeightingArray
+    >
+    DINLINE Result processSupercell(
         T_Acc const &acc,
+        DataSpace< simDim > const & idx,
+        DataSpace< simDim > const & globalOffset,
+        T_Mapping mapper,
         ParBox pb,
-        DBox sumfcoskr,
-        DBox sumfsinkr,
-        DBox_np np,
-        DBox_nmp nmp,
-        DataSpace< simDim > globalOffset,
-        Mapping mapper,
-        DataSpace< simDim > simBoxSize,
+        T_CachedPositionArray & cachedR,
+        T_CachedWeightingArray & cachedWeighting,
         float3_X q_min,
-        float3_X q_max,
         float3_X q_step,
         DataSpace< 3 > numVectors
-    ) const
+    )
     {
-        using namespace mappings::threads;
-        namespace po = boost::program_options;
-
-        constexpr uint32_t frameSize =
-            pmacc::math::CT::volume<SuperCellSize>::type::value;
-        constexpr uint32_t numWorker = T_numWorkers;
-
-        using FrameType = typename ParBox::FrameType;
-        using FramePtr = typename ParBox::FramePtr;
+        using namespace pmacc::mappings::threads;
 
         uint32_t const workerIdx = threadIdx.x;
         uint32_t const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
-        /// todo add check for index out of bounds
 
-        constexpr int blockSize =
-            pmacc::math::CT::volume<SuperCellSize>::type::value;
+        Result result;
 
-        // vectorial part of the integrand in the Jackson formula
-        PMACC_SMEM(acc, r_s, memory::Array<picongpu::float3_X, blockSize>);
+        auto const guardingSuperCells = mapper.getGuardingSuperCells();
+        auto const offset = globalOffset +
+            ( ( idx - guardingSuperCells ) * SuperCellSize::toRT() );
 
-        // storage for macro particle weighting
-        PMACC_SMEM(acc, saxsWeighting_s, memory::Array<float_X, blockSize>);
+        typename ParBox::FramePtr frame = pb.getLastFrame( idx );
 
-        // get extent of guarding super cells (needed to ignore them)
-        DataSpace<simDim> const guardingSuperCells =
-            mapper.getGuardingSuperCells();
+        // number of particles in current frame
+        auto particlesInFrame = pb.getSuperCell( idx ).getSizeLastFrame();
 
-        /* number of super cells on GPU per dimension (still including guard
-         * cells) remove both guards from count [later one sided guard needs to
-         * be added again]
-         */
-        DataSpace<simDim> const superCellsCount(
-            mapper.getGridSuperCells() - 2 * guardingSuperCells);
-
-        // get absolute number of relevant super cells
-        int const numSuperCells = superCellsCount.productOfComponents();
-
-        float_X sumfcoskr_r = 0._X;
-        float_X sumfsinkr_r = 0._X;
-        float_X np_r = 0._X;
-
-        /* go over all super cells on GPU
-         * but ignore all guarding supercells
-         */
-        for (int super_cell_index = 0; super_cell_index < numSuperCells;
-             ++super_cell_index)
+        // go to next supercell
+        while( frame.isValid() )
         {
-            // select SuperCell and add one sided guard again
-            DataSpace<simDim> const superCell =
-                DataSpaceOperations<simDim>::map(
-                    superCellsCount, super_cell_index) +
-                guardingSuperCells;
+            __syncthreads();
 
-            // guardingSuperCells remove guarding block
-            DataSpace<simDim> const superCellOffset(
-                globalOffset +
-                ((superCell - guardingSuperCells) * SuperCellSize::toRT()));
+            result.totalNumMacroparticles += particlesInFrame;
 
-            // pointer to frame storing particles
-            FramePtr frame = pb.getLastFrame(superCell);
+            // Cache particle data of this frame to shared memory
+            constexpr uint32_t frameSize =
+                pmacc::math::CT::volume< SuperCellSize >::type::value; /// fix computation from particle box
 
-            // number of particles in current frame
-            lcellId_t particlesInFrame =
-                pb.getSuperCell(superCell).getSizeLastFrame();
-
-            // go to next supercell
-            while (frame.isValid())
+            using ParticleDomCfg = IdxConfig<
+                frameSize,
+                T_numWorkers
+            >;
+            ForEachIdx< ParticleDomCfg > forEachParticle{ workerIdx };
+            forEachParticle([&](uint32_t const linearIdx, uint32_t const)
             {
-                /* since a race condition can occur if "continue loop" is
-                 * called, all threads must wait for the selection of a new
-                 * frame until all threads have evaluated "isValid"
-                 */
-                __syncthreads();
-
-                ForEachIdx<IdxConfig<1, numWorker>> onlyMaster{workerIdx};
-
-                /* The Master process (thread 0) in every thread block is in
-                 * charge of loading a frame from
-                 * the current super cell and evaluate the total number of
-                 * particles in this frame.
-                 */
-                onlyMaster([&](uint32_t const, uint32_t const) {
-                    np_r = 0;
-                    nmp[0] += particlesInFrame;
-                });
-
-                __syncthreads();
-
-                using ParticleDomCfg = IdxConfig<frameSize, numWorker>;
-
-                // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg> forEachParticle{workerIdx};
-
-                // load particle positions to shared memory
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const) {
-                    // only threads with particles are running
-                    if (linearIdx < particlesInFrame)
-                    {
-                        auto par = frame[linearIdx];
-                        // calculate global position
-                        lcellId_t const cellIdx = par[localCellIdx_];
-                        // position inside of the cell
-                        floatD_X const pos = par[position_];
-                        // calculate global position of cell
-                        DataSpace<simDim> const globalPos(
-                            superCellOffset +
-                            DataSpaceOperations<simDim>::template map<
-                                SuperCellSize>(cellIdx));
-
-                        /* Add global position of cell with local position
-                         * of particle in cell
-                         */
-
-                        // set z component to zero in case of simDim == DIM2
-                        r_s[linearIdx][2] = 0.0;
-                        // run over all components and compute global position
-                        for (int i = 0; i < simDim; ++i)
-                            r_s[linearIdx][i] =
-                                (float_X(globalPos[i]) + pos[i]) * cellSize[i];
-
-                        /* get macro-particle weighting
-                         *
-                         * Info:
-                         * the weighting is the number of real particles
-                         * described by a macro-particle
-                         */
-                        saxsWeighting_s[linearIdx] = par[weighting_];
-
-                    } // END: only threads with particles are running
-                });
-
-                __syncthreads(); // wait till every thread has loaded its
-                                 // particle data
-
-                // meter -> Angstrom
-                float_X const meter2angstrom = 1e10;
-
-                // Initialize in register memory
-                float3_X q_r;
-                float_X dotkr;
-
-                int i_z = globalWorkerIdx % numVectors.z( );
-                int i_y = ( globalWorkerIdx / numVectors.z( ) ) % numVectors.y( );
-                int i_x = globalWorkerIdx / ( numVectors.z( ) * numVectors.y( ) );
-
-                q_r[0] = q_min[0] + q_step[0] * i_x;
-                q_r[1] = q_min[1] + q_step[1] * i_y;
-                q_r[2] = q_min[2] + q_step[2] * i_z;
-
-                // Particle loop: thread runs through loaded particle data
-                for (int j = 0; j < particlesInFrame; ++j)
+                if( linearIdx < particlesInFrame )
                 {
-                    dotkr = (q_r[0] * r_s[j][0] + q_r[1] * r_s[j][1] +
-                                q_r[2] * r_s[j][2]) *
-                           meter2angstrom * UNIT_LENGTH; // PIConGPU unit
-                            // 1e10 * UNIT_LENGTH; // PIConGPU unit
-                    float_X sinValue, cosValue;
-                    math::sincos( dotkr, sinValue, cosValue );
-                    sumfcoskr_r += cosValue * saxsWeighting_s[j];
-                    sumfsinkr_r += sinValue * saxsWeighting_s[j];
-                    np_r += saxsWeighting_s[ j ];
+                    auto particle = frame[ linearIdx ];
+                    auto const cellIdx = particle[ localCellIdx_ ];
+                    auto const pos = particle[ position_ ];
+                    // calculate global position of cell
+                    DataSpace<simDim> const globalPos(
+                        offset +
+                        DataSpaceOperations<simDim>::template map<
+                        SuperCellSize>(cellIdx));
+                    // Set z component to zero for 2D
+                    cachedR[ linearIdx ][ 2 ] = 0.0;
+                    for( auto dim = 0u; dim < simDim; ++dim )
+                        cachedR[ linearIdx ][ dim ] =
+                        (static_cast< float_X >(globalPos[dim]) + pos[dim]) * cellSize[dim];
+                    cachedWeighting[ linearIdx ] = particle[ weighting_ ];
+
                 }
+            });
 
-                // wait till all  for this super cell are done
-                __syncthreads();
+            __syncthreads(); // wait till every thread has loaded its
+                             // particle data
 
-                /* First threads starts loading next frame of the super-cell:
-                 *
-                 * Info:
-                 * The calculation starts with the last SuperCell (does not have
-                 * to be full filled) all previous SuperCells are full with
-                 * particles
-                 */
-                particlesInFrame = frameSize;
-                frame = pb.getPreviousFrame(frame);
-            } // end while(frame.isValid())
+            // conversion multiplier from PIC unit length to angstrom
+            constexpr float_X meter2angstrom = 1e10_X;
+            constexpr float_X lengthToAngstrom = meter2angstrom * UNIT_LENGTH;
 
-        } // end loop over all super cells
+            auto const q = getQ(
+                globalWorkerIdx,
+                q_min,
+                q_step,
+                numVectors
+            );
 
-        // write results to global memory
-        sumfcoskr[ globalWorkerIdx ] += sumfcoskr_r;
-        sumfsinkr[ globalWorkerIdx ] += sumfsinkr_r;
-        // total weight of particles is written by a single thread per GPU
-        if( globalWorkerIdx == 0 )
-            np[ 0 ] += np_r;
+            // Particle loop: thread runs through loaded particle data
+            for( auto particleIdx = 0u; particleIdx < particlesInFrame; ++particleIdx )
+            {
+                /// todo use dot product
+                auto const dotkr = (
+                    q[ 0 ] * cachedR[ particleIdx ][ 0 ] +
+                    q[ 1 ] * cachedR[ particleIdx ][ 1 ] +
+                    q[ 2 ] * cachedR[ particleIdx ][ 2 ]
+                    ) * lengthToAngstrom;
+                float_X sinValue, cosValue;
+                math::sincos(
+                    dotkr,
+                    sinValue,
+                    cosValue
+                );
+                result.sumfcoskr += cosValue * cachedWeighting[ particleIdx ];
+                result.sumfsinkr += sinValue * cachedWeighting[ particleIdx ];
+                result.totalWeighting += cachedWeighting[ particleIdx ];
+            }
 
-    } // end SAXS kernel
-};
+            // Wait until this frame is processed and go to the previous one
+            __syncthreads();
+            particlesInFrame = frameSize;
+            frame = pb.getPreviousFrame( frame );
 
+        } // end loop over frames
+
+        return result;
+    }
+
+
+    /// TODO
+    DINLINE float3_X getQ(
+        uint32_t const globalWorkerIdx,
+        float3_X & const qMin,
+        float3_X & const qStep,
+        pmacc::DataSpace< 3 > & const numVectors
+    )
+    {
+        pmacc::DataSpace< 3 > idx;   
+        idx[ 2 ] = globalWorkerIdx % numVectors.z();
+        idx[ 1 ] = ( globalWorkerIdx / numVectors.z() ) % numVectors.y();
+        idx[ 0 ] = globalWorkerIdx / ( numVectors.z() * numVectors.y() );
+        return qMin + qStep *
+            pmacc::algorithms::precisionCast::precisionCast< float_X >( idx );
+    }
+
+} // namespace detail
+
+    /** calculate the scattering of a species
+     *
+     * @tparam T_numWorkers number of workers
+     */
+    template< uint32_t T_numWorkers >
+    struct KernelSaxs
+    {
+        /**
+         * The SAXS kernel calculates for all particles on the device the
+         * scattering intensity for input calculation ranges.
+         * The parallelization is as follows:
+         *  - The number of threads per block is equal to the number of cells per
+         *    super cells which is also equal to the number of particles per frame
+         *
+         * The procedure starts with calculating unique ids for the threads and
+         * initializing the shared memory.
+         * Then a loop over all super cells starts.
+         * Every thread loads a particle from that super cell and calculates its
+         * scattering structure factor.
+         * For every Particle
+         * exists therefore a unique space within the shared memory.
+         * After that, a thread calculates for a specific scattering vector of all
+         * particles.
+         */
+        template <
+            typename ParBox,
+            typename DBox,
+            typename DBox_np,
+            typename DBox_nmp,
+            typename Mapping,
+            typename T_Acc>
+        DINLINE
+        void
+        operator()(
+            T_Acc const &acc,
+            ParBox pb,
+            DBox sumfcoskr,
+            DBox sumfsinkr,
+            DBox_np np,
+            DBox_nmp nmp,
+            DataSpace< simDim > globalOffset,
+            Mapping mapper,
+            DataSpace< simDim > simBoxSize,
+            float3_X qMin,
+            float3_X qStep,
+            DataSpace< 3 > numVectors
+        ) const
+        {
+            constexpr uint32_t frameSize =
+                pmacc::math::CT::volume< SuperCellSize >::type::value; /// fix computation from particle box
+
+            uint32_t const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
+
+            // vectorial part of the integrand in the Jackson formula
+            using PositionArray = memory::Array<
+                float3_X,
+                frameSize
+            >;
+            PMACC_SMEM(
+                acc,
+                cachedR,
+                PositionArray
+            );
+
+            using WeightingArray = memory::Array<
+                float_X,
+                frameSize
+            >;
+            PMACC_SMEM(
+                acc,
+                cachedWeighting,
+                WeightingArray
+            );
+
+
+            /* number of super cells on GPU per dimension (still including guard
+             * cells) remove both guards from count [later one sided guard needs to
+             * be added again]
+             */
+            auto const guardingSuperCells = mapper.getGuardingSuperCells();
+            auto const superCellsCount =
+                mapper.getGridSuperCells() - 2 * guardingSuperCells;
+
+            // get absolute number of relevant super cells
+            auto const numSuperCells = superCellsCount.productOfComponents();
+
+            detail::Result result;
+
+            for( auto supercellLinearIdx = 0; supercellLinearIdx < numSuperCells; ++supercellLinearIdx )
+            {             
+                auto const idxWithGuard = DataSpaceOperations< simDim >::map(
+                    superCellsCount,
+                    supercellLinearIdx
+                ) + guardingSuperCells;
+
+                auto const supercellResult = detail::processSupercell< T_numWorkers >(
+                    acc,
+                    idxWithGuard,
+                    globalOffset,
+                    mapper,
+                    pb,
+                    cachedR,
+                    cachedWeighting,
+                    qMin,
+                    qStep,
+                    numVectors
+                );
+               /* Note: summing up for each supercell from scratch has an added benefit
+                * of reducing summation errors compared to a straighforward summation
+                */
+                result += supercellResult;
+                
+            }
+
+            // write results to global memory
+            sumfcoskr[ globalWorkerIdx ] = result.sumfcoskr;
+            sumfsinkr[ globalWorkerIdx ] = result.sumfsinkr;
+            // total weight of particles is written by a single thread per GPU
+            if( globalWorkerIdx == 0 )
+            {
+                np[ 0 ] = result.totalWeighting;
+                nmp[ 0 ] = result.totalNumMacroparticles;
+            }
+
+        }
+    };
+
+} // namespace saxs
+} // namespae plugins
 } // namespace picongpu

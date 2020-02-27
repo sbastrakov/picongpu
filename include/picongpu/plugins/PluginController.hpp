@@ -218,7 +218,7 @@ private:
         CountParticles<bmpl::_1>,
         PngPlugin< Visualisation<bmpl::_1, PngCreator> >,
         plugins::transitionRadiation::TransitionRadiation<bmpl::_1>,
-        Saxs< bmpl::_1 >
+        plugins::saxs::Saxs< bmpl::_1 >
 #if(ENABLE_HDF5 == 1)
         , plugins::radiation::Radiation<bmpl::_1>
         , plugins::multi::Master< ParticleCalorimeter<bmpl::_1> >
