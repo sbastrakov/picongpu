@@ -43,8 +43,10 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
+
 
 namespace picongpu
 {
@@ -80,19 +82,18 @@ namespace saxs
         //! Number of macro particles
         std::unique_ptr< IntBuffer > nmp;
 
-        MappingDesc *cellDescription;
-        std::string notifyPeriod;
-        std::string speciesName;
-        std::string pluginName;
-        std::string pluginPrefix;
-        std::string filename_prefix;
+        MappingDesc cellDescription;
+        std::string notifyPeriod; 
+        std::string prefix;
 
         /** Range of scattering vector
-         * The scattering vecotor here is defined as
+         * The scattering vector here is defined as
          * 4*pi*sin(theta)/lambda, where 2theta is the angle
          * between scattered and incident beam
          **/
-        float3_X q_min, q_max, q_step;
+        float3_X q_min, q_max;
+        detail::ReciprocalSpace reciprocalSpace;
+
         //! Number of scattering vectors
         DataSpace< 3 > numVectors;
 
@@ -108,19 +109,16 @@ namespace saxs
 
         mpi::MPIReduce reduce;
 
-      public:
-        Saxs()
-            : pluginName(
-                  "SAXS: calculate the SAXS scattering intensity of a species"),
-              speciesName(ParticlesType::FrameType::getName()),
-              pluginPrefix(speciesName + std::string("_saxs")),
-              filename_prefix(pluginPrefix), cellDescription(nullptr), isMaster(false),
-              currentStep(0)
-        {
-            Environment<>::get().PluginConnector().registerPlugin(this);
-        }
+    public:
 
-        virtual ~Saxs() {}
+        Saxs() :           
+            prefix( ParticlesType::FrameType::getName() + std::string("_saxs") ),
+            isMaster(false),
+            currentStep(0),
+            cellDescription( DataSpace< simDim >::create( 0 ) )
+        {
+            Environment<>::get().PluginConnector().registerPlugin( this );
+        }
 
         /**
          * This function represents what is actually calculated if the plugin
@@ -131,58 +129,74 @@ namespace saxs
          */
         void notify(uint32_t currentStep)
         {
+            auto qStep = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
+            reciprocalSpace = detail::ReciprocalSpace{
+                q_min,
+                qStep,
+                numVectors
+            };
             calculateSAXS(currentStep);
         }
 
-        void pluginRegisterHelp(po::options_description &desc)
+        void pluginRegisterHelp( po::options_description &desc ) override
         {
-            desc.add_options()((pluginPrefix + ".period").c_str(),
+            desc.add_options()((prefix + ".period").c_str(),
                 po::value<std::string>(&notifyPeriod),
                 "enable plugin [for each n-th step]")(
-                (pluginPrefix + ".qx_max").c_str(),
+                (prefix + ".qx_max").c_str(),
                 po::value<float_X>(&q_max[0])->default_value(5),
                 "reciprocal space range qx_max (A^-1)")(
-                (pluginPrefix + ".qy_max").c_str(),
+                (prefix + ".qy_max").c_str(),
                 po::value<float_X>(&q_max[1])->default_value(5),
                 "reciprocal space range qy_max (A^-1)")(
-                (pluginPrefix + ".qz_max").c_str(),
+                (prefix + ".qz_max").c_str(),
                 po::value<float_X>(&q_max[2])->default_value(5),
                 "reciprocal space range qz_max (A^-1)")(
-                (pluginPrefix + ".qx_min").c_str(),
+                (prefix + ".qx_min").c_str(),
                 po::value<float_X>(&q_min[0])->default_value(-5),
                 "reciprocal space range qx_min (A^-1)")(
-                (pluginPrefix + ".qy_min").c_str(),
+                (prefix + ".qy_min").c_str(),
                 po::value<float_X>(&q_min[1])->default_value(-5),
                 "reciprocal space range qy_min (A^-1)")(
-                (pluginPrefix + ".qz_min").c_str(),
+                (prefix + ".qz_min").c_str(),
                 po::value<float_X>(&q_min[2])->default_value(-5),
                 "reciprocal space range qz_min (A^-1)")(
-                (pluginPrefix + ".n_qx").c_str(),
+                (prefix + ".n_qx").c_str(),
                 po::value<int>(&numVectors[0])->default_value(100),
-                "Number of qx")((pluginPrefix + ".n_qy").c_str(),
+                "Number of qx")((prefix + ".n_qy").c_str(),
                 po::value<int>(&numVectors[1])->default_value(100),
-                "Number of qy")((pluginPrefix + ".n_qz").c_str(),
+                "Number of qy")((prefix + ".n_qz").c_str(),
                 po::value<int>(&numVectors[2])->default_value(1), "Number of qz");
         }
 
-        std::string pluginGetName() const { return pluginName; }
-
-        void setMappingDescription(MappingDesc *cellDescription)
+        std::string pluginGetName() const override
         {
-            this->cellDescription = cellDescription;
+            return std::string{ "SAXS: calculate the SAXS scattering intensity of a species" };
         }
 
-        void restart(uint32_t timeStep, const std::string restartDirectory)
+        void setMappingDescription( MappingDesc * cellDescription )
         {
-            // Keep this empty
+            this->cellDescription = *cellDescription;
         }
 
-        void checkpoint(uint32_t timeStep, const std::string restartDirectory)
+        void restart(
+            uint32_t restartStep,
+            std::string const restartDirectory
+        ) override
         {
-            // Keep this empty
+            // No state to be read
+        }
+
+        void checkpoint(
+            uint32_t currentStep,
+            std::string const restartDirectory
+        ) override
+        {
+            // No state to be saved
         }
 
       private:
+
         /**
          * The plugin is loaded on every MPI rank, and therefore this function is
          * executed on every MPI rank.
@@ -208,14 +222,14 @@ namespace saxs
                 intensity_master.resize( totalNumVectors );
                 Environment<>::get().PluginConnector().setNotificationPeriod(
                     this, notifyPeriod);
-                pmacc::Filesystem<simDim> &fs =
-                    Environment<simDim>::get().Filesystem();
 
                 // only rank 0 create a file
                 if (isMaster)
                 {
-                    fs.createDirectory("saxsOutput");
-                    fs.setDirectoryPermissions("saxsOutput");
+                    pmacc::Filesystem<simDim> & fs =
+                        Environment<simDim>::get().Filesystem();
+                    fs.createDirectory( "saxsOutput" );
+                    fs.setDirectoryPermissions( "saxsOutput" );
                 }
             }
         }
@@ -241,13 +255,7 @@ namespace saxs
                 ofile << totalNumVectors << "\n";
                 ofile << "# qx qy qz intensity \n";
                 for( int i = 0; i < totalNumVectors; i++ )
-                {
-                    int i_z = i % numVectors.z( );
-                    int i_y = ( i / numVectors.z( ) ) % numVectors.y( );
-                    int i_x = i / ( numVectors.z( ) * numVectors.y( ) );
-                    auto const q = q_min + q_step * float3_X( i_x, i_y, i_z );
-                    ofile << q << " " << intensity[ i ] << "\n";
-                }
+                    ofile << reciprocalSpace.getValue( i ) << " " << intensity[ i ] << "\n";
                 ofile.close();
             }
         }
@@ -265,9 +273,8 @@ namespace saxs
             std::string name
         )
         {
-            std::ofstream ofile;
-            ofile.open(name.c_str(), std::ofstream::out | std::ostream::trunc);
-            if (!ofile)
+            auto ofile = std::ofstream{ name.c_str() };
+            if( !ofile )
             {
                 std::cerr << "Can't open file [" << name
                           << "] for output, disable plugin output.\n";
@@ -347,9 +354,9 @@ namespace saxs
                 std::stringstream o_step;
                 o_step << currentStep;
                 writeIntensity(intensity_master,
-                    "saxsOutput/" + filename_prefix + "_" + o_step.str() + ".dat");
+                    "saxsOutput/" + prefix + "_" + o_step.str() + ".dat");
                 writeLog(np_master, nmp_master,
-                    "saxsOutput/" + filename_prefix + "_" + o_step.str() + ".log");
+                    "saxsOutput/" + prefix + "_" + o_step.str() + ".log");
             }
         }
 
@@ -385,15 +392,13 @@ namespace saxs
             sumfcoskr->getDeviceBuffer( ).setValue( 0.0 );
             sumfsinkr->getDeviceBuffer( ).setValue( 0.0 );
             np->getDeviceBuffer( ).setValue( 0.0 );
-            nmp->getDeviceBuffer( ).setValue( 0.0 );
-
-            q_step = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
+            nmp->getDeviceBuffer( ).setValue( 0.0 );          
 
             // PIC-like kernel call of the SAXS kernel
             auto const totalNumVectors = numVectors.productOfComponents( );
             auto const numBlocks = ( totalNumVectors + numWorkers - 1 ) / numWorkers;
             PMACC_KERNEL(
-                KernelSaxs< numWorkers >{ }
+                detail::KernelSaxs< numWorkers >{ }
             )(
                 numBlocks,
                 numWorkers
@@ -406,11 +411,8 @@ namespace saxs
                 np->getDeviceBuffer( ).getDataBox( ),
                 nmp->getDeviceBuffer( ).getDataBox( ),
                 globalOffset,
-                *cellDescription,
-                subGrid.getGlobalDomain( ).size,
-                q_min,
-                q_step,
-                numVectors
+                cellDescription,
+                reciprocalSpace
             );
 
             dc.releaseData( ParticlesType::FrameType::getName( ) );
