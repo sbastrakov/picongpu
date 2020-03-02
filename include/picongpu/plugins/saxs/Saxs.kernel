@@ -65,8 +65,8 @@ namespace detail
          * @param size number of points per each direction
          */
         HDINLINE ReciprocalSpace(
-            float3_X & const min = float3_X::create( 0._X ),
-            float3_X & const step = float3_X::create( 0._X ),
+            float3_X const & min = float3_X::create( 0._X ),
+            float3_X const & step = float3_X::create( 0._X ),
             pmacc::DataSpace< 3 > & const size = DataSpace< 3 >::create( 1 )
         ):
             min( min ),
