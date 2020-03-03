@@ -1,6 +1,6 @@
-.. _usage-plugins-saxs:
+.. _usage-plugins-xrayDiffraction:
 
-SAXS
+X-ray diffraction
 ---------
 
 This plugin calculates Small Angle X-ray Scattering (SAXS) patterns from particle positions.
@@ -23,12 +23,12 @@ Multiple Scattering CAN NOT be handled in this model.
 
 Temporal and transversal x-ray envelope will be take into account in the future.
 
-For free electrons, :math:`f_j = 1`. For ions, further computations are required, which is not implemented yet. 
+For free electrons, :math:`f_j = 1`. For ions, further computations are required, which is not implemented yet.
 
 .cfg file
 ^^^^^^^^^
 
-For a specific (charged) species ``<species>`` e.g. ``e``, the scattering can be computed by the following commands.  
+For a specific (charged) species ``<species>`` e.g. ``e``, the scattering can be computed by the following commands.
 
 ========================================= ==============================================================================================================================
 Command line option                       Description
@@ -66,7 +66,7 @@ An *ASCII* file that contains scattering intensity for each scattering vector de
 
 ``<species>_saxs.[timestep].log``
 
-An *ASCII* file that contains the number of real particles and the number of macro particles. 
+An *ASCII* file that contains the number of real particles and the number of macro particles.
 
 
 References
