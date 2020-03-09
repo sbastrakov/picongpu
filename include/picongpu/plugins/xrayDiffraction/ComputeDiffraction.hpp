@@ -153,7 +153,7 @@ namespace detail
             auto const & subGrid = Environment< simDim >::get().SubGrid();
             auto const localDomainOffset = subGrid.getLocalDomain().offset;
 
-            constexpr uint32_t numWorkers = traits::GetNumWorkers<
+            constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                 pmacc::math::CT::volume< MappingDesc::SuperCellSize >::type::value
             >::value;
 
