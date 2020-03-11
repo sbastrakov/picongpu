@@ -26,13 +26,15 @@
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
 #include "picongpu/plugins/ISimulationPlugin.hpp"
 #include "picongpu/plugins/common/stringHelpers.hpp"
-#include "picongpu/plugins/xrayDiffraction/ComputeDiffraction.hpp"
+#include "picongpu/plugins/xrayDiffraction/Implementation.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 
@@ -109,23 +111,30 @@ namespace xrayDiffraction
         ) override;
 
     private:
+        
+        //! Implementation type
+        using Implementation = detail::Implementation< T_Species >;
 
-        using ComputeDiffraction = detail::ComputeDiffraction< T_Species >;
-        std::unique_ptr< ComputeDiffraction > pImpl;
+        //! Pointer to implementation
+        std::unique_ptr< Implementation > pImpl;
 
+        //! Mapping description for kernels
         MappingDesc cellDescription;
-        std::string notifyPeriod; 
+
+        //! Notification period
+        std::string notifyPeriod;
+
+        //! Prefix for command-line parameters and output
         std::string prefix;
 
-        /** Range of scattering vector
-        * The scattering vector here is defined as
-        * 4*pi*sin(theta)/lambda, where 2theta is the angle
-        * between scattered and incident beam
-        **/
-        float3_X q_min, q_max;
+        //! Start of the reciprocal space
+        float3_X qMin;
+
+        //! End of the reciprocal space
+        float3_X qMax;
 
         //! Number of scattering vectors
-        DataSpace< 3 > numVectors;
+        DataSpace< 3 > numScatteringVectors;
 
         //! Load the plugin
         void pluginLoad();
@@ -153,35 +162,40 @@ namespace xrayDiffraction
     }
 
     template< typename T_Species >
-    void XrayDiffraction< T_Species >::pluginRegisterHelp( po::options_description & desc )
+    void XrayDiffraction< T_Species >::pluginRegisterHelp(
+        po::options_description & desc
+    )
     {
-        desc.add_options()((prefix + ".period").c_str(),
-            po::value<std::string>(&notifyPeriod),
-            "enable plugin [for each n-th step]")(
-            (prefix + ".qx_max").c_str(),
-            po::value<float_X>(&q_max[0])->default_value(5),
-            "reciprocal space range qx_max (A^-1)")(
-            (prefix + ".qy_max").c_str(),
-            po::value<float_X>(&q_max[1])->default_value(5),
-            "reciprocal space range qy_max (A^-1)")(
-            (prefix + ".qz_max").c_str(),
-            po::value<float_X>(&q_max[2])->default_value(5),
-            "reciprocal space range qz_max (A^-1)")(
-            (prefix + ".qx_min").c_str(),
-            po::value<float_X>(&q_min[0])->default_value(-5),
-            "reciprocal space range qx_min (A^-1)")(
-            (prefix + ".qy_min").c_str(),
-            po::value<float_X>(&q_min[1])->default_value(-5),
-            "reciprocal space range qy_min (A^-1)")(
-            (prefix + ".qz_min").c_str(),
-            po::value<float_X>(&q_min[2])->default_value(-5),
-            "reciprocal space range qz_min (A^-1)")(
-            (prefix + ".n_qx").c_str(),
-            po::value<int>(&numVectors[0])->default_value(100),
-            "Number of qx")((prefix + ".n_qy").c_str(),
-            po::value<int>(&numVectors[1])->default_value(100),
-            "Number of qy")((prefix + ".n_qz").c_str(),
-            po::value<int>(&numVectors[2])->default_value(1), "Number of qz");   
+        desc.add_options()( ( prefix + ".period" ).c_str(),
+            po::value< std::string >( &notifyPeriod ),
+            "enable plugin [for each n-th step]" )(
+            ( prefix + ".qx_max" ).c_str(),
+            po::value< float_X >( &qMax[ 0 ] )->default_value( 5._X ),
+            "reciprocal space range qx_max (A^-1)" )(
+            ( prefix + ".qy_max" ).c_str(),
+            po::value< float_X >( &qMax[ 1 ] )->default_value( 5._X ),
+            "reciprocal space range qy_max (A^-1)" )(
+            ( prefix + ".qz_max" ).c_str(),
+            po::value<float_X>(&qMax[2])->default_value(0._X),
+            "reciprocal space range qz_max (A^-1)" )(
+            ( prefix + ".qx_min" ).c_str(),
+            po::value< float_X >( &qMin[ 0 ] )->default_value( -5._X ),
+            "reciprocal space range qx_min (A^-1)" )(
+            ( prefix + ".qy_min" ).c_str(),
+            po::value< float_X >( &qMin[ 1 ] )->default_value( -5._X ),
+            "reciprocal space range qy_min (A^-1)" )(
+            ( prefix + ".qz_min" ).c_str(),
+            po::value< float_X >( &qMin[ 2 ] )->default_value( 0._X ),
+            "reciprocal space range qz_min (A^-1)" )(
+            ( prefix + ".n_qx" ).c_str(),
+            po::value< int >( &numScatteringVectors[ 0 ] )->default_value( 100 ),
+            "Number of qx" )(
+            ( prefix + ".n_qy" ).c_str(),
+            po::value< int >( &numScatteringVectors[ 1 ] )->default_value( 100 ),
+            "Number of qy" )(
+            ( prefix + ".n_qz" ).c_str(),
+            po::value< int >( &numScatteringVectors[ 2 ] )->default_value( 1 ),
+            "Number of qz" );
     }
 
     template< typename T_Species >
@@ -224,16 +238,24 @@ namespace xrayDiffraction
     {
         if (!notifyPeriod.empty())
         {
-            auto qStep = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
+            // Subtract 1 so that the last point is qMax
+            auto numQIntervals = DataSpace< 3 >::create( 1 );
+            for( auto dim = 0u; dim < 3u; dim++ )
+                numQIntervals[ dim ] = std::max(
+                    numScatteringVectors[ dim ] - 1,
+                    1
+                );
+            auto qStep = ( qMax - qMin ) /
+                precisionCast< float_X >( numQIntervals );
             auto reciprocalSpace = detail::ReciprocalSpace{
-                q_min,
+                qMin,
                 qStep,
-                numVectors
+                numScatteringVectors
             };
-            pImpl = memory::makeUnique< ComputeDiffraction >(
+            pImpl = memory::makeUnique< Implementation >(
                 reciprocalSpace,
                 prefix
-                );
+            );
             Environment<>::get().PluginConnector().setNotificationPeriod(
                 this,
                 notifyPeriod

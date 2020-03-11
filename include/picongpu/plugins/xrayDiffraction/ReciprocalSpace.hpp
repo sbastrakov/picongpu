@@ -40,7 +40,9 @@ namespace detail
 
     /** Parameters of the reciprocal space
      * 
-     * They define the regular 3d Cartesian lattice of scattering vectors q
+     * They define the regular 3d Cartesian lattice of scattering vectors q.
+     * The scattering vector here is defined as 4 * pi * sin(theta) / lambda,
+     * where 2 * theta is the angle between scattered and incident beam.
      */
     struct ReciprocalSpace
     {

@@ -28,7 +28,7 @@
 #include "picongpu/plugins/common/stringHelpers.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 #include "picongpu/plugins/xrayDiffraction/Writer.hpp"
-#include "picongpu/plugins/xrayDiffraction/ComputeDiffraction.kernel"
+#include "picongpu/plugins/xrayDiffraction/Implementation.kernel"
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
@@ -56,11 +56,11 @@ namespace detail
 {
 
     template< typename T_Species >
-    class ComputeDiffraction
+    class Implementation
     {
     public:
 
-        ComputeDiffraction(
+        Implementation(
             ReciprocalSpace const & reciprocalSpace,
             std::string const & prefix
         ):
