@@ -33,9 +33,7 @@
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
 
 #include <cstdint>
-#include <memory>
 #include <string>
-#include <vector>
 
 
 namespace picongpu
@@ -50,12 +48,66 @@ namespace xrayDiffraction
     namespace po = boost::program_options;
 
     /** X-ray diffraction plugin
-     * This SAXS plugin simulates the SAXS scattering pattern on-the-fly
-     * from the particle positions obtained from PIConGPU.
-     **/
+     *
+     * The plugin computesX-ray diffraction intensity based on particle
+     * positions. The intensities are computed on a lattice in the reciprocal
+     * space defined via command-line parameters. The results are aggregated for
+     * the whole global simulation domain and written to files.
+     *
+     * The implementation is based on the GAPD code developed by Juncheng E
+     * and the paper J.C. E, L. Wang, S. Chen, Y.Y. Zhang, S.N. Luo.
+     * GAPD: a GPU-accelerated atom-based polychromatic diffraction simulation
+     * code // Journal of Synchrotron Radiation. 25, 604-611 (2018). 
+     */
     template< typename T_Species >
     class XrayDiffraction : public ISimulationPlugin
     {
+    public:
+
+        //! Create X-ray diffraction plugin
+        XrayDiffraction();
+
+        /** Run the plugin
+        *
+        * @param currentStep current time iteration
+        */
+        void notify(uint32_t currentStep);
+
+        /** Register command line options
+         *
+         * @param desc option descriptions
+         */
+        void pluginRegisterHelp( po::options_description & desc ) override;
+
+        //! Get text name of a plugin
+        std::string pluginGetName() const override;
+
+        /** Set mapping description for kernels
+         *
+         * @param newCellDescription mapping for kernels
+         */
+        void setMappingDescription( MappingDesc * newCellDescription ) override;
+
+        /** Restart from a checkpoint
+         *
+         * @param currentStep current time iteration
+         * @param restartDirectory restart directory
+         */
+        void restart(
+            uint32_t restartStep,
+            std::string const restartDirectory
+        ) override;
+
+        /** Save data for checkpoint
+         *
+         * @param currentStep current time iteration
+         * @param directory output directory
+         */
+        void checkpoint(
+            uint32_t currentStep,
+            std::string const directory
+        ) override;
+
     private:
 
         using ComputeDiffraction = detail::ComputeDiffraction< T_Species >;
@@ -66,136 +118,135 @@ namespace xrayDiffraction
         std::string prefix;
 
         /** Range of scattering vector
-         * The scattering vector here is defined as
-         * 4*pi*sin(theta)/lambda, where 2theta is the angle
-         * between scattered and incident beam
-         **/
+        * The scattering vector here is defined as
+        * 4*pi*sin(theta)/lambda, where 2theta is the angle
+        * between scattered and incident beam
+        **/
         float3_X q_min, q_max;
 
         //! Number of scattering vectors
         DataSpace< 3 > numVectors;
 
-    public:
+        //! Load the plugin
+        void pluginLoad();
 
-        XrayDiffraction():
-            prefix( T_Species::FrameType::getName() + std::string("_xrayDiffraction") ),
-            cellDescription( DataSpace< simDim >::create( 0 ) )
-        {
-            Environment<>::get().PluginConnector().registerPlugin( this );
-        }
-
-        /**
-         * This function represents what is actually calculated if the plugin
-         * is called. Here, one only sets the particles pointer to the data of
-         * the latest time step and calls the 'calculateSAXS'
-         * function if for the actual time step radiation is to be calculated.
-         * @param currentStep
-         */
-        void notify(uint32_t currentStep)
-        {
-            pImpl->operator()(
-                currentStep,
-                cellDescription
-            );
-        }
-
-        void pluginRegisterHelp( po::options_description &desc ) override
-        {
-            desc.add_options()((prefix + ".period").c_str(),
-                po::value<std::string>(&notifyPeriod),
-                "enable plugin [for each n-th step]")(
-                (prefix + ".qx_max").c_str(),
-                po::value<float_X>(&q_max[0])->default_value(5),
-                "reciprocal space range qx_max (A^-1)")(
-                (prefix + ".qy_max").c_str(),
-                po::value<float_X>(&q_max[1])->default_value(5),
-                "reciprocal space range qy_max (A^-1)")(
-                (prefix + ".qz_max").c_str(),
-                po::value<float_X>(&q_max[2])->default_value(5),
-                "reciprocal space range qz_max (A^-1)")(
-                (prefix + ".qx_min").c_str(),
-                po::value<float_X>(&q_min[0])->default_value(-5),
-                "reciprocal space range qx_min (A^-1)")(
-                (prefix + ".qy_min").c_str(),
-                po::value<float_X>(&q_min[1])->default_value(-5),
-                "reciprocal space range qy_min (A^-1)")(
-                (prefix + ".qz_min").c_str(),
-                po::value<float_X>(&q_min[2])->default_value(-5),
-                "reciprocal space range qz_min (A^-1)")(
-                (prefix + ".n_qx").c_str(),
-                po::value<int>(&numVectors[0])->default_value(100),
-                "Number of qx")((prefix + ".n_qy").c_str(),
-                po::value<int>(&numVectors[1])->default_value(100),
-                "Number of qy")((prefix + ".n_qz").c_str(),
-                po::value<int>(&numVectors[2])->default_value(1), "Number of qz");
-        }
-
-        std::string pluginGetName() const override
-        {
-            return std::string{
-                "X-ray diffraction: calculate diffraction scattering "
-                "intensity of a species"
-            };
-        }
-
-        void setMappingDescription( MappingDesc * newCellDescription ) override
-        {
-            cellDescription = *newCellDescription;
-        }
-
-        void restart(
-            uint32_t restartStep,
-            std::string const restartDirectory
-        ) override
-        {
-            // No state to be read
-        }
-
-        void checkpoint(
-            uint32_t currentStep,
-            std::string const restartDirectory
-        ) override
-        {
-            // No state to be saved
-        }
-
-    private:
-
-        /**
-         * The plugin is loaded on every MPI rank, and therefore this function is
-         * executed on every MPI rank.
-         * One host with MPI rank 0 is defined to be the master.
-         * It creates a folder where all the
-         * results are saved in a plain text format.
-         **/
-        void pluginLoad()
-        {
-            if (!notifyPeriod.empty())
-            {
-                auto qStep = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
-                auto reciprocalSpace = detail::ReciprocalSpace{
-                    q_min,
-                    qStep,
-                    numVectors
-                };
-                pImpl = memory::makeUnique< ComputeDiffraction >(
-                    reciprocalSpace,
-                    prefix
-                );
-                Environment<>::get().PluginConnector().setNotificationPeriod(
-                    this,
-                    notifyPeriod
-                );
-            }
-        }
-
-        void pluginUnload() override
-        {
-            if( !notifyPeriod.empty() )
-                CUDA_CHECK( cudaGetLastError() );
-        }
+        //! Unload the plugin
+        void pluginUnload() override;
 
     };
+
+    template< typename T_Species >
+    XrayDiffraction< T_Species >::XrayDiffraction():
+        prefix( T_Species::FrameType::getName() + std::string("_xrayDiffraction") ),
+        cellDescription( DataSpace< simDim >::create( 0 ) )
+    {
+        Environment<>::get().PluginConnector().registerPlugin( this );
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::notify( uint32_t currentStep )
+    {
+        pImpl->operator()(
+            currentStep,
+            cellDescription
+            );
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::pluginRegisterHelp( po::options_description & desc )
+    {
+        desc.add_options()((prefix + ".period").c_str(),
+            po::value<std::string>(&notifyPeriod),
+            "enable plugin [for each n-th step]")(
+            (prefix + ".qx_max").c_str(),
+            po::value<float_X>(&q_max[0])->default_value(5),
+            "reciprocal space range qx_max (A^-1)")(
+            (prefix + ".qy_max").c_str(),
+            po::value<float_X>(&q_max[1])->default_value(5),
+            "reciprocal space range qy_max (A^-1)")(
+            (prefix + ".qz_max").c_str(),
+            po::value<float_X>(&q_max[2])->default_value(5),
+            "reciprocal space range qz_max (A^-1)")(
+            (prefix + ".qx_min").c_str(),
+            po::value<float_X>(&q_min[0])->default_value(-5),
+            "reciprocal space range qx_min (A^-1)")(
+            (prefix + ".qy_min").c_str(),
+            po::value<float_X>(&q_min[1])->default_value(-5),
+            "reciprocal space range qy_min (A^-1)")(
+            (prefix + ".qz_min").c_str(),
+            po::value<float_X>(&q_min[2])->default_value(-5),
+            "reciprocal space range qz_min (A^-1)")(
+            (prefix + ".n_qx").c_str(),
+            po::value<int>(&numVectors[0])->default_value(100),
+            "Number of qx")((prefix + ".n_qy").c_str(),
+            po::value<int>(&numVectors[1])->default_value(100),
+            "Number of qy")((prefix + ".n_qz").c_str(),
+            po::value<int>(&numVectors[2])->default_value(1), "Number of qz");   
+    }
+
+    template< typename T_Species >
+    std::string XrayDiffraction< T_Species >::pluginGetName() const
+    {
+        return std::string{
+            "X-ray diffraction: calculate diffraction scattering "
+            "intensity of a species"
+        };
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::setMappingDescription(
+        MappingDesc * newCellDescription
+    )
+    {
+        cellDescription = *newCellDescription;
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::restart(
+        uint32_t restartStep,
+        std::string const restartDirectory
+    )
+    {
+        // No state to be read
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::checkpoint(
+        uint32_t currentStep,
+        std::string const restartDirectory
+    )
+    {
+        // No state to be saved
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::pluginLoad()
+    {
+        if (!notifyPeriod.empty())
+        {
+            auto qStep = ( q_max - q_min ) / precisionCast< float_X >( numVectors );
+            auto reciprocalSpace = detail::ReciprocalSpace{
+                q_min,
+                qStep,
+                numVectors
+            };
+            pImpl = memory::makeUnique< ComputeDiffraction >(
+                reciprocalSpace,
+                prefix
+                );
+            Environment<>::get().PluginConnector().setNotificationPeriod(
+                this,
+                notifyPeriod
+            );
+        }
+    }
+
+    template< typename T_Species >
+    void XrayDiffraction< T_Species >::pluginUnload()
+    {
+        if( !notifyPeriod.empty() )
+            CUDA_CHECK( cudaGetLastError() );
+    }
 
 } // namespace xrayDiffraction
 } // namespace plugins
@@ -204,6 +255,12 @@ namespace particles
 {
 namespace traits
 {
+
+    /** Check if species fulfills requirements of the X-ray diffraction plugin
+     *
+     * @tparam T_Species species to check
+     * @tparam T_UnspecifiedSpecies any species
+     */
     template<
         typename T_Species,
         typename T_UnspecifiedSpecies

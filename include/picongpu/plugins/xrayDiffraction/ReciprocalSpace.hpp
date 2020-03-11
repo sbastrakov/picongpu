@@ -95,5 +95,5 @@ namespace detail
 
 } // namespace detail
 } // namespace xrayDiffraction
-} // namespae plugins
+} // namespace plugins
 } // namespace picongpu
