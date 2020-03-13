@@ -1,6 +1,4 @@
-/* Copyright 2013-2020 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
- *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz,
- *                     Juncheng E, Sergei Bastrakov
+/* Copyright 2019-2020 Juncheng E, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -23,27 +21,18 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
-#include "picongpu/plugins/ISimulationPlugin.hpp"
-#include "picongpu/plugins/common/stringHelpers.hpp"
+#include "picongpu/plugins/xrayDiffraction/GlobalDomainResult.hpp"
+#include "picongpu/plugins/xrayDiffraction/LocalDomainResult.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 #include "picongpu/plugins/xrayDiffraction/Writer.hpp"
-#include "picongpu/plugins/xrayDiffraction/Implementation.kernel"
 
-#include <pmacc/dataManagement/DataConnector.hpp>
-#include <pmacc/dimensions/DataSpaceOperations.hpp>
-#include <pmacc/mappings/kernel/AreaMapping.hpp>
 #include <pmacc/memory/MakeUnique.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
 #include <pmacc/mpi/reduceMethods/Reduce.hpp>
-#include <pmacc/nvidia/functors/Add.hpp>
-#include <pmacc/traits/GetNumWorkers.hpp>
-#include <pmacc/traits/HasIdentifier.hpp>
 
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 
 namespace picongpu
@@ -92,141 +81,17 @@ namespace detail
         //! Prefix for output
         std::string prefix;
 
-        using FloatBuffer = GridBuffer<
-            float_X,
-            DIM1
-        >;
-        using IntBuffer = GridBuffer<
-            int64_t,
-            DIM1
-        >;
+        //! Results for the local domain
+        LocalDomainResult localDomainResult;
 
-        //! Results for local domain
+        //! Results for the global domain
+        GlobalDomainResult globalDomainResult;
 
-        //! The real part of structure factor
-        std::unique_ptr< FloatBuffer > sumfcoskr;
-        //! The imaginary part of structure factor
-        std::unique_ptr< FloatBuffer > sumfsinkr;
-        //! Number of real particles
-        std::unique_ptr< FloatBuffer > combinedWeighting;
-        //! Number of macro particles
-        std::unique_ptr< IntBuffer > numMacroparticles;
-
-
-
-        //! Reduced results for the global domain
-        std::vector< float_X > globalSumfcoskr;
-        std::vector< float_X > globalSumfsinkr;
-        std::vector< float_X > intensity;
-        float_X globalCombinedWeighting;
-        int64_t globalCombinedNumMacroparticles;
-
+        //! Writer to output the results
         std::unique_ptr< Writer > writer;
 
+        //! If the current rank is master
         bool isMasterRank;
-
-        mpi::MPIReduce reduce;
-
-
-        /** Compute diffration for macroparticles of the local domain
-         *
-         * @param cellDescription mapping description
-         */
-        void computeDiffraction( MappingDesc const & cellDescription )
-        {
-            // calculate the absolute position of the particles
-            auto const & subGrid = Environment< simDim >::get().SubGrid();
-            auto const localDomainOffset = subGrid.getLocalDomain().offset;
-
-            constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                pmacc::math::CT::volume< MappingDesc::SuperCellSize >::type::value
-            >::value;
-
-            // initialize variables with zero
-            sumfcoskr->getDeviceBuffer( ).setValue( 0.0 );
-            sumfsinkr->getDeviceBuffer( ).setValue( 0.0 );
-            combinedWeighting->getDeviceBuffer( ).setValue( 0.0 );
-            numMacroparticles->getDeviceBuffer( ).setValue( 0.0 );          
-
-            // PIC-like kernel call of the SAXS kernel
-            DataConnector &dc = Environment<>::get().DataConnector();
-            auto particles =
-                dc.get<T_Species>(T_Species::FrameType::getName(), true);
-            auto const totalNumVectors = reciprocalSpace.size.productOfComponents( );
-            auto const numBlocks = ( totalNumVectors + numWorkers - 1 ) / numWorkers;
-            PMACC_KERNEL(
-                KernelXrayDiffraction< numWorkers >{ }
-            )(
-                numBlocks,
-                numWorkers
-                )(
-                    // Pointer to particles memory on the device
-                    particles->getDeviceParticlesBox( ),
-                    // Pointer to memory of sumfcoskr & sumfsinkr on the device
-                    sumfcoskr->getDeviceBuffer( ).getDataBox( ),
-                    sumfsinkr->getDeviceBuffer( ).getDataBox( ),
-                    combinedWeighting->getDeviceBuffer( ).getDataBox( ),
-                    numMacroparticles->getDeviceBuffer( ).getDataBox( ),
-                    localDomainOffset,
-                    cellDescription,
-                    reciprocalSpace
-                    );
-
-            dc.releaseData( T_Species::FrameType::getName( ) );
-
-            sumfcoskr->deviceToHost();
-            sumfsinkr->deviceToHost();
-            combinedWeighting->deviceToHost();
-            numMacroparticles->deviceToHost();
-            __getTransactionEvent().waitForFinished();
-        }
-
-        /** Collect intensity data from each CPU and store result on master
-        *  copyIntensityDeviceToHost should be called before */
-        void reduceResults()
-        {
-            auto const totalNumVectors = reciprocalSpace.size.productOfComponents( );
-            globalCombinedWeighting = 0._X;
-            globalCombinedNumMacroparticles = 0;
-            reduce(
-                nvidia::functors::Add( ),
-                globalSumfcoskr.data( ),
-                sumfcoskr->getHostBuffer( ).getBasePointer( ),
-                totalNumVectors,
-                mpi::reduceMethods::Reduce( )
-            );
-            reduce(
-                nvidia::functors::Add( ),
-                globalSumfsinkr.data( ),
-                sumfsinkr->getHostBuffer( ).getBasePointer(),
-                totalNumVectors,
-                mpi::reduceMethods::Reduce( )
-            );
-            reduce(
-                nvidia::functors::Add( ),
-                &globalCombinedWeighting,
-                combinedWeighting->getHostBuffer( ).getBasePointer( ),
-                1,
-                mpi::reduceMethods::Reduce( )
-            );
-            reduce(
-                nvidia::functors::Add( ),
-                &globalCombinedNumMacroparticles,
-                numMacroparticles->getHostBuffer( ).getBasePointer( ),
-                1,
-                mpi::reduceMethods::Reduce( )
-            );
-        }
-
-        void computeIntensity()
-        {
-            auto const size = intensity.size();
-            for( int i = 0; i < size; i++ )
-                intensity[i] =
-                (globalSumfcoskr[i] * globalSumfcoskr[i] +
-                    globalSumfsinkr[i] * globalSumfsinkr[i]) /
-                globalCombinedWeighting;
-        }
 
     };
 
@@ -236,20 +101,12 @@ namespace detail
         std::string const & prefix
     ):
         reciprocalSpace( reciprocalSpace ),
-        prefix( prefix )
+        prefix( prefix ),
+        localDomainResult( reciprocalSpace ),
+        globalDomainResult( reciprocalSpace )
     {
-        isMasterRank = reduce.hasResult(mpi::reduceMethods::Reduce());
-        auto totalNumVectors = reciprocalSpace.size.productOfComponents( );
-        auto size = DataSpace< DIM1 >( totalNumVectors );
-        sumfcoskr = memory::makeUnique< FloatBuffer >( size );
-        sumfsinkr = memory::makeUnique< FloatBuffer >( size );
-        // allocate one float on GPU and host
-        combinedWeighting = memory::makeUnique< FloatBuffer >( DataSpace< DIM1 >( 1 ) );
-        // allocate one int on GPU and host
-        numMacroparticles = memory::makeUnique< IntBuffer >( DataSpace< DIM1 >( 1 ) );
-        globalSumfcoskr.resize( totalNumVectors );
-        globalSumfsinkr.resize( totalNumVectors );
-        intensity.resize( totalNumVectors );
+        mpi::MPIReduce reduce;
+        isMasterRank = reduce.hasResult( mpi::reduceMethods::Reduce() );
         if( isMasterRank )
             writer = memory::makeUnique< Writer >( prefix );
     }
@@ -260,16 +117,12 @@ namespace detail
         MappingDesc const & cellDescription
     )
     {
-        computeDiffraction( cellDescription );
-        reduceResults();
+        localDomainResult.compute< T_Species >( cellDescription );
+        globalDomainResult.compute( localDomainResult );
         if( isMasterRank )
         {
-            computeIntensity();
             writer->write(
-                intensity,
-                reciprocalSpace,
-                globalCombinedWeighting,
-                globalCombinedNumMacroparticles,
+                globalDomainResult,
                 currentStep
             );
         }

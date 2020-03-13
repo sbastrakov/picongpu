@@ -23,6 +23,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
+#include "picongpu/plugins/xrayDiffraction/GlobalDomainResult.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 
 #include <pmacc/Environment.hpp>
@@ -60,17 +61,11 @@ namespace detail
 
         /** Write diffraction data to a file
          *
-         * @param intensity diffraction intensity for all scattering vectors
-         * @param reciprocalSpace reciprocal space
-         * @param combinedWeighting combined macroparticle weighting
-         * @param numMacroparticles number of macroparticles
+         * @param globalDomainResult result aggregated for the global domain
          * @param currentStep current time iteration
          */
         void write(
-            std::vector< float_X > const & intensity,
-            ReciprocalSpace const & reciprocalSpace,
-            float_X combinedWeighting,
-            int64_t numMacroparticles,
+            GlobalDomainResult const & globalDomainResult,
             uint32_t currentStep
         ) const;
 
@@ -84,25 +79,25 @@ namespace detail
 
         /** Write diffraction intensity to a file
          *
-         * @param intensity diffraction intensity for all scattering vectors
+         * @param diffractionIntensity diffraction intensity for all scattering vectors
          * @param reciprocalSpace reciprocal space
          * @param fileName file name
          */
         static void writeIntensity(
-            std::vector< float_X > const & intensity,
+            std::vector< float_X > const & diffractionIntensity,
             ReciprocalSpace const & reciprocalSpace,
             std::string const & fileName
         );
 
         /** Write diffraction number of particles and macroparticles to a file
          *
-         * @param combinedWeighting combined macroparticle weighting
          * @param numMacroparticles number of macroparticles
+         * @param totalWeighting combined macroparticle weighting
          * @param fileName file name
          */
         static void writeLog( 
-            float_X combinedWeighting,
             int64_t numMacroparticles,
+            float_64 totalWeighting,
             std::string const & fileName
         );
 
@@ -117,29 +112,26 @@ namespace detail
     }
 
     void Writer::write(
-        std::vector< float_X > const & intensity,
-        ReciprocalSpace const & reciprocalSpace,
-        float_X const combinedWeighting,
-        int64_t const numMacroparticles,
+        GlobalDomainResult const & globalDomainResult,
         uint32_t const currentStep
     ) const
     {
         auto const baseFileName = directoryName + filePrefix +
             "_" + std::to_string( currentStep );
         writeIntensity(
-            intensity,
-            reciprocalSpace,
+            globalDomainResult.diffractionIntensity,
+            globalDomainResult.reciprocalSpace,
             baseFileName + ".dat"
         );
         writeLog(
-            combinedWeighting,
-            numMacroparticles,
+            globalDomainResult.numMacroparticles,
+            globalDomainResult.totalWeighting,
             baseFileName + ".log"
         );
     }
 
     void Writer::writeIntensity(
-        std::vector< float_X > const & intensity,
+        std::vector< float_X > const & diffractionIntensity,
         ReciprocalSpace const & reciprocalSpace,
         std::string const & fileName
     )
@@ -150,17 +142,17 @@ namespace detail
             << "] for output, disable plugin output.\n";
         else
         {
-            ofile << intensity.size() << "\n";
+            ofile << diffractionIntensity.size() << "\n";
             ofile << "# qx qy qz intensity \n";
-            for( size_t i = 0; i < intensity.size(); i++ )
+            for( size_t i = 0; i < diffractionIntensity.size(); i++ )
                 ofile << reciprocalSpace.getValue( i ) << " "
-                << intensity[ i ] << "\n";
+                << diffractionIntensity[ i ] << "\n";
         }
     }
 
     void Writer::writeLog( 
-        float_X combinedWeighting,
         int64_t numMacroparticles,
+        float_64 totalWeighting,
         std::string const & fileName
     )
     {
@@ -170,10 +162,10 @@ namespace detail
             << "] for X-ray diffraction output, disable plugin output.\n";
         else
         {
-            ofile << "Number of particles (combined weighting):"
-                << " " << combinedWeighting << "\n";
             ofile << "Number of macroparticles:"
                 << " " << numMacroparticles << "\n";
+            ofile << "Number of particles (total weighting):"
+                << " " << totalWeighting << "\n";
         }
     }
 

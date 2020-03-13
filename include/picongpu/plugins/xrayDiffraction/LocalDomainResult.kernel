@@ -28,6 +28,7 @@
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
+#include <pmacc/math/Complex.hpp>
 #include <pmacc/memory/Array.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
 #include <pmacc/nvidia/atomic.hpp>
@@ -45,25 +46,26 @@ namespace xrayDiffraction
 namespace detail
 {
 
+    //! Complex type to represent structure factor values
+    using Complex = pmacc::math::Complex< float_X >;
+
     //! Internal representation of results
     struct Result
     {
-        //! 
-        float_X sumfcoskr = 0._X;
-        float_X sumfsinkr = 0._X;
+        //! Structure factor value F(q) for a single scattering vector
+        Complex structureFactor = Complex::zero();
         
         //! Number of processed macroparticles
-        uint32_t totalNumMacroparticles = 0u;
+        uint64_t numMacroparticles = 0u;
 
         //! Combined weighting of processed macroparticles
-        float_X totalWeighting = 0._X;
+        float_64 totalWeighting = 0.0;
 
         Result & operator+=( Result const & other )
         {
-            sumfcoskr += other.sumfcoskr;
-            sumfsinkr += other.sumfsinkr;
+            structureFactor += other.structureFactor;
+            numMacroparticles += other.numMacroparticles;
             totalWeighting += other.totalWeighting;
-            totalNumMacroparticles += other.totalNumMacroparticles;
             return *this;
         }
 
@@ -110,7 +112,7 @@ namespace detail
             particlesInFrame = pmacc::math::CT::volume< SuperCellSize >::type::value; /// fix computation from particle box
             __syncthreads();
         }
-        result.totalNumMacroparticles = pb.getSuperCell( idx ).getNumParticles();
+        result.numMacroparticles = pb.getSuperCell( idx ).getNumParticles();
         return result;
     }
 
@@ -177,7 +179,7 @@ namespace detail
 
         // Particle loop: thread runs through loaded particle data
         Result result;
-        result.totalNumMacroparticles = numParticlesInFrame;
+        result.numMacroparticles = numParticlesInFrame;
         for( auto particleIdx = 0u; particleIdx < numParticlesInFrame; ++particleIdx )
         {
             auto const dotkr = math::dot(
@@ -190,8 +192,7 @@ namespace detail
                 sinValue,
                 cosValue
             );
-            result.sumfcoskr += cosValue * cachedWeighting[ particleIdx ];
-            result.sumfsinkr += sinValue * cachedWeighting[ particleIdx ];
+            result.structureFactor += Complex( cosValue, sinValue ) * cachedWeighting[ particleIdx ];
             result.totalWeighting += cachedWeighting[ particleIdx ];
         }
         return result;
@@ -224,8 +225,8 @@ namespace detail
         template <
             typename ParBox,
             typename DBox,
-            typename DBox_np,
             typename DBox_nmp,
+            typename DBox_np,
             typename Mapping,
             typename T_Acc>
         DINLINE
@@ -233,10 +234,9 @@ namespace detail
         operator()(
             T_Acc const &acc,
             ParBox pb,
-            DBox sumfcoskr,
-            DBox sumfsinkr,
-            DBox_np np,
-            DBox_nmp nmp,
+            DBox structureFactor,
+            DBox_nmp numMacroparticles,
+            DBox_np totalWeighting,
             DataSpace< simDim > globalOffset,
             Mapping mapper,
             ReciprocalSpace const & reciprocalSpace
@@ -305,13 +305,12 @@ namespace detail
 
             // write results to global memory
             auto const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
-            sumfcoskr[ globalWorkerIdx ] = result.sumfcoskr;
-            sumfsinkr[ globalWorkerIdx ] = result.sumfsinkr;
+            structureFactor[ globalWorkerIdx ] = result.structureFactor;
             // total weight of particles is written by a single thread per GPU
             if( globalWorkerIdx == 0 )
             {
-                np[ 0 ] = result.totalWeighting;
-                nmp[ 0 ] = result.totalNumMacroparticles;
+                numMacroparticles[ 0 ] = result.numMacroparticles;
+                totalWeighting[ 0 ] = result.totalWeighting;
             }
 
         }
