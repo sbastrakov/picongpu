@@ -59,7 +59,9 @@ namespace xrayDiffraction
      * The implementation is based on the GAPD code developed by Juncheng E
      * and the paper J.C. E, L. Wang, S. Chen, Y.Y. Zhang, S.N. Luo.
      * GAPD: a GPU-accelerated atom-based polychromatic diffraction simulation
-     * code // Journal of Synchrotron Radiation. 25, 604-611 (2018). 
+     * code // Journal of Synchrotron Radiation. 25, 604-611 (2018).
+     *
+     * @tparam T_Species species type
      */
     template< typename T_Species >
     class XrayDiffraction : public ISimulationPlugin

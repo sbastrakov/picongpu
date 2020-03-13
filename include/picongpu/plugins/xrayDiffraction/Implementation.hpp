@@ -40,7 +40,7 @@
 #include <pmacc/traits/GetNumWorkers.hpp>
 #include <pmacc/traits/HasIdentifier.hpp>
 
-#include <cstdlib>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -55,57 +55,42 @@ namespace xrayDiffraction
 namespace detail
 {
 
+    /** Implementation of X-ray diffraction computation and output
+     *
+     * @tparam T_Species species type
+     */
     template< typename T_Species >
     class Implementation
     {
     public:
 
+        /** Create an implementation of X-ray diffraction computation and output
+         *
+         * @param reciprocalSpace reciprocal space
+         * @param prefix prefix for output
+         */
         Implementation(
             ReciprocalSpace const & reciprocalSpace,
             std::string const & prefix
-        ):
-            reciprocalSpace( reciprocalSpace ),
-            prefix( prefix )
-        {
-            isMasterRank = reduce.hasResult(mpi::reduceMethods::Reduce());
-            auto totalNumVectors = reciprocalSpace.size.productOfComponents( );
-            auto size = DataSpace< DIM1 >( totalNumVectors );
-            sumfcoskr = memory::makeUnique< FloatBuffer >( size );
-            sumfsinkr = memory::makeUnique< FloatBuffer >( size );
-            // allocate one float on GPU and host
-            combinedWeighting = memory::makeUnique< FloatBuffer >( DataSpace< DIM1 >( 1 ) );
-            // allocate one int on GPU and host
-            numMacroparticles = memory::makeUnique< IntBuffer >( DataSpace< DIM1 >( 1 ) );
-            globalSumfcoskr.resize( totalNumVectors );
-            globalSumfsinkr.resize( totalNumVectors );
-            intensity.resize( totalNumVectors );
+        );
 
-            if( isMasterRank )
-                writer = memory::makeUnique< Writer >( prefix );
-
-        }
-
+        /** Compute and output diffraction
+         *
+         * @param currentStep current time iteration
+         * @param cellDescription mapping for kernels
+         */
         void operator()(
             uint32_t const currentStep,
             MappingDesc const & cellDescription
-        )
-        {
-            computeDiffraction( cellDescription );
-            reduceResults();
-            if( isMasterRank )
-            {
-                computeIntensity();
-                writer->write(
-                    intensity,
-                    reciprocalSpace,
-                    globalCombinedWeighting,
-                    globalCombinedNumMacroparticles,
-                    currentStep
-                );
-            }
-        }
+        );
 
     private:
+
+        //! Reciprocal space
+        ReciprocalSpace reciprocalSpace;
+
+        //! Prefix for output
+        std::string prefix;
 
         using FloatBuffer = GridBuffer<
             float_X,
@@ -127,7 +112,7 @@ namespace detail
         //! Number of macro particles
         std::unique_ptr< IntBuffer > numMacroparticles;
 
-        ReciprocalSpace reciprocalSpace;
+
 
         //! Reduced results for the global domain
         std::vector< float_X > globalSumfcoskr;
@@ -141,7 +126,7 @@ namespace detail
         bool isMasterRank;
 
         mpi::MPIReduce reduce;
-        std::string prefix;
+
 
         /** Compute diffration for macroparticles of the local domain
          *
@@ -244,6 +229,51 @@ namespace detail
         }
 
     };
+
+    template< typename T_Species >
+    Implementation< T_Species >::Implementation(
+        ReciprocalSpace const & reciprocalSpace,
+        std::string const & prefix
+    ):
+        reciprocalSpace( reciprocalSpace ),
+        prefix( prefix )
+    {
+        isMasterRank = reduce.hasResult(mpi::reduceMethods::Reduce());
+        auto totalNumVectors = reciprocalSpace.size.productOfComponents( );
+        auto size = DataSpace< DIM1 >( totalNumVectors );
+        sumfcoskr = memory::makeUnique< FloatBuffer >( size );
+        sumfsinkr = memory::makeUnique< FloatBuffer >( size );
+        // allocate one float on GPU and host
+        combinedWeighting = memory::makeUnique< FloatBuffer >( DataSpace< DIM1 >( 1 ) );
+        // allocate one int on GPU and host
+        numMacroparticles = memory::makeUnique< IntBuffer >( DataSpace< DIM1 >( 1 ) );
+        globalSumfcoskr.resize( totalNumVectors );
+        globalSumfsinkr.resize( totalNumVectors );
+        intensity.resize( totalNumVectors );
+        if( isMasterRank )
+            writer = memory::makeUnique< Writer >( prefix );
+    }
+
+    template< typename T_Species >
+    void Implementation< T_Species >::operator()(
+        uint32_t const currentStep,
+        MappingDesc const & cellDescription
+    )
+    {
+        computeDiffraction( cellDescription );
+        reduceResults();
+        if( isMasterRank )
+        {
+            computeIntensity();
+            writer->write(
+                intensity,
+                reciprocalSpace,
+                globalCombinedWeighting,
+                globalCombinedNumMacroparticles,
+                currentStep
+            );
+        }
+    }
 
 } // namespace detail
 } // namespace xrayDiffraction
