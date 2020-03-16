@@ -23,7 +23,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/plugins/xrayDiffraction/LocalDomainResult.hpp"
+#include "picongpu/plugins/xrayDiffraction/ComputeLocalDomain.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 
 #include <pmacc/mpi/MPIReduce.hpp>
@@ -42,7 +42,8 @@ namespace xrayDiffraction
 {
 namespace detail
 {
-    /** X-ray diffraction results aggregated for the global domain
+
+    /** Compute X-ray diffraction results aggregated for the global domain
      *
      * Contains the structure factor value for each scattering vector computed
      * for the local domain, equation (5) in J.C. E, L. Wang, S. Chen,
@@ -51,9 +52,9 @@ namespace detail
      * 25, 604-611 (2018).
      *
      * Is intended to be instantiated once for each local domain, calling
-     * compute() aggregates the results on the master rank.
+     * operator() aggregates the results on the master rank.
      */
-    struct GlobalDomainResult
+    struct ComputeGlobalDomain
     {
         //! Reciprocal space
         ReciprocalSpace reciprocalSpace;
@@ -75,18 +76,18 @@ namespace detail
         //! Reducer for distributed memory
         mpi::MPIReduce reduce;
 
-        /** Create a global domain result
+        /** Create a global domain computation functor
          *
          * @param reciprocalSpace reciprocal space
          */
-        GlobalDomainResult( ReciprocalSpace const & reciprocalSpace );
+        ComputeGlobalDomain( ReciprocalSpace const & reciprocalSpace );
 
         /** Aggregate local domain results into the global result
          *  on the master rank
          *
          * @param localDomainResult local domain result
          */
-        void compute( LocalDomainResult & const localDomainResult );
+        void operator()( ComputeLocalDomain & const localDomainResult );
 
     private:
 
@@ -94,27 +95,27 @@ namespace detail
          *
          * @param localDomainResult local domain result
          */
-        void reduceResults( LocalDomainResult & const localDomainResult );
+        void reduceResults( ComputeLocalDomain & const localDomainResult );
 
         //! Compute diffraction intensity from the structure factor
         void computeIntensity();
 
     };
 
-    GlobalDomainResult::GlobalDomainResult( ReciprocalSpace const & reciprocalSpace )
+    ComputeGlobalDomain::ComputeGlobalDomain( ReciprocalSpace const & reciprocalSpace )
     {
         auto const size = reciprocalSpace.size.productOfComponents();
         structureFactor.resize( size );
         diffractionIntensity.resize( size );
     }
 
-    void GlobalDomainResult::compute( LocalDomainResult & const localDomainResult )
+    void ComputeGlobalDomain::operator()( ComputeLocalDomain & const localDomainResult )
     {
         reduceResults( localDomainResult );
         computeIntensity( );
     }
 
-    void GlobalDomainResult::reduceResults( LocalDomainResult & const localDomainResult )
+    void ComputeGlobalDomain::reduceResults( ComputeLocalDomain & const localDomainResult )
     {
         reduce(
             nvidia::functors::Add( ),
@@ -142,7 +143,7 @@ namespace detail
         computeIntensity();
     }
 
-    void GlobalDomainResult::computeIntensity()
+    void ComputeGlobalDomain::computeIntensity()
     {
         auto const size = diffractionIntensity.size();
         for( size_t i = 0; i < size; i++ )

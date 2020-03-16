@@ -1,4 +1,6 @@
-/* Copyright 2019-2020 Juncheng E, Sergei Bastrakov
+/* Copyright 2013-2020 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz,
+ *                     Juncheng E, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -21,8 +23,8 @@
 
 #include "picongpu/simulation_defines.hpp"
 
+#include "picongpu/plugins/xrayDiffraction/ComputeLocalDomain.kernel"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
-#include "picongpu/plugins/xrayDiffraction/LocalDomainResult.kernel"
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
@@ -41,7 +43,7 @@ namespace xrayDiffraction
 namespace detail
 {
 
-    /** X-ray diffraction results for the local domain
+    /** Compute X-ray diffraction results for the local domain
      *
      * Contains the structure factor value for each scattering vector computed
      * for the local domain, equation (11) in J.C. E, L. Wang, S. Chen,
@@ -50,9 +52,9 @@ namespace detail
      * 25, 604-611 (2018).
      *
      * Is intended to be instantiated once for each local domain, calling
-     * compute() fills the buffers on host with the current results.
+     * operator() fills the buffers on host with the current results.
      */
-    struct LocalDomainResult
+    struct ComputeLocalDomain
     {
 
         //! Reciprocal space of scattering vectors
@@ -76,11 +78,11 @@ namespace detail
             DIM1
         > totalWeighting;
 
-        /** Create a local domain result
+        /** Create a local domain computation functor
          *
          * @param reciprocalSpace reciprocal space
          */
-        LocalDomainResult( ReciprocalSpace const & reciprocalSpace );
+        ComputeLocalDomain( ReciprocalSpace const & reciprocalSpace );
 
         /** Compute local domain results
          *
@@ -89,11 +91,11 @@ namespace detail
          * @param cellDescription mapping description
          */
         template< typename T_Species >
-        void compute( MappingDesc const & cellDescription );
+        void operator()( MappingDesc const & cellDescription );
 
     };
 
-    LocalDomainResult::LocalDomainResult( ReciprocalSpace const & reciprocalSpace ):
+    ComputeLocalDomain::ComputeLocalDomain( ReciprocalSpace const & reciprocalSpace ):
         reciprocalSpace( reciprocalSpace ),
         structureFactor( DataSpace< DIM1 >( reciprocalSpace.size.productOfComponents() ) ),
         numMacroparticles( DataSpace< DIM1 >( 1 ) ),
@@ -102,7 +104,7 @@ namespace detail
     }
 
     template< typename T_Species >
-    void LocalDomainResult::compute( MappingDesc const & cellDescription )
+    void ComputeLocalDomain::operator()( MappingDesc const & cellDescription )
     {
         structureFactor.getDeviceBuffer( ).setValue( Complex( 0.0_X, 0.0_X ) );
         numMacroparticles.getDeviceBuffer( ).setValue( 0 ); 

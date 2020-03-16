@@ -160,7 +160,7 @@ namespace xrayDiffraction
         pImpl->operator()(
             currentStep,
             cellDescription
-            );
+        );
     }
 
     template< typename T_Species >

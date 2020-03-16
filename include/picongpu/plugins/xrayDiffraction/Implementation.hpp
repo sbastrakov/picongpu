@@ -1,4 +1,6 @@
-/* Copyright 2019-2020 Juncheng E, Sergei Bastrakov
+/* Copyright 2013-2020 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz,
+ *                     Juncheng E, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -21,8 +23,8 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/plugins/xrayDiffraction/GlobalDomainResult.hpp"
-#include "picongpu/plugins/xrayDiffraction/LocalDomainResult.hpp"
+#include "picongpu/plugins/xrayDiffraction/ComputeGlobalDomain.hpp"
+#include "picongpu/plugins/xrayDiffraction/ComputeLocalDomain.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 #include "picongpu/plugins/xrayDiffraction/Writer.hpp"
 
@@ -81,11 +83,11 @@ namespace detail
         //! Prefix for output
         std::string prefix;
 
-        //! Results for the local domain
-        LocalDomainResult localDomainResult;
+        //! Global domain computation functor
+        ComputeGlobalDomain computeGlobalDomain;
 
-        //! Results for the global domain
-        GlobalDomainResult globalDomainResult;
+        //! Local domain computation functor
+        ComputeLocalDomain computeLocalDomain;
 
         //! Writer to output the results
         std::unique_ptr< Writer > writer;
@@ -102,8 +104,8 @@ namespace detail
     ):
         reciprocalSpace( reciprocalSpace ),
         prefix( prefix ),
-        localDomainResult( reciprocalSpace ),
-        globalDomainResult( reciprocalSpace )
+        computeLocalDomain( reciprocalSpace ),
+        computeGlobalDomain( reciprocalSpace )
     {
         mpi::MPIReduce reduce;
         isMasterRank = reduce.hasResult( mpi::reduceMethods::Reduce() );
@@ -117,12 +119,12 @@ namespace detail
         MappingDesc const & cellDescription
     )
     {
-        localDomainResult.compute< T_Species >( cellDescription );
-        globalDomainResult.compute( localDomainResult );
+        computeLocalDomain.operator()< T_Species >( cellDescription );
+        computeGlobalDomain( computeLocalDomain );
         if( isMasterRank )
         {
             writer->write(
-                globalDomainResult,
+                computeGlobalDomain,
                 currentStep
             );
         }

@@ -23,7 +23,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/plugins/xrayDiffraction/GlobalDomainResult.hpp"
+#include "picongpu/plugins/xrayDiffraction/ComputeGlobalDomain.hpp"
 #include "picongpu/plugins/xrayDiffraction/ReciprocalSpace.hpp"
 
 #include <pmacc/Environment.hpp>
@@ -65,7 +65,7 @@ namespace detail
          * @param currentStep current time iteration
          */
         void write(
-            GlobalDomainResult const & globalDomainResult,
+            ComputeGlobalDomain const & globalDomainResult,
             uint32_t currentStep
         ) const;
 
@@ -112,7 +112,7 @@ namespace detail
     }
 
     void Writer::write(
-        GlobalDomainResult const & globalDomainResult,
+        ComputeGlobalDomain const & globalDomainResult,
         uint32_t const currentStep
     ) const
     {

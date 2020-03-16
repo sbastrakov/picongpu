@@ -31,8 +31,6 @@
 #include <pmacc/math/Complex.hpp>
 #include <pmacc/memory/Array.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
-#include <pmacc/nvidia/atomic.hpp>
-#include <pmacc/nvidia/functors/Add.hpp>
 
 #include <cstdint>
 
@@ -49,7 +47,7 @@ namespace detail
     //! Complex type to represent structure factor values
     using Complex = pmacc::math::Complex< float_X >;
 
-    //! Internal representation of results
+    //! Internal representation of results for each thread
     struct Result
     {
         //! Structure factor value F(q) for a single scattering vector
@@ -60,7 +58,8 @@ namespace detail
 
         //! Combined weighting of processed macroparticles
         float_64 totalWeighting = 0.0;
-
+        
+        //! Combine the current result with another one
         Result & operator+=( Result const & other )
         {
             structureFactor += other.structureFactor;
@@ -71,51 +70,88 @@ namespace detail
 
     };
  
+    /** Process particles of a supercell
+     *
+     * @tparam T_numWorkers number of workers
+     * @tparam T_Acc alpaka accelerator type
+     * @tparam T_ParticleBox particle box type
+     * @tparam T_Mapping mapping description type
+     * @tparam T_CachedPositionArray cached array of positions type
+     * @tparam T_CachedWeightingArray cached array of weighting type
+     *
+     * @param acc alpaka accelerator
+     * @param idx supercell index with guard
+     * @param localDomainOffset offset of the local domain
+     * @param mapper mapping description
+     * @param particleBox particle box
+     * @param cachedPosition positions array in shared memory
+     * @param cachedWeighting weighting array in shared memory
+     * @param reciprocalSpace reciprocal space of scattering vectors
+     */
     template<
         uint32_t T_numWorkers,
         typename T_Acc,
-        typename ParBox,
+        typename T_ParticleBox,
         typename T_Mapping,
         typename T_CachedPositionArray,
         typename T_CachedWeightingArray
     >
     DINLINE Result processSupercell(
-        T_Acc const &acc,
+        T_Acc const & acc,
         DataSpace< simDim > const & idx,
-        DataSpace< simDim > const & globalOffset,
+        DataSpace< simDim > const & localDomainOffset,
         T_Mapping mapper,
-        ParBox pb,
-        T_CachedPositionArray & cachedR,
+        T_ParticleBox particleBox,
+        T_CachedPositionArray & cachedPosition,
         T_CachedWeightingArray & cachedWeighting,
         ReciprocalSpace const & reciprocalSpace
     )
     {
-        auto const guardingSuperCells = mapper.getGuardingSuperCells();
-        auto const offset = globalOffset +
-            ( ( idx - guardingSuperCells ) * SuperCellSize::toRT() );
         Result result;
-        auto frame = pb.getLastFrame( idx );
-        auto particlesInFrame = pb.getSuperCell( idx ).getSizeLastFrame();
+        auto const guardingSuperCells = mapper.getGuardingSuperCells();
+        auto const offset = localDomainOffset +
+            ( ( idx - guardingSuperCells ) * SuperCellSize::toRT() );
+        auto frame = particleBox.getLastFrame( idx );
+        auto particlesInFrame = particleBox.getSuperCell( idx ).getSizeLastFrame();
         while( frame.isValid() )
         {
             auto frameResult = processFrame< T_numWorkers >(
                 acc,
                 frame,
                 particlesInFrame,
-                cachedR,
+                cachedPosition,
                 cachedWeighting,
                 offset,
                 reciprocalSpace
             );
             result += frameResult;
-            frame = pb.getPreviousFrame( frame );
-            particlesInFrame = pmacc::math::CT::volume< SuperCellSize >::type::value; /// fix computation from particle box
+            frame = particleBox.getPreviousFrame( frame );
+            particlesInFrame = pmacc::math::CT::volume< SuperCellSize >::type::value;
+            /// fix computation from particle box
             __syncthreads();
         }
-        result.numMacroparticles = pb.getSuperCell( idx ).getNumParticles();
+        /// this line should not be needed it seems, as it sets the same value
+        result.numMacroparticles = particleBox.getSuperCell( idx ).getNumParticles();
         return result;
     }
 
+    /** Process particles of a frame
+     *
+     * @tparam T_numWorkers number of workers
+     * @tparam T_Acc alpaka accelerator type
+     * @tparam T_Frame particle frame type
+     * @tparam T_CachedPositionArray cached array of positions type
+     * @tparam T_CachedWeightingArray cached array of weighting type
+     *
+     * @param acc alpaka accelerator
+     * @param frame particle frame
+     * @param numParticles number of macroparticles in frame
+     * @param particleBox particle box
+     * @param cachedPosition positions array in shared memory
+     * @param cachedWeighting weighting array in shared memory
+     * @param supercellOffsetGlobal supercell offset in the global domain
+     * @param reciprocalSpace reciprocal space of scattering vectors
+     */
     template<
         uint32_t T_numWorkers,
         typename T_Acc,
@@ -123,15 +159,15 @@ namespace detail
         typename T_CachedPositionArray,
         typename T_CachedWeightingArray
     >
-        DINLINE Result processFrame(
-            T_Acc const & acc,
-            T_Frame const & frame,
-            uint32_t const numParticlesInFrame,
-            T_CachedPositionArray & cachedR,
-            T_CachedWeightingArray & cachedWeighting,
-            DataSpace< simDim > supercellOffset,
-            ReciprocalSpace const & reciprocalSpace
-        )
+    DINLINE Result processFrame(
+        T_Acc const & acc,
+        T_Frame const & frame,
+        uint32_t const numParticles,
+        T_CachedPositionArray & cachedPosition,
+        T_CachedWeightingArray & cachedWeighting,
+        DataSpace< simDim > const & supercellOffsetGlobal,
+        ReciprocalSpace const & reciprocalSpace
+    )
     {
         uint32_t const workerIdx = threadIdx.x;
         uint32_t const globalWorkerIdx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -139,7 +175,8 @@ namespace detail
 
         // Cache particle data of this frame to shared memory
         constexpr uint32_t frameSize =
-            pmacc::math::CT::volume< SuperCellSize >::type::value; /// fix computation from particle box
+            pmacc::math::CT::volume< SuperCellSize >::type::value;
+        /// fix computation from particle box
 
         using ParticleDomCfg = IdxConfig<
             frameSize,
@@ -148,20 +185,20 @@ namespace detail
         ForEachIdx< ParticleDomCfg > forEachParticle{ workerIdx };
         forEachParticle([&](uint32_t const linearIdx, uint32_t const)
         {
-            if( linearIdx < numParticlesInFrame )
+            if( linearIdx < numParticles )
             {
                 auto particle = frame[ linearIdx ];
                 auto const cellIdx = particle[ localCellIdx_ ];
                 auto const pos = particle[ position_ ];
                 // calculate global position of cell
                 DataSpace<simDim> const globalPos(
-                    supercellOffset +
+                    supercellOffsetGlobal +
                     DataSpaceOperations<simDim>::template map<
                     SuperCellSize>(cellIdx));
                 // Set z component to zero for 2D
-                cachedR[ linearIdx ][ 2 ] = 0.0;
+                cachedPosition[ linearIdx ][ 2 ] = 0.0;
                 for( auto dim = 0u; dim < simDim; ++dim )
-                    cachedR[ linearIdx ][ dim ] =
+                    cachedPosition[ linearIdx ][ dim ] =
                     (static_cast< float_X >(globalPos[dim]) + pos[dim]) * cellSize[dim];
                 cachedWeighting[ linearIdx ] = particle[ weighting_ ];
 
@@ -179,12 +216,12 @@ namespace detail
 
         // Particle loop: thread runs through loaded particle data
         Result result;
-        result.numMacroparticles = numParticlesInFrame;
-        for( auto particleIdx = 0u; particleIdx < numParticlesInFrame; ++particleIdx )
+        result.numMacroparticles = numParticles;
+        for( auto particleIdx = 0u; particleIdx < numParticles; ++particleIdx )
         {
             auto const dotkr = math::dot(
                 q,
-                cachedR[ particleIdx ]
+                cachedPosition[ particleIdx ]
             ) * lengthToAngstrom;
             float_X sinValue, cosValue;
             math::sincos(
@@ -237,7 +274,7 @@ namespace detail
             DBox structureFactor,
             DBox_nmp numMacroparticles,
             DBox_np totalWeighting,
-            DataSpace< simDim > globalOffset,
+            DataSpace< simDim > localDomainOffset,
             Mapping mapper,
             ReciprocalSpace const & reciprocalSpace
         ) const
@@ -289,7 +326,7 @@ namespace detail
                 auto const supercellResult = detail::processSupercell< T_numWorkers >(
                     acc,
                     idxWithGuard,
-                    globalOffset,
+                    localDomainOffset,
                     mapper,
                     pb,
                     cachedR,
