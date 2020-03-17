@@ -55,15 +55,17 @@ namespace detail
         //! Number of points per each direction
         pmacc::DataSpace< 3 > size;
 
-        /** Create a reciprical space
+        /** Create a reciprocal space
          *
          * @param min lattice start
          * @param step lattice step
          * @param size number of points per each direction
          */
+        /// TODO: figure out why 0._X instead of 0.0 on Hemera gives
+        /// error #2486: user-defined literal operator not found
         HDINLINE ReciprocalSpace(
-            float3_X const & min = float3_X::create( 0._X ),
-            float3_X const & step = float3_X::create( 0._X ),
+            float3_X const & min = float3_X::create( 0.0 ),
+            float3_X const & step = float3_X::create( 0.0 ),
             pmacc::DataSpace< 3 > const & size = pmacc::DataSpace< 3 >::create( 1 )
         );
 

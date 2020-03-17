@@ -60,7 +60,7 @@ namespace detail
         float_64 totalWeighting = 0.0;
         
         //! Combine the current result with another one
-        Result & operator+=( Result const & other )
+        HDINLINE Result & operator+=( Result const & other )
         {
             structureFactor += other.structureFactor;
             numMacroparticles += other.numMacroparticles;
@@ -316,7 +316,7 @@ namespace detail
             auto const superCellsCount =
                 mapper.getGridSuperCells() - 2 * guardingSuperCells;
             auto const numSuperCells = superCellsCount.productOfComponents();
-            for( auto supercellLinearIdx = 0;
+            for( uint32_t supercellLinearIdx = 0;
                 supercellLinearIdx < numSuperCells; ++supercellLinearIdx )
             {             
                 auto const idxWithGuard = DataSpaceOperations< simDim >::map(
