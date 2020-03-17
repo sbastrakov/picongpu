@@ -8,7 +8,7 @@ This plugin calculates X-ray diffraction from particle positions.
 .. math::
 
    I({\bf q}) &= \frac{F({\bf q})F({\bf q})^*}{Np} \\
-   F({\bf q}) &= \sum^{N}_{j=1} f_j w_j \exp({\bf q \cdot \bf r_j})
+   F({\bf q}) &= \sum^{N}_{j=1} f_j w_j \exp(i {\bf q \cdot \bf r_j})
 
 ============================== ================================================================================
 Variable                       Meaning
