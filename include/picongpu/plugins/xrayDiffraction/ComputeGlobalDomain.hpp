@@ -87,7 +87,7 @@ namespace detail
          *
          * @param localDomainResult local domain result
          */
-        void operator()( ComputeLocalDomain & const localDomainResult );
+        void operator()( ComputeLocalDomain const & localDomainResult );
 
     private:
 
@@ -95,27 +95,33 @@ namespace detail
          *
          * @param localDomainResult local domain result
          */
-        void reduceResults( ComputeLocalDomain & const localDomainResult );
+        void reduceResults( ComputeLocalDomain const & localDomainResult );
 
         //! Compute diffraction intensity from the structure factor
         void computeIntensity();
 
     };
 
-    ComputeGlobalDomain::ComputeGlobalDomain( ReciprocalSpace const & reciprocalSpace )
+    ComputeGlobalDomain::ComputeGlobalDomain(
+        ReciprocalSpace const & reciprocalSpace
+    )
     {
         auto const size = reciprocalSpace.size.productOfComponents();
         structureFactor.resize( size );
         diffractionIntensity.resize( size );
     }
 
-    void ComputeGlobalDomain::operator()( ComputeLocalDomain & const localDomainResult )
+    void ComputeGlobalDomain::operator()(
+        ComputeLocalDomain const & localDomainResult
+    )
     {
         reduceResults( localDomainResult );
         computeIntensity( );
     }
 
-    void ComputeGlobalDomain::reduceResults( ComputeLocalDomain & const localDomainResult )
+    void ComputeGlobalDomain::reduceResults(
+        ComputeLocalDomain const & localDomainResult
+    )
     {
         reduce(
             nvidia::functors::Add( ),

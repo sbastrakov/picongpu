@@ -70,69 +70,6 @@ namespace detail
 
     };
  
-    /** Process particles of a supercell
-     *
-     * @tparam T_numWorkers number of workers
-     * @tparam T_Acc alpaka accelerator type
-     * @tparam T_ParticleBox particle box type
-     * @tparam T_Mapping mapping description type
-     * @tparam T_CachedGlobalPositionArray cached array of global positions type
-     * @tparam T_CachedWeightingArray cached array of weighting type
-     *
-     * @param acc alpaka accelerator
-     * @param idx supercell index with guard
-     * @param localDomainOffset offset of the local domain
-     * @param mapper mapping description
-     * @param particleBox particle box
-     * @param cachedGlobalPosition global positions array in shared memory
-     * @param cachedWeighting weighting array in shared memory
-     * @param reciprocalSpace reciprocal space of scattering vectors
-     */
-    template<
-        uint32_t T_numWorkers,
-        typename T_Acc,
-        typename T_ParticleBox,
-        typename T_Mapping,
-        typename T_CachedGlobalPositionArray,
-        typename T_CachedWeightingArray
-    >
-    DINLINE Result processSupercell(
-        T_Acc const & acc,
-        DataSpace< simDim > const & idx,
-        DataSpace< simDim > const & localDomainOffset,
-        T_Mapping mapper,
-        T_ParticleBox particleBox,
-        T_CachedGlobalPositionArray & cachedGlobalPosition,
-        T_CachedWeightingArray & cachedWeighting,
-        ReciprocalSpace const & reciprocalSpace
-    )
-    {
-        Result result;
-        auto const guardingSuperCells = mapper.getGuardingSuperCells();
-        auto const offsetCells = localDomainOffset +
-            ( ( idx - guardingSuperCells ) * SuperCellSize::toRT() );
-        auto frame = particleBox.getLastFrame( idx );
-        auto particlesInFrame = particleBox.getSuperCell( idx ).getSizeLastFrame();
-        while( frame.isValid() )
-        {
-            auto frameResult = processFrame< T_numWorkers >(
-                acc,
-                frame,
-                particlesInFrame,
-                cachedGlobalPosition,
-                cachedWeighting,
-                offsetCells,
-                reciprocalSpace
-            );
-            result += frameResult;
-            frame = particleBox.getPreviousFrame( frame );
-            /// TODO: fix computation to get size from particle box/frame, not supercell size
-            particlesInFrame = pmacc::math::CT::volume< SuperCellSize >::type::value;
-            __syncthreads();
-        }
-        return result;
-    }
-
     /** Process particles of a frame
      *
      * @tparam T_numWorkers number of workers
@@ -234,6 +171,69 @@ namespace detail
             result.structureFactor += Complex( cosValue, sinValue ) *
                 cachedWeighting[ particleIdx ];
             result.totalWeighting += cachedWeighting[ particleIdx ];
+        }
+        return result;
+    }
+
+    /** Process particles of a supercell
+     *
+     * @tparam T_numWorkers number of workers
+     * @tparam T_Acc alpaka accelerator type
+     * @tparam T_ParticleBox particle box type
+     * @tparam T_Mapping mapping description type
+     * @tparam T_CachedGlobalPositionArray cached array of global positions type
+     * @tparam T_CachedWeightingArray cached array of weighting type
+     *
+     * @param acc alpaka accelerator
+     * @param idx supercell index with guard
+     * @param localDomainOffset offset of the local domain
+     * @param mapper mapping description
+     * @param particleBox particle box
+     * @param cachedGlobalPosition global positions array in shared memory
+     * @param cachedWeighting weighting array in shared memory
+     * @param reciprocalSpace reciprocal space of scattering vectors
+     */
+    template<
+        uint32_t T_numWorkers,
+        typename T_Acc,
+        typename T_ParticleBox,
+        typename T_Mapping,
+        typename T_CachedGlobalPositionArray,
+        typename T_CachedWeightingArray
+    >
+        DINLINE Result processSupercell(
+            T_Acc const & acc,
+            DataSpace< simDim > const & idx,
+            DataSpace< simDim > const & localDomainOffset,
+            T_Mapping mapper,
+            T_ParticleBox particleBox,
+            T_CachedGlobalPositionArray & cachedGlobalPosition,
+            T_CachedWeightingArray & cachedWeighting,
+            ReciprocalSpace const & reciprocalSpace
+        )
+    {
+        Result result;
+        auto const guardingSuperCells = mapper.getGuardingSuperCells();
+        auto const offsetCells = localDomainOffset +
+            ( ( idx - guardingSuperCells ) * SuperCellSize::toRT() );
+        auto frame = particleBox.getLastFrame( idx );
+        auto particlesInFrame = particleBox.getSuperCell( idx ).getSizeLastFrame();
+        while( frame.isValid() )
+        {
+            auto frameResult = processFrame< T_numWorkers >(
+                acc,
+                frame,
+                particlesInFrame,
+                cachedGlobalPosition,
+                cachedWeighting,
+                offsetCells,
+                reciprocalSpace
+                );
+            result += frameResult;
+            frame = particleBox.getPreviousFrame( frame );
+            /// TODO: fix computation to get size from particle box/frame, not supercell size
+            particlesInFrame = pmacc::math::CT::volume< SuperCellSize >::type::value;
+            __syncthreads();
         }
         return result;
     }
