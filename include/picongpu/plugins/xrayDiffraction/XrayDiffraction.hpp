@@ -168,7 +168,8 @@ namespace xrayDiffraction
         po::options_description & desc
     )
     {
-        desc.add_options()( ( prefix + ".period" ).c_str(),
+        desc.add_options()(
+            ( prefix + ".period" ).c_str(),
             po::value< std::string >( &notifyPeriod ),
             "enable plugin [for each n-th step]" )(
             ( prefix + ".qx_max" ).c_str(),
@@ -178,7 +179,7 @@ namespace xrayDiffraction
             po::value< float_X >( &qMax[ 1 ] )->default_value( 5._X ),
             "reciprocal space range qy_max (A^-1)" )(
             ( prefix + ".qz_max" ).c_str(),
-            po::value<float_X>(&qMax[2])->default_value(0._X),
+            po::value<float_X>( &qMax[ 2 ] )->default_value( 0._X ),
             "reciprocal space range qz_max (A^-1)" )(
             ( prefix + ".qx_min" ).c_str(),
             po::value< float_X >( &qMin[ 0 ] )->default_value( -5._X ),
@@ -191,13 +192,13 @@ namespace xrayDiffraction
             "reciprocal space range qz_min (A^-1)" )(
             ( prefix + ".n_qx" ).c_str(),
             po::value< int >( &numScatteringVectors[ 0 ] )->default_value( 100 ),
-            "Number of qx" )(
+            "reciprocal space size in qx" )(
             ( prefix + ".n_qy" ).c_str(),
             po::value< int >( &numScatteringVectors[ 1 ] )->default_value( 100 ),
-            "Number of qy" )(
+            "reciprocal space size in qy" )(
             ( prefix + ".n_qz" ).c_str(),
             po::value< int >( &numScatteringVectors[ 2 ] )->default_value( 1 ),
-            "Number of qz" );
+            "reciprocal space size in qz" );
     }
 
     template< typename T_Species >
