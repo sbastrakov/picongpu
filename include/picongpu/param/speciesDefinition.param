@@ -84,6 +84,7 @@ namespace picongpu
         ,
         synchrotronPhotons<PIC_Photons>
 #endif
+<<<<<<< HEAD
         >;
 
     /* define species electrons */
@@ -124,6 +125,57 @@ namespace picongpu
 #if(ENABLE_SYNCHROTRON_PHOTONS == 1)
         ,
         PIC_Photons
+=======
+>;
+
+/* define species electrons */
+using PIC_Electrons = Particles<
+    PMACC_CSTRING( "e" ),
+    ParticleFlagsElectrons,
+    DefaultParticleAttributes
+>;
+
+/*--------------------------- ions -------------------------------------------*/
+
+/* ratio relative to BASE_CHARGE and BASE_MASS */
+value_identifier( float_X, MassRatioIons, 1836.152672 );
+value_identifier( float_X, ChargeRatioIons, -1.0 );
+
+/* ratio relative to BASE_DENSITY */
+value_identifier( float_X, DensityRatioIons, 1.0 );
+
+using ParticleFlagsIons = MakeSeq_t<
+    particlePusher< UsedParticlePusher >,
+    shape< UsedParticleShape >,
+    interpolation< UsedField2Particle >,
+    current< UsedParticleCurrentSolver >,
+    massRatio< MassRatioIons >,
+    chargeRatio< ChargeRatioIons >,
+    densityRatio< DensityRatioIons >,
+    atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
+    atomicPhysics< PIC_Electron >
+>;
+
+/* define species ions */
+using PIC_Ions = Particles<
+    PMACC_CSTRING( "i" ),
+    ParticleFlagsIons,
+    DefaultParticleAttributes
+>;
+
+/*########################### end species ####################################*/
+
+/** All known particle species of the simulation
+ *
+ * List all defined particle species from above in this list
+ * to make them available to the PIC algorithm.
+ */
+using VectorAllSpecies = MakeSeq_t<
+    PIC_Electrons,
+    PIC_Ions
+#if( ENABLE_SYNCHROTRON_PHOTONS == 1 )
+    , PIC_Photons
+>>>>>>> 72136515b... random number generator added
 #endif
         >;
 
