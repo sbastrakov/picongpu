@@ -225,7 +225,7 @@ namespace randomizedParticleMerger
             if ( voronoiCell.numMacroParticles == 3 )
                 subdivisionProbability = ( voronoiCell.expectedNumMacroParticles - 1 ) / 2.0;
 
-           return randomGen() < subdivisionProbability;
+            return randomGen() < subdivisionProbability;
         }
 
          /** Decide that subdivision should be done
@@ -425,10 +425,10 @@ namespace randomizedParticleMerger
                 case VoronoiStatus::collecting:
                     {
                         if ( voronoiCell.numMacroParticles < 2 )
-                            {
-                                voronoiCell.setToAbort();
-                                break;
-                            }
+                        {
+                           voronoiCell.setToAbort();
+                           break;
+                        }
                         /* finalize cell parameters calculation */
                         voronoiCell.finalizePrecalculationValues( minMacroParticlesToDivide, ratioLeftParticles );
 
@@ -568,7 +568,7 @@ namespace randomizedParticleMerger
 
                 __syncthreads();
 
-                /* TODO: parallelize */
+                /* @todo: parallelize */
                 if( linearThreadIdx == 0 )
                 {
 
@@ -579,7 +579,7 @@ namespace randomizedParticleMerger
                     );
                 }
 
-            __syncthreads();
+                __syncthreads();
             }
         }
     };
@@ -588,4 +588,3 @@ namespace randomizedParticleMerger
 } // namespace randomizedParticleMerger
 } // namespace plugins
 } // namespace picongpu
-

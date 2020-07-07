@@ -167,7 +167,6 @@ namespace randomizedParticleMerger
                 atomicAdd( &this->meanMomentumValue[i], weighting * momentum[i], ::alpaka::hierarchy::Threads{} );
                 atomicAdd( &this->meanMomentumSquaredValue[i], weighting * momentum2[i], ::alpaka::hierarchy::Threads{} );
             }
-
         }
 
         /** Counting parameters that are necessary before processing vornoi cell
@@ -240,18 +239,15 @@ namespace randomizedParticleMerger
             const float_X valParticle =
                 this->splittingStage == VoronoiSplittingStage::position ?
                 position[this->splittingComponent] :
-                momentum[this->splittingComponent]
-            ;
+                momentum[this->splittingComponent];
             const float_X meanVoronoi =
                 this->splittingStage == VoronoiSplittingStage::position ?
                 this->meanPositionValue[this->splittingComponent] :
-                this->meanMomentumValue[this->splittingComponent]
-            ;
+                this->meanMomentumValue[this->splittingComponent];
             return
                 valParticle < meanVoronoi ?
                 this->lowerCellId :
-                this->higherCellId
-            ;
+                this->higherCellId;
         }
 
         /** auxillary function for getting the mean squared deviation in position or momentum */
@@ -326,5 +322,3 @@ namespace randomizedParticleMerger
 } // namespace particleMerging
 } // namespace plugins
 } // namespace picongpu
-
-

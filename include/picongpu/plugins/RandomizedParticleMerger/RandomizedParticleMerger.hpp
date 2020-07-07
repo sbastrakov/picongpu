@@ -305,5 +305,3 @@ namespace randomizedParticleMerger
 } // namespace randomizedParticleMerger
 } // namespace plugins
 } // namespace picongpu
-
-
