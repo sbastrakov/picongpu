@@ -1,4 +1,4 @@
-/* Copyright 2017-2020 Heiko Burau, Xeinia Bastrakova
+/* Copyright 2017-2020 Heiko Burau, Xeinia Bastrakova, Sergei Bastrakov
  *
  * This file is part of PIConGPU.
  *
@@ -20,7 +20,11 @@
 #pragma once
 
 #include "picongpu/algorithms/KinEnergy.hpp"
+
 #include <pmacc/types.hpp>
+
+#include <cstdint>
+
 
 namespace picongpu
 {
@@ -29,16 +33,18 @@ namespace plugins
 namespace randomizedParticleMerger
 {
 
-    /** Status of a Voronoi cell */
+    //! Status of a Voronoi cell
     enum struct VoronoiStatus : uint8_t
     {
         /* !< a Voronoi cell is collecting particles (first state) */
         collecting,
         /* !< the Voronoi cell is splitting thus all its particles have
-         * to move to one of two sub-Voronoi cells */
+         * to move to one of two sub-Voronoi cells
+         */
         splitting,
         /* !< the cell needs to be destroyed. Before this can happen
-         * all its particles need to clear their voronoiCellId attribute. */
+         * all its particles need to clear their voronoiCellId attribute.
+         */
         abort,
         /* !< the Voronoi cell is ready for merging. After merging it is destroyed. */
         readyForMerging,
@@ -58,8 +64,7 @@ namespace randomizedParticleMerger
         momentum
     };
 
-
-    /** Represents a Voronoi cell */
+    //! Voronoi cell representation
     struct VoronoiCell
     {
         VoronoiStatus status;
@@ -72,26 +77,28 @@ namespace randomizedParticleMerger
         float3_X meanMomentumSquaredValue;
         float3_X meanPositionSquaredValue;
 
-
         uint8_t splittingComponent;
         int32_t lowerCellId;
         int32_t higherCellId;
-        int firstParticleFlag;
+        int firstParticleFlag; // TODO: int32_t ? beware of atomics; keep int if complicated
         float_X expectedNumMacroParticles;
         uint32_t parentNumMacroParticles;
         float_X parentExpectedNumMacroParticles;
 
         HDINLINE
-        VoronoiCell( VoronoiSplittingStage splittingStage = VoronoiSplittingStage::position,
-                float_X parentNumMacroParticles = 0, float_X parentExpectedNumMacroParticles = -1 ) :
+        VoronoiCell(
+            VoronoiSplittingStage splittingStage = VoronoiSplittingStage::position,
+            float_X parentNumMacroParticles = 0.0_X,
+            float_X parentExpectedNumMacroParticles = -1.0_X
+        ) :
             status( VoronoiStatus::collecting ),
             splittingStage( splittingStage ),
-            numMacroParticles( 0 ),
-            numRealParticles( float_X( 0.0 ) ),
-            meanMomentumValue( float3_X::create( 0.0 ) ),
-            meanPositionValue( float3_X::create( 0.0 ) ),
-            meanMomentumSquaredValue( float3_X::create( 0.0 ) ),
-            meanPositionSquaredValue( float3_X::create( 0.0 ) ),
+            numMacroParticles( 0u ),
+            numRealParticles( float_X( 0.0_X ) ),
+            meanMomentumValue( float3_X::create( 0.0_X ) ),
+            meanPositionValue( float3_X::create( 0.0_X ) ),
+            meanMomentumSquaredValue( float3_X::create( 0.0_X ) ),
+            meanPositionSquaredValue( float3_X::create( 0.0_X ) ),
             firstParticleFlag( 0 ),
             expectedNumMacroParticles ( 0 ),
             parentNumMacroParticles ( parentNumMacroParticles ),
@@ -103,18 +110,24 @@ namespace randomizedParticleMerger
         HDINLINE
         void setToAbort()
         {
-            this->status = VoronoiStatus::abort;
+            status = VoronoiStatus::abort;
         }
 
 
-        /** status setter */
+        /** Mark the cell for splitting
+         *
+         * @param splittingComponent index of position or momentum component
+         *                           to use for splitting
+         * @param lowerCellId cell index of a new "lower" subcell
+         * @param higherCellId cell index of a new "upper" subcell
+         */
         HDINLINE
         void setToSplitting(
             const uint8_t splittingComponent,
             const int32_t lowerCellId,
             const int32_t higherCellId)
         {
-            this->status = VoronoiStatus::splitting;
+            status = VoronoiStatus::splitting;
             this->splittingComponent = splittingComponent;
             this->lowerCellId = lowerCellId;
             this->higherCellId = higherCellId;
@@ -147,10 +160,9 @@ namespace randomizedParticleMerger
             const float_X weighting
         )
         {
-
+            // TODO: move to modern cupla
             atomicAdd( &this->numMacroParticles, (uint32_t)1, ::alpaka::hierarchy::Threads{} );
             atomicAdd( &this->numRealParticles, weighting, ::alpaka::hierarchy::Threads{} );
-
 
             const floatD_X position2 = position * position;
 
@@ -169,62 +181,71 @@ namespace randomizedParticleMerger
             }
         }
 
-        /** Counting parameters that are necessary before processing vornoi cell
-         * Mean values and expected number of macro particles
-         * @param minMacroParticlesToDivide num macroparticles, that always divide
-         * @param ratioLeftParticles ratio of particles, that should be left
+        /** Counting parameters that are necessary before processing vornoi cell:
+         *  mean values and expected number of macro particles
+         *
+         * @param minMacroParticlesToDivide min number of macroparticles in a cell
+         *                                  such that the cell is always subdivided
+         * @param ratioKeptParticles ratio of particles that are kept on average
          */
         HDINLINE
         void finalizePrecalculationValues(
             const uint32_t minMacroParticlesToDivide,
-            const float_X ratioLeftParticles
+            const float_X ratioKeptParticles
         )
         {
             finalizeMeanValues();
-            finalizeExpectedNumberParticles( minMacroParticlesToDivide, ratioLeftParticles );
+            finalizeExpectedNumberParticles( minMacroParticlesToDivide, ratioKeptParticles );
 
         }
 
-        /** finalize mean value calculation */
+        //! Finalize calculation of mean values
         HDINLINE
         void finalizeMeanValues()
         {
-            this->meanMomentumValue /= this->numRealParticles;
-            this->meanPositionValue /= this->numRealParticles;
-            this->meanMomentumSquaredValue /= this->numRealParticles;
-            this->meanPositionSquaredValue /= this->numRealParticles;
+            meanMomentumValue /= numRealParticles;
+            meanPositionValue /= numRealParticles;
+            meanMomentumSquaredValue /= numRealParticles;
+            meanPositionSquaredValue /= numRealParticles;
         }
 
-
-        /** Counting expected number of particles in each Voronoi cell
+        /** Count expected number of particles in the cell
          *
-         * @param minMacroParticlesToDivide num macroparticles, that always divide
-         * @param ratioLeftParticles ratio of particles, that should be left
+         * @param minMacroParticlesToDivide min number of macroparticles in a cell
+         *                                  such that the cell is always subdivided
+         * @param ratioKeptParticles ratio of particles that are kept on average
          */
         HDINLINE
         void finalizeExpectedNumberParticles(
-            const uint32_t minMacroParticlesToDivide,
-            const float_X ratioLeftParticles
+            uint32_t const minMacroParticlesToDivide,
+            float_X const ratioKeptParticles
         )
         {
-            if ( parentExpectedNumMacroParticles  < 0 )
+            // Special case for the original voronoi cells
+            if ( parentExpectedNumMacroParticles < 0 )
             {
-                expectedNumMacroParticles = numMacroParticles * ratioLeftParticles;
+                expectedNumMacroParticles = numMacroParticles * ratioKeptParticles;
                 return;
             }
+
+            // Algorithm stop conditions for 1 and 2 macroparticles
             if ( numMacroParticles == 1 )
                 expectedNumMacroParticles = 1;
             if ( numMacroParticles == 2 && parentNumMacroParticles == 3 )
                 expectedNumMacroParticles = 2;
 
+            // Normal subdivision step
             if ( parentNumMacroParticles > minMacroParticlesToDivide )
             {
-                expectedNumMacroParticles = numMacroParticles * ratioLeftParticles;
+                expectedNumMacroParticles = numMacroParticles * ratioKeptParticles;
             }
             else
             {
-                float_X undividedCellCoef = ( parentExpectedNumMacroParticles + parentNumMacroParticles ) / 2.0;
-                float_X currentExpectedNumMacroParticles = numMacroParticles * undividedCellCoef / parentNumMacroParticles ;
+                // TODO: this equation works, but there may be a better one (see the notebook)
+                float_X undividedCellCoeff = (
+                    parentExpectedNumMacroParticles + parentNumMacroParticles ) / 2.0_X;
+                float_X currentExpectedNumMacroParticles =
+                    numMacroParticles * undividedCellCoeff / parentNumMacroParticles;
                 expectedNumMacroParticles = currentExpectedNumMacroParticles;
             }
         }
@@ -237,17 +258,17 @@ namespace randomizedParticleMerger
         ) const
         {
             const float_X valParticle =
-                this->splittingStage == VoronoiSplittingStage::position ?
-                position[this->splittingComponent] :
-                momentum[this->splittingComponent];
+                splittingStage == VoronoiSplittingStage::position ?
+                position[splittingComponent] :
+                momentum[splittingComponent];
             const float_X meanVoronoi =
-                this->splittingStage == VoronoiSplittingStage::position ?
-                this->meanPositionValue[this->splittingComponent] :
-                this->meanMomentumValue[this->splittingComponent];
+                splittingStage == VoronoiSplittingStage::position ?
+                meanPositionValue[splittingComponent] :
+                meanMomentumValue[splittingComponent];
             return
                 valParticle < meanVoronoi ?
-                this->lowerCellId :
-                this->higherCellId;
+                lowerCellId :
+                higherCellId;
         }
 
         /** auxillary function for getting the mean squared deviation in position or momentum */
@@ -258,16 +279,14 @@ namespace randomizedParticleMerger
         ) const
         {
             const float3_X meanValue2 =
-                  this->splittingStage == VoronoiSplittingStage::position ?
-                  this->meanPositionValue * this->meanPositionValue :
-                  this->meanMomentumValue * this->meanMomentumValue
-            ;
+                  splittingStage == VoronoiSplittingStage::position ?
+                  meanPositionValue * meanPositionValue :
+                  meanMomentumValue * meanMomentumValue;
 
             const float3_X valueSpread2 =
-                    this->splittingStage == VoronoiSplittingStage::position ?
-                    this->meanPositionSquaredValue - meanValue2 :
-                    this->meanMomentumSquaredValue - meanValue2
-            ;
+                  splittingStage == VoronoiSplittingStage::position ?
+                  meanPositionSquaredValue - meanValue2 :
+                  meanMomentumSquaredValue - meanValue2;
 
             /* find component of most spread in position */
             component = 0;
@@ -293,7 +312,7 @@ namespace randomizedParticleMerger
         HDINLINE
         float_X getMaxPositionSpread2( uint8_t& component ) const
         {
-            return this->getMaxValueSpread2( component, simDim );
+            return getMaxValueSpread2( component, simDim );
         }
 
 
@@ -305,20 +324,20 @@ namespace randomizedParticleMerger
         HDINLINE
         float_X getMaxMomentumSpread2( uint8_t& component ) const
         {
-            return this->getMaxValueSpread2( component, DIM3 );
+            return getMaxValueSpread2( component, DIM3 );
         }
 
         /** invesing splitting stage */
-         HDINLINE
-         void inversersSplittingStage( )
-         {
-             if( splittingStage == VoronoiSplittingStage::position )
-                 splittingStage = VoronoiSplittingStage::momentum;
-             else
-                 splittingStage = VoronoiSplittingStage::position;
-         }
+        HDINLINE
+        void invertSplittingStage( )
+        {
+            if( splittingStage == VoronoiSplittingStage::position )
+                splittingStage = VoronoiSplittingStage::momentum;
+            else
+                splittingStage = VoronoiSplittingStage::position;
+        }
     };
 
-} // namespace particleMerging
+} // namespace randomizedParticleMerger
 } // namespace plugins
 } // namespace picongpu
