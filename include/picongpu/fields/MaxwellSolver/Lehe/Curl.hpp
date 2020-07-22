@@ -210,12 +210,22 @@ namespace lehe
             );
         }
 
+        struct Components
+        {
+            float_X dFxDy;
+            float_X dFxDz;
+            float_X dFyDx;
+            float_X dFyDz;
+            float_X dFzDx;
+            float_X dFzDy;
+        };
+
         template<class Memory >
-        HDINLINE typename Memory::ValueType operator( )(const Memory & mem ) const
+        HDINLINE Components getComponents( const Memory & mem ) const
         {
             /* Distinguished direction where the numerical Cherenkov Radiation
-             * of moving particles is suppressed.
-             */
+            * of moving particles is suppressed.
+            */
             constexpr float_X isDir_x = float_X( 0.0 );
             constexpr float_X isDir_y = float_X( 1.0 );
             constexpr float_X isDir_z = float_X( 0.0 );
@@ -235,9 +245,9 @@ namespace lehe
             constexpr float_X reci_dz = float_X( 1.0 ) / CELL_DEPTH;
 
             /** Naming of the coefficients
-             *  1st letter: direction of differentiation
-             *  2nd letter: direction of averaging
-             */
+            *  1st letter: direction of differentiation
+            *  2nd letter: direction of averaging
+            */
             constexpr float_X beta_xy = float_X( 0.125 ) * dx2 / dy2 * isDir_x
                 + float_X( 0.125 ) * isNotDir_x * isDir_y;
             constexpr float_X beta_xz = float_X( 0.125 ) * dx2 / dz2 * isDir_x
@@ -288,16 +298,17 @@ namespace lehe
             // in (x,y,z) order :)
             typedef DataSpace<DIM3> Space;
 
-            const float_X curl_x
-                = (
+            Components result;
+            result.dFzDy = -(
                     alpha_y * ( mem(Space(0,0,0)*(-1)).z( ) - mem(Space(0,-1,0)*(-1)).z( ) )
                     + beta_yz * ( mem(Space(0,0,1)*(-1)).z( ) - mem(Space(0,-1,1)*(-1)).z( ) )
                     + beta_yz * ( mem(Space(0,0,-1)*(-1)).z( ) - mem(Space(0,-1,-1)*(-1)).z( ) )
                     + beta_yx * ( mem(Space(1,0,0)*(-1)).z( ) - mem(Space(1,-1,0)*(-1)).z( ) )
                     + beta_yx * ( mem(Space(-1,0,0)*(-1)).z( ) - mem(Space(-1,-1,0)*(-1)).z( ) )
                     + delta_dir0 * ( mem(Space(0,1,0)*(-1)).z( ) - mem(Space(0,-2,0)*(-1)).z( ) )
-                    ) * reci_dy
-                - (
+                    ) * reci_dy;
+            result.dFyDz = 
+                (
                     alpha_z * ( mem(Space(0,0,0)*(-1)).y( ) - mem(Space(0,0,-1)*(-1)).y( ) )
                     + beta_zx * ( mem(Space(1,0,0)*(-1)).y( ) - mem(Space(1,0,-1)*(-1)).y( ) )
                     + beta_zx * ( mem(Space(-1,0,0)*(-1)).y( ) - mem(Space(-1,0,-1)*(-1)).y( ) )
@@ -305,16 +316,14 @@ namespace lehe
                     + beta_zy * ( mem(Space(0,-1,0)*(-1)).y( ) - mem(Space(0,-1,-1)*(-1)).y( ) )
                     ) * reci_dz;
 
-
-            const float_X curl_y
-                = (
+            result.dFxDz = -(
                     alpha_z * ( mem(Space(0,0,0)*(-1)).x( ) - mem(Space(0,0,-1)*(-1)).x( ) )
                     + beta_zx * ( mem(Space(1,0,0)*(-1)).x( ) - mem(Space(1,0,-1)*(-1)).x( ) )
                     + beta_zx * ( mem(Space(-1,0,0)*(-1)).x( ) - mem(Space(-1,0,-1)*(-1)).x( ) )
                     + beta_zy * ( mem(Space(0,1,0)*(-1)).x( ) - mem(Space(0,1,-1)*(-1)).x( ) )
                     + beta_zy * ( mem(Space(0,-1,0)*(-1)).x( ) - mem(Space(0,-1,-1)*(-1)).x( ) )
-                    ) * reci_dz
-                - (
+                    ) * reci_dz;
+            result.dFzDx = (
                     alpha_x * ( mem(Space(0,0,0)*(-1)).z( ) - mem(Space(-1,0,0)*(-1)).z( ) )
                     + beta_xy * ( mem(Space(0,1,0)*(-1)).z( ) - mem(Space(-1,1,0)*(-1)).z( ) )
                     + beta_xy * ( mem(Space(0,-1,0)*(-1)).z( ) - mem(Space(-1,-1,0)*(-1)).z( ) )
@@ -322,16 +331,14 @@ namespace lehe
                     + beta_xz * ( mem(Space(0,0,-1)*(-1)).z( ) - mem(Space(-1,0,-1)*(-1)).z( ) )
                     ) * reci_dx;
 
-
-            const float_X curl_z
-                = (
+            result.dFyDx = -(
                     alpha_x * ( mem(Space(0,0,0)*(-1)).y( ) - mem(Space(-1,0,0)*(-1)).y( ) )
                     + beta_xy * ( mem(Space(0,1,0)*(-1)).y( ) - mem(Space(-1,1,0)*(-1)).y( ) )
                     + beta_xy * ( mem(Space(0,-1,0)*(-1)).y( ) - mem(Space(-1,-1,0)*(-1)).y( ) )
                     + beta_xz * ( mem(Space(0,0,1)*(-1)).y( ) - mem(Space(-1,0,1)*(-1)).y( ) )
                     + beta_xz * ( mem(Space(0,0,-1)*(-1)).y( ) - mem(Space(-1,0,-1)*(-1)).y( ) )
-                    ) * reci_dx
-                - (
+                    ) * reci_dx;
+            result.dFxDy = (
                     alpha_y * ( mem(Space(0,0,0)*(-1)).x( ) - mem(Space(0,-1,0)*(-1)).x( ) )
                     + beta_yz * ( mem(Space(0,0,1)*(-1)).x( ) - mem(Space(0,-1,1)*(-1)).x( ) )
                     + beta_yz * ( mem(Space(0,0,-1)*(-1)).x( ) - mem(Space(0,-1,-1)*(-1)).x( ) )
@@ -339,12 +346,20 @@ namespace lehe
                     + beta_yx * ( mem(Space(-1,0,0)*(-1)).x( ) - mem(Space(-1,-1,0)*(-1)).x( ) )
                     + delta_dir0 * ( mem(Space(0,1,0)*(-1)).x( ) - mem(Space(0,-2,0)*(-1)).x( ) )
                     ) * reci_dy;
+            return result;
+        }
 
-            return float3_X( -curl_x, -curl_y, -curl_z );
+        template<class Memory >
+        HDINLINE typename Memory::ValueType operator( )(const Memory & mem ) const
+        {
+            auto const components = getComponents( mem );
+            return float3_X(
+                components.dFzDy - components.dFyDz,
+                components.dFxDz - components.dFzDx,
+                components.dFyDx - components.dFxDy
+            );
+            ///return float3_X( -curl_x, -curl_y, -curl_z );
 
-            //return float3_X(diff(mem, 1).z() - diff(mem, 2).y(),
-            //                diff(mem, 2).x() - diff(mem, 0).z(),
-            //                diff(mem, 0).y() - diff(mem, 1).x());
         }
     };
 } // namespace lehe
