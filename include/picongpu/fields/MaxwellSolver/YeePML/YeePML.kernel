@@ -368,17 +368,18 @@ namespace yeePML
                          * more for readability, rather than avoiding computing
                          * it twice
                          */
-                        using Difference = typename T_Curl::Difference;
-                        const typename Difference::template GetDifference< 0 > Dx;
-                        const typename Difference::template GetDifference< 1 > Dy;
-                        const typename Difference::template GetDifference< 2 > Dz;
+                        ///using Difference = typename T_Curl::Difference;
+                        ///const typename Difference::template GetDifference< 0 > Dx;
+                        ///const typename Difference::template GetDifference< 1 > Dy;
+                        ///const typename Difference::template GetDifference< 2 > Dz;
                         auto const localB = cachedB.shift( idxInSuperCell );
-                        auto const dBxDy = Dy( localB ).x( );
-                        auto const dBxDz = Dz( localB ).x( );
-                        auto const dByDx = Dx( localB ).y( );
-                        auto const dByDz = Dz( localB ).y( );
-                        auto const dBzDx = Dx( localB ).z( );
-                        auto const dBzDy = Dy( localB ).z( );
+                        auto const curlComponents = curl.getComponents( localB );
+                        auto const dBxDy = curlComponents.dFxDy; ///Dy( localB ).x( );
+                        auto const dBxDz = curlComponents.dFxDz; ///Dz( localB ).x( );
+                        auto const dByDx = curlComponents.dFyDx; ///Dx( localB ).y( );
+                        auto const dByDz = curlComponents.dFyDz; ///Dz( localB ).y( );
+                        auto const dBzDx = curlComponents.dFzDx; ///Dx( localB ).z( );
+                        auto const dBzDy = curlComponents.dFzDy; ///Dy( localB ).z( );
 
                         /* Update convolutional fields using [Taflove, Hagness],
                          * eq. (7.105a,b) and similar for other components.

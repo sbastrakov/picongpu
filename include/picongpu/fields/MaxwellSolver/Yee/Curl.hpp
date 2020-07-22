@@ -42,17 +42,43 @@ namespace yee
         using LowerMargin = typename Difference::OffsetOrigin;
         using UpperMargin = typename Difference::OffsetEnd;
 
+        struct Components
+        {
+            float_X dFxDy;
+            float_X dFxDz;
+            float_X dFyDx;
+            float_X dFyDz;
+            float_X dFzDx;
+            float_X dFzDy;
+        };
+
+        template<class Memory >
+        HDINLINE Components getComponents( const Memory & mem ) const
+        {
+            using DifferentiatorX = typename Difference::template GetDifference< 0 >;
+            using DifferentiatorY = typename Difference::template GetDifference< 1 >;
+            using DifferentiatorZ = typename Difference::template GetDifference< 2 >;
+            auto const dFDx = DifferentiatorX{}( mem );
+            auto const dFDy = DifferentiatorY{}( mem );
+            auto const dFDz = DifferentiatorZ{}( mem );
+            Components result;
+            result.dFzDy = dFDy.z();
+            result.dFyDz = dFDz.y();
+            result.dFxDz = dFDz.x();
+            result.dFzDx = dFDx.z();
+            result.dFyDx = dFDx.y();
+            result.dFxDy = dFDy.x();
+            return result;
+        }
+
         template<class Memory >
         HDINLINE typename Memory::ValueType operator()( Memory const & mem ) const
         {
-            const typename Difference::template GetDifference< 0 > Dx;
-            const typename Difference::template GetDifference< 1 > Dy;
-            const typename Difference::template GetDifference< 2 > Dz;
-
+            auto const components = getComponents( mem );
             return float3_X(
-                Dy( mem ).z() - Dz( mem ).y(),
-                Dz( mem ).x() - Dx( mem ).z(),
-                Dx( mem ).y() - Dy( mem ).x()
+                components.dFyDz - components.dFzDy,
+                components.dFzDx - components.dFxDz,
+                components.dFxDy - components.dFyDx
             );
         }
     };
