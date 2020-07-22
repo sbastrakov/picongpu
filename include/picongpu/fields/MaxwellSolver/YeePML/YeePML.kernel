@@ -538,9 +538,9 @@ namespace yeePML
                         auto const dExDy = curlComponents.dFxDy; ///Dy( localE ).x( );
                         auto const dExDz = curlComponents.dFxDz; ///Dz( localE ).x( );
                         auto const dEyDx = curlComponents.dFyDx; ///Dx( localE ).y( );
-                        auto const dEyDz = curlComponents.dEyDz; ///Dz( localE ).y( );
-                        auto const dEzDx = curlComponents.dEzDx; ///Dx( localE ).z( );
-                        auto const dEzDy = curlComponents.dEzDy; ///Dy( localE ).z( );
+                        auto const dEyDz = curlComponents.dFyDz; ///Dz( localE ).y( );
+                        auto const dEzDx = curlComponents.dFzDx; ///Dx( localE ).z( );
+                        auto const dEzDy = curlComponents.dFzDy; ///Dy( localE ).z( );
 
                         /* Update convolutional fields using [Taflove, Hagness],
                          * eq. (7.110a,b) and similar for other components.
