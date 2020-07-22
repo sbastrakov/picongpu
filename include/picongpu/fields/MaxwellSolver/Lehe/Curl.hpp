@@ -183,9 +183,9 @@ namespace lehe
         {
             auto const components = getComponents( mem );
             return float3_X(
-                components.dFzDy - components.dFyDz
+                components.dFzDy - components.dFyDz,
                 components.dFxDz - components.dFzDx,
-                components.dFyDx - components.dFxDy;
+                components.dFyDx - components.dFxDy
             );
         }
     };
