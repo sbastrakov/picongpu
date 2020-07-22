@@ -529,17 +529,18 @@ namespace yeePML
                         * more for readability, rather than avoiding computing
                         * it twice
                         */
-                        using Difference = typename T_Curl::Difference;
-                        const typename Difference::template GetDifference< 0 > Dx;
-                        const typename Difference::template GetDifference< 1 > Dy;
-                        const typename Difference::template GetDifference< 2 > Dz;
+                        ///using Difference = typename T_Curl::Difference;
+                        ///const typename Difference::template GetDifference< 0 > Dx;
+                        ///const typename Difference::template GetDifference< 1 > Dy;
+                        ///const typename Difference::template GetDifference< 2 > Dz;
                         auto const localE = cachedE.shift( idxInSuperCell );
-                        auto const dExDy = Dy( localE ).x( );
-                        auto const dExDz = Dz( localE ).x( );
-                        auto const dEyDx = Dx( localE ).y( );
-                        auto const dEyDz = Dz( localE ).y( );
-                        auto const dEzDx = Dx( localE ).z( );
-                        auto const dEzDy = Dy( localE ).z( );
+                        auto const curlComponents = curl.getComponents( localE );
+                        auto const dExDy = curlComponents.dFxDy; ///Dy( localE ).x( );
+                        auto const dExDz = curlComponents.dFxDz; ///Dz( localE ).x( );
+                        auto const dEyDx = curlComponents.dFyDx; ///Dx( localE ).y( );
+                        auto const dEyDz = curlComponents.dEyDz; ///Dz( localE ).y( );
+                        auto const dEzDx = curlComponents.dEzDx; ///Dx( localE ).z( );
+                        auto const dEzDy = curlComponents.dEzDy; ///Dy( localE ).z( );
 
                         /* Update convolutional fields using [Taflove, Hagness],
                          * eq. (7.110a,b) and similar for other components.
