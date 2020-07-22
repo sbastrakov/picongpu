@@ -62,12 +62,12 @@ namespace yee
             auto const dFDy = DifferentiatorY{}( mem );
             auto const dFDz = DifferentiatorZ{}( mem );
             Components result;
-            result.dFzDy = dFDy.z();
-            result.dFyDz = dFDz.y();
-            result.dFxDz = dFDz.x();
-            result.dFzDx = dFDx.z();
             result.dFyDx = dFDx.y();
+            result.dFzDx = dFDx.z();
             result.dFxDy = dFDy.x();
+            result.dFzDy = dFDy.z();
+            result.dFxDz = dFDz.x();
+            result.dFyDz = dFDz.y();
             return result;
         }
 
@@ -76,9 +76,9 @@ namespace yee
         {
             auto const components = getComponents( mem );
             return float3_X(
-                components.dFyDz - components.dFzDy,
-                components.dFzDx - components.dFxDz,
-                components.dFxDy - components.dFyDx
+                components.dFzDy - components.dFyDz,
+                components.dFxDz - components.dFzDx,
+                components.dFyDx - components.dFxDy
             );
         }
     };
