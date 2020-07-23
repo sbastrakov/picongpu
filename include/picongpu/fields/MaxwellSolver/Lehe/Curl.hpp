@@ -168,7 +168,7 @@ namespace lehe
                     + beta_xz * ( mem[0][0][1].y( ) - mem[-1][0][1].y( ) )
                     + beta_xz * ( mem[0][0][-1].y( ) - mem[-1][0][-1].y( ) )
                     ) * reci_dx;
-            result.dFxDy = 
+            result.dFxDy =
                 (
                     alpha_y * ( mem[0][0][0].x( ) - mem[0][-1][0].x( ) )
                     + beta_yx * ( mem[1][0][0].x( ) - mem[1][-1][0].x( ) )
@@ -307,8 +307,8 @@ namespace lehe
                     + beta_yx * ( mem(Space(-1,0,0)*(-1)).z( ) - mem(Space(-1,-1,0)*(-1)).z( ) )
                     + delta_dir0 * ( mem(Space(0,1,0)*(-1)).z( ) - mem(Space(0,-2,0)*(-1)).z( ) )
                     ) * reci_dy;
-            result.dFyDz = 
-                (
+            result.dFyDz =
+                -(
                     alpha_z * ( mem(Space(0,0,0)*(-1)).y( ) - mem(Space(0,0,-1)*(-1)).y( ) )
                     + beta_zx * ( mem(Space(1,0,0)*(-1)).y( ) - mem(Space(1,0,-1)*(-1)).y( ) )
                     + beta_zx * ( mem(Space(-1,0,0)*(-1)).y( ) - mem(Space(-1,0,-1)*(-1)).y( ) )
@@ -323,7 +323,7 @@ namespace lehe
                     + beta_zy * ( mem(Space(0,1,0)*(-1)).x( ) - mem(Space(0,1,-1)*(-1)).x( ) )
                     + beta_zy * ( mem(Space(0,-1,0)*(-1)).x( ) - mem(Space(0,-1,-1)*(-1)).x( ) )
                     ) * reci_dz;
-            result.dFzDx = (
+            result.dFzDx = -(
                     alpha_x * ( mem(Space(0,0,0)*(-1)).z( ) - mem(Space(-1,0,0)*(-1)).z( ) )
                     + beta_xy * ( mem(Space(0,1,0)*(-1)).z( ) - mem(Space(-1,1,0)*(-1)).z( ) )
                     + beta_xy * ( mem(Space(0,-1,0)*(-1)).z( ) - mem(Space(-1,-1,0)*(-1)).z( ) )
@@ -338,7 +338,7 @@ namespace lehe
                     + beta_xz * ( mem(Space(0,0,1)*(-1)).y( ) - mem(Space(-1,0,1)*(-1)).y( ) )
                     + beta_xz * ( mem(Space(0,0,-1)*(-1)).y( ) - mem(Space(-1,0,-1)*(-1)).y( ) )
                     ) * reci_dx;
-            result.dFxDy = (
+            result.dFxDy = -(
                     alpha_y * ( mem(Space(0,0,0)*(-1)).x( ) - mem(Space(0,-1,0)*(-1)).x( ) )
                     + beta_yz * ( mem(Space(0,0,1)*(-1)).x( ) - mem(Space(0,-1,1)*(-1)).x( ) )
                     + beta_yz * ( mem(Space(0,0,-1)*(-1)).x( ) - mem(Space(0,-1,-1)*(-1)).x( ) )
