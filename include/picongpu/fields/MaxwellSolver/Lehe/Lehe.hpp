@@ -21,9 +21,10 @@
 
 #pragma once
 
-#include "picongpu/fields/MaxwellSolver/Lehe/Lehe.def"
-#include "picongpu/fields/MaxwellSolver/Lehe/Curl.hpp"
 #include "picongpu/simulation_defines.hpp"
+#include "picongpu/fields/MaxwellSolver/Lehe/Lehe.def"
+#include "picongpu/fields/MaxwellSolver/Lehe/Derivative.hpp"
+
 
 namespace pmacc
 {
@@ -31,7 +32,7 @@ namespace traits
 {
     template<
         typename T_CurrentInterpolation,
-        typename T_CherenkovFreeDir
+        /*typename*/ uint32_t T_CherenkovFreeDir
     >
     struct StringProperties<
         ::picongpu::fields::maxwellSolver::Lehe<

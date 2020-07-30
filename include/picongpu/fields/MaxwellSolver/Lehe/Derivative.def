@@ -32,11 +32,13 @@ namespace maxwellSolver
 namespace lehe
 {
 
-    class CherenkovFreeDirection_X{ };
-    class CherenkovFreeDirection_Y{ };
+    constexpr uint32_t CherenkovFreeDirection_X = 0;
+    constexpr uint32_t CherenkovFreeDirection_Y = 1;
+    //class CherenkovFreeDirection_X{ };
+    //class CherenkovFreeDirection_Y{ };
 
-    template< class Direction >
-    struct CurlE;
+    template< uint32_t T_cherenkovFreeDirection >
+    struct Derivative;
 
 } // namespace lehe
 } // namespace maxwellSolver
