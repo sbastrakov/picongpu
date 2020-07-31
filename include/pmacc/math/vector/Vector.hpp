@@ -833,6 +833,65 @@ HDINLINE Lhs operator%(const Lhs& lhs, const Rhs& rhs)
     return result;
 }
 
+namespace detail
+{
+    template<
+        typename T_Vector,
+        uint32_t T_direction
+    >
+    struct UnitVector;
+
+    template<
+        typename T_Type,
+        int T_Dim,
+        typename T_Accessor,
+        typename T_Navigator,
+        template <typename, int> class T_Storage,
+        //typename T_Vector,
+        uint32_t T_direction
+    >
+    struct UnitVector<
+        Vector<
+            T_Type,
+            T_Dim,
+            T_Accessor,
+            T_Navigator,
+            T_Storage
+        >,
+      //  T_Vector,
+        T_direction
+    >
+    {
+        using Result = Vector<
+            T_Type,
+            T_Dim,
+            T_Accessor,
+            T_Navigator,
+            T_Storage
+        >;// T_Vector;
+
+        static HDINLINE Result unitVector()
+        {
+            auto vector = Result::create( 0 );
+            //if( T_direction < T_Dim )
+            //    vector[ T_direction ] = static_cast< T_Type >( 1 );
+            return vector;
+        }
+    };
+}
+
+template<
+    typename T_Vector,
+    uint32_t T_direction
+>
+HDINLINE T_Vector unitVector()
+{
+    return detail::UnitVector<
+        T_Vector,
+        T_direction
+    >::unitVector();
+}
+
 struct Abs
 {
     template<typename Type, int dim >

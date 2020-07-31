@@ -54,9 +54,10 @@ namespace differentiation
         HDINLINE typename T_DataBox::ValueType operator()(
             T_DataBox const & data ) const
         {
-            pmacc::DataSpace< simDim > const currentIndex;
-            pmacc::DataSpace< simDim > upperIndex;
-            upperIndex[ T_direction ] = 1;
+            using Index = pmacc::DataSpace< simDim >;
+            Index const currentIndex;
+            Index upperIndex = pmacc::math::unitVector< Index, T_direction >();
+            //upperIndex[ T_direction ] = 1;
             return ( data( upperIndex ) - data( currentIndex ) ) /
                 cellSize[ T_direction ];
         }
