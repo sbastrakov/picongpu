@@ -57,6 +57,7 @@
 #include "picongpu/param/laser.param"
 #include "picongpu/param/fieldSolver.param"
 #include "picongpu/param/fieldBackground.param"
+#include "picongpu/param/antenna.param"
 
 #include "picongpu/param/fileOutput.param"
 #include "picongpu/param/pngColorScales.param"

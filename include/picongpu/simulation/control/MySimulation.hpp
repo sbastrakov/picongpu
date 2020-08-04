@@ -59,6 +59,7 @@
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
+#include "picongpu/simulation/stage/Antenna.hpp"
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
@@ -553,6 +554,7 @@ public:
         __setTransactionEvent( commEvent );
         CurrentBackground{ *cellDescription }( currentStep );
         CurrentDeposition{ }( currentStep );
+        Antenna{ *cellDescription }( currentStep );
         CurrentInterpolationAndAdditionToEMF{ }( currentStep );
         myFieldSolver->update_afterCurrent( currentStep );
     }
