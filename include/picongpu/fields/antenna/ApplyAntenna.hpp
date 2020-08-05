@@ -24,7 +24,9 @@
 #include <picongpu/fields/absorber/Absorber.hpp>
 #include <picongpu/fields/antenna/ApplyAntenna.kernel>
 #include <picongpu/fields/antenna/Profiles.hpp>
-#include <picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp>
+///#include <picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp>
+
+#include <pmacc/math/Vector.hpp>
 
 #include <cstdint>
 
@@ -79,30 +81,60 @@ namespace antenna
             if( disableAntenna )
                 return;
 
-            // For now hard-coded to be just outside of absorber
-            auto functor = typename YMin< T_Functor >::Functor{ fieldJ.getUnit() };
-
-            // Configuration
-            pmacc::AreaMapping<
-                CORE + BORDER,
-                MappingDesc
-            > mapper{ cellDescription };
+            using Index = pmacc::DataSpace< simDim >;
+            using IntVector = pmacc::math::Vector<
+                int,
+                simDim
+            >;
             auto const & subGrid = Environment< simDim >::get().SubGrid();
-            auto const localDomain = subGrid.getLocalDomain();
-            auto const globalCellOffset = localDomain.offset;
-            auto const guardCells = mapper.getGuardingSuperCells( ) * SuperCellSize::toRT( );
-            auto thickness = getLocalThickness( step );
-            auto beginGlobalIdx = guardCells;
-            auto endGlobalIdx = guardCells + subGrid.getGlobalDomain().size;
+
+            // Start and end of the antenna area in the user global coordinates
+            // (the coordinate system in which a user functor is expressed,
+            // no guards)
+            auto beginUserIdx = Index::create( 0 );
+            auto endUserIdx = subGrid.getGlobalDomain().size;
             for( uint32_t d = 0; d < simDim; d++ )
             {
-                beginGlobalIdx[ d ] += absorber::numCells[ d ][ 0 ];
-                endGlobalIdx[ d ] -= absorber::numCells[ d ][ 1 ];
+                beginUserIdx[ d ] += absorber::numCells[ d ][ 0 ];
+                endUserIdx[ d ] -= absorber::numCells[ d ][ 1 ];
             }
             // for now hardcode special case for y min
-            endGlobalIdx[ 1 ] = beginGlobalIdx[ 1 ] + 1;
+            endUserIdx[ 1 ] = beginUserIdx[ 1 ] + 1;
             /// TODO: remove debug print
-            std::cout << "Applying YMin antenna for global y = " << beginGlobalIdx[ 1 ] << "\n";
+            std::cout << "Applying YMin antenna for global y = " << beginUserIdx[ 1 ]
+                << " (in the user global coordinate system)\n";
+
+            // Now we express it for the local domain and with grid indices,
+            // that include guards. So the indexing to be used in kernels
+            auto const localDomain = subGrid.getLocalDomain();
+            auto const globalCellOffset = localDomain.offset;
+            // Note this conversions so that min and max are happy
+            // and we have a DataSpace at the end
+            auto const beginLocalUserIdx = Index{
+                pmacc::math::max(
+                    IntVector{ beginUserIdx - globalCellOffset },
+                    IntVector::create( 0 )
+                )
+            };
+            auto const endLocalUserIdx = Index{
+                pmacc::math::min(
+                    IntVector{ endUserIdx - globalCellOffset },
+                    IntVector{ localDomain.size }
+                )
+            };
+
+            /// TODO: remove debug print
+            std::cout << "Local domain offset = " << localDomain.offset
+                << ", begin local user idx = " << beginLocalUserIdx << ", end = "
+                << endLocalUserIdx << std::endl;
+
+            // Check if we have any active cells in the current domain
+            bool areAnyCellsInLocalDomain = true;
+            for( uint32_t d = 0; d < simDim; d++ )
+                areAnyCellsInLocalDomain = areAnyCellsInLocalDomain &&
+                    ( beginLocalUserIdx[ d ] < endLocalUserIdx[ d ] );
+            if( !areAnyCellsInLocalDomain )
+                return;
 
             // This setup is copied from laser
             constexpr int laserInitCellsInY = 1;
@@ -112,11 +144,28 @@ namespace antenna
                 bmpl::integral_c< int, laserInitCellsInY >
             >::type;
 
-            DataSpace< simDim > gridBlocks = ( endGlobalIdx - beginGlobalIdx +
-                SuperCellSize::toRT() - DataSpace< simDim >::create(1) ) / SuperCellSize::toRT();
+            auto const superCellSize = SuperCellSize::toRT();
+            auto const gridBlocks = ( endLocalUserIdx - beginLocalUserIdx + superCellSize
+                - Index::create(1) ) / superCellSize;
             constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
                 pmacc::math::CT::volume< PlaneSizeInSuperCells >::type::value
             >::value;
+
+            // Shift between internal and user coordinate systems
+            pmacc::AreaMapping<
+                CORE + BORDER,
+                MappingDesc
+            > mapper{ cellDescription };
+            auto numGuardCells = mapper.getGuardingSuperCells( ) * SuperCellSize::toRT( );
+
+            // Compute corresponding grid indexes and shift to user idx
+            auto beginGridIdx = beginLocalUserIdx + numGuardCells;
+            auto endGridIdx = endLocalUserIdx + numGuardCells;
+            // shift between local grid idx and global user idx:
+            // global user idx = local grid idx + idxShift
+            auto const idxShift = globalCellOffset - numGuardCells;
+
+            auto functor = typename YMin< T_Functor >::Functor{ fieldJ.getUnit() };
 
             // Kernel call is also analagous to laser
             PMACC_KERNEL(
@@ -131,66 +180,66 @@ namespace antenna
                 functor,
                 fieldJ.getDeviceDataBox( ),
                 step,
-                globalCellOffset,
-                beginGlobalIdx,
-                endGlobalIdx
+                beginGridIdx,
+                endGridIdx,
+                idxShift
             );
         }
 
     private:
 
-        using Thickness = maxwellSolver::yeePML::Thickness;
+        //using Thickness = maxwellSolver::yeePML::Thickness;
 
-        /** Get absorber thickness for the local domain at the current time step.
-         *
-         * It depends on the current step because of the moving window.
-         * Currently the function is almost a copy of yeePML::Solver::getLocalThickness()
-         * Perhaps this logic should be moved to general absorber and reused here and from PML
-         */
-        Thickness getLocalThickness( uint32_t const currentStep ) const
-        {
-            /* The logic of the following checks is the same as in
-            * absorber::ExponentialDamping::run( ), to disable the absorber
-            * at a border we set the corresponding thickness to 0.
-            */
-            auto & movingWindow = MovingWindow::getInstance( );
-            auto const numSlides = movingWindow.getSlideCounter( currentStep );
-            auto const numExchanges = NumberOfExchanges< simDim >::value;
-            auto const communicationMask = Environment< simDim >::get( ).GridController( ).getCommunicationMask( );
-            // First set to global absorber thickness
-            Thickness thickness;
-            for( uint32_t axis = 0u; axis < simDim; axis++ )
-                for( auto direction = 0; direction < 2; direction++ )
-                    thickness( axis, direction ) = absorber::numCells[ axis ][ direction ];
-            for( uint32_t exchange = 1u; exchange < numExchanges; ++exchange )
-            {
-                /* Here we are only interested in the positive and negative
-                * directions for x, y, z axes and not the "diagonal" ones.
-                * So skip other directions except left, right, top, bottom,
-                * back, front
-                */
-                if( FRONT % exchange != 0 )
-                    continue;
+        ///** Get absorber thickness for the local domain at the current time step.
+        // *
+        // * It depends on the current step because of the moving window.
+        // * Currently the function is almost a copy of yeePML::Solver::getLocalThickness()
+        // * Perhaps this logic should be moved to general absorber and reused here and from PML
+        // */
+        //Thickness getLocalThickness( uint32_t const currentStep ) const
+        //{
+        //    /* The logic of the following checks is the same as in
+        //    * absorber::ExponentialDamping::run( ), to disable the absorber
+        //    * at a border we set the corresponding thickness to 0.
+        //    */
+        //    auto & movingWindow = MovingWindow::getInstance( );
+        //    auto const numSlides = movingWindow.getSlideCounter( currentStep );
+        //    auto const numExchanges = NumberOfExchanges< simDim >::value;
+        //    auto const communicationMask = Environment< simDim >::get( ).GridController( ).getCommunicationMask( );
+        //    // First set to global absorber thickness
+        //    Thickness thickness;
+        //    for( uint32_t axis = 0u; axis < simDim; axis++ )
+        //        for( auto direction = 0; direction < 2; direction++ )
+        //            thickness( axis, direction ) = absorber::numCells[ axis ][ direction ];
+        //    for( uint32_t exchange = 1u; exchange < numExchanges; ++exchange )
+        //    {
+        //        /* Here we are only interested in the positive and negative
+        //        * directions for x, y, z axes and not the "diagonal" ones.
+        //        * So skip other directions except left, right, top, bottom,
+        //        * back, front
+        //        */
+        //        if( FRONT % exchange != 0 )
+        //            continue;
 
-                // Transform exchange into a pair of axis and direction
-                uint32_t axis = 0;
-                if( exchange >= BOTTOM && exchange <= TOP )
-                    axis = 1;
-                if( exchange >= BACK )
-                    axis = 2;
-                uint32_t direction = exchange % 2;
+        //        // Transform exchange into a pair of axis and direction
+        //        uint32_t axis = 0;
+        //        if( exchange >= BOTTOM && exchange <= TOP )
+        //            axis = 1;
+        //        if( exchange >= BACK )
+        //            axis = 2;
+        //        uint32_t direction = exchange % 2;
 
-                // No PML at the borders between two local domains
-                bool hasNeighbour = communicationMask.isSet( exchange );
-                if( hasNeighbour )
-                    thickness( axis, direction ) = 0;
+        //        // No PML at the borders between two local domains
+        //        bool hasNeighbour = communicationMask.isSet( exchange );
+        //        if( hasNeighbour )
+        //            thickness( axis, direction ) = 0;
 
-                // Disable PML at the far side of the moving window
-                if( movingWindow.isSlidingWindowActive( currentStep ) && exchange == BOTTOM )
-                    thickness( axis, direction ) = 0;
-            }
-            return thickness;
-        }
+        //        // Disable PML at the far side of the moving window
+        //        if( movingWindow.isSlidingWindowActive( currentStep ) && exchange == BOTTOM )
+        //            thickness( axis, direction ) = 0;
+        //    }
+        //    return thickness;
+        //}
 
     };
 
@@ -206,7 +255,7 @@ namespace antenna
         ) const
         {
             /// TODO: remove debug print
-            std::cout << "Applying nont antenna\n";
+            std::cout << "Applying none antenna\n";
         }
     };
 

@@ -53,9 +53,9 @@ namespace antenna
             T_Functor functor,
             T_FieldJBox fieldJ,
             uint32_t const step,
-            DataSpace< simDim > globalOffsetCells,
-            DataSpace< simDim > beginGlobalIdx,
-            DataSpace< simDim > endGlobalIdx
+            DataSpace< simDim > beginGridIdx,
+            DataSpace< simDim > endGridIdx,
+            DataSpace< simDim > idxShift
         ) const
         {
             // Structure copied from laser
@@ -64,15 +64,14 @@ namespace antenna
                 T_PlaneSizeInSuperCell::y::value <= SuperCellSize::y::value
             );
 
-            constexpr uint32_t planeSize = pmacc::math::CT::volume< T_PlaneSizeInSuperCell >::type::value;
+            constexpr uint32_t planeSize = pmacc::math::CT::volume<
+                T_PlaneSizeInSuperCell >::type::value;
             const uint32_t workerIdx = cupla::threadIdx(acc).x;
 
-            // offset of the superCell (in cells, without any guards) to the origin of the local domain
-            DataSpace< simDim > localSuperCellOffset = DataSpace< simDim >( cupla::blockIdx(acc) );
-
-            // add not handled supercells from LaserFunctor::Unitless::initPlaneY
-            localSuperCellOffset.y() += beginGlobalIdx[ 1 ] / SuperCellSize::y::value;
-            uint32_t cellOffsetInSuperCellFromInitPlaneY = beginGlobalIdx[ 1 ] % SuperCellSize::y::value;
+            // offset of the superCell (in cells, without any guards)
+            // to the origin of the local domain
+            DataSpace< simDim > supercellOffsetCells = DataSpace< simDim >(
+                cupla::blockIdx(acc) ) * SuperCellSize::toRT();
 
             mappings::threads::ForEachIdx<
                 mappings::threads::IdxConfig<
@@ -85,27 +84,28 @@ namespace antenna
                     uint32_t const
                 )
             {
-                /* cell index within the superCell */
-                DataSpace< simDim > cellIdxInSuperCell =
-                    DataSpaceOperations< simDim >::template map< T_PlaneSizeInSuperCell >( linearIdx );
-                cellIdxInSuperCell.y() += cellOffsetInSuperCellFromInitPlaneY;
+                auto cellIdxInSuperCell = DataSpaceOperations<
+                    simDim
+                >::template map< T_PlaneSizeInSuperCell >( linearIdx );
+                auto const gridIdx = beginGridIdx + supercellOffsetCells +
+                    cellIdxInSuperCell;
 
-                auto const globalCellIdx = globalOffsetCells + localSuperCellOffset + cellIdxInSuperCell;
-                // check we are not in the absorber
+                // Check that we are inside (due to block size being not a multiple of)
                 bool isInside = true;
                 for( uint32_t d = 0; d < simDim; d++ )
-                    isInside = isInside && ( globalCellIdx[ d ] >= beginGlobalIdx[ d ])
-                        && ( globalCellIdx[ d ] < endGlobalIdx[ d ]);
+                    isInside = isInside && ( gridIdx[ d ] < endGridIdx[ d ] );
                 if( isInside )
                 {
-                    auto addJ = functor(
+                    auto const globalCellIdx = gridIdx + idxShift;
+                    /// TODO: remove debug print
+                    /*std::cout << "gridIdx = (" << gridIdx.x() << " " << gridIdx.y() << " " << gridIdx.z()
+                        << "), globalCellIdx = (" << globalCellIdx.x() << " " << globalCellIdx.y()
+                        << " " << globalCellIdx.z() << ")\n";*/
+                    fieldJ( gridIdx ) += functor(
                         globalCellIdx,
                         step
                     );
-                    /// add to fieldJ
                 }
-
-                //accLaserFunctor( acc, cellIdxInSuperCell );
             }
             );
         }
