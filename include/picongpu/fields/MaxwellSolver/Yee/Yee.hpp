@@ -22,6 +22,7 @@
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/MaxwellSolver/Yee/Yee.def"
 #include "picongpu/fields/absorber/ExponentialDamping.hpp"
+#include "picongpu/fields/antenna/ApplyAntenna.hpp"
 #include "picongpu/fields/FieldE.hpp"
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/MaxwellSolver/Yee/Yee.kernel"
@@ -126,12 +127,26 @@ namespace maxwellSolver
             this->fieldB = dc.get< FieldB >( FieldB::getName(), true );
         }
 
-        void update_beforeCurrent(uint32_t)
+        void update_beforeCurrent(uint32_t currentStep)
         {
             updateBHalf < CORE+BORDER >();
+            fields::antenna::ApplyAntenna< fields::Antenna > applyAntenna;
+            // update B to step = currentStep + 0.5, so step for E_inc = currentStep
+            applyAntenna(
+                *fieldB,
+                static_cast< float_X >( currentStep ),
+                m_cellDescription
+            );
             EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
 
             updateE<CORE>();
+            // Antenna update does not use exchanged B, so does not have to wait for it
+            // update E to step = currentStep + 1, so step for B_inc = currentStep + 0.5
+            applyAntenna(
+                *fieldE,
+                static_cast< float_X >( currentStep ) + 0.5_X,
+                m_cellDescription
+            );
             __setTransactionEvent(eRfieldB);
             updateE<BORDER>();
         }
@@ -146,6 +161,15 @@ namespace maxwellSolver
             );
             if (laserProfiles::Selected::INIT_TIME > float_X(0.0))
                 LaserPhysics{}(currentStep);
+
+            // Antenna update does not use exchanged E, so does not have to wait for it
+            fields::antenna::ApplyAntenna< fields::Antenna > applyAntenna;
+            // half of update B to step currentStep + 1.5, so step for E_inc = currentStep + 1
+            applyAntenna(
+                *fieldB,
+                static_cast< float_X >( currentStep ) + 1.0_X,
+                m_cellDescription
+            );
 
             EventTask eRfieldE = fieldE->asyncCommunication(__getTransactionEvent());
 

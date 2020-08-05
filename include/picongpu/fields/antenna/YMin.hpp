@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <picongpu/fields/antenna/YMin.def>
+
+
 namespace picongpu
 {
 namespace fields
@@ -26,10 +29,16 @@ namespace fields
 namespace antenna
 {
 
-    template< typename T_Functor >
+    template<
+        typename T_FunctorE,
+        typename T_FunctorB,
+        uint32_t T_gapFromAbsorber
+    >
     struct YMin
     {
-        using Functor = T_Functor;
+        using FunctorE = T_FunctorE;
+        using FunctorB = T_FunctorB;
+        constexpr static uint32_t gapFromAbsorber = T_gapFromAbsorber;
     };
 
 } // namespace antenna

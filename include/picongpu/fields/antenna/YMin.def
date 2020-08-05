@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <cstdint>
+
+
 namespace picongpu
 {
 namespace fields
@@ -26,7 +29,15 @@ namespace fields
 namespace antenna
 {
 
-    template< typename T_Functor >
+    /* T_FunctorE = E incident field (r, t), to be added in B update
+     * T_FunctorB = B incident field (r, t), to be added in E update
+     * T_gapFromAbsorber = gap from the absorber
+     */
+    template<
+        typename T_FunctorE,
+        typename T_FunctorB,
+        uint32_t T_gapFromAbsorber = 2
+    >
     struct YMin;
 
 } // namespace antenna

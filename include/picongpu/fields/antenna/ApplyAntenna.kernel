@@ -46,16 +46,16 @@ namespace antenna
         template<
             typename T_Acc,
             typename T_Functor,
-            typename T_FieldJBox
+            typename T_FieldBox
         >
         HDINLINE void operator()(
             T_Acc & acc,
             T_Functor functor,
-            T_FieldJBox fieldJ,
-            uint32_t const step,
+            T_FieldBox field,
+            float_X const step,
             DataSpace< simDim > beginGridIdx,
             DataSpace< simDim > endGridIdx,
-            DataSpace< simDim > idxShift
+            floatD_X idxShift
         ) const
         {
             // Structure copied from laser
@@ -96,13 +96,12 @@ namespace antenna
                     isInside = isInside && ( gridIdx[ d ] < endGridIdx[ d ] );
                 if( isInside )
                 {
-                    auto const globalCellIdx = gridIdx + idxShift;
-                    /// TODO: remove debug print
-                    /*std::cout << "gridIdx = (" << gridIdx.x() << " " << gridIdx.y() << " " << gridIdx.z()
-                        << "), globalCellIdx = (" << globalCellIdx.x() << " " << globalCellIdx.y()
-                        << " " << globalCellIdx.z() << ")\n";*/
-                    fieldJ( gridIdx ) += functor(
-                        globalCellIdx,
+                    // fractional since the shift is fractional
+                    auto const userCellIdx = pmacc::algorithms::precisionCast::precisionCast< float_X >(
+                        gridIdx + idxShift
+                    );
+                    field( gridIdx ) += functor(
+                        userCellIdx,
                         step
                     );
                 }

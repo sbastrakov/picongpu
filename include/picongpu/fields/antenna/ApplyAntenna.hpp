@@ -24,7 +24,8 @@
 #include <picongpu/fields/absorber/Absorber.hpp>
 #include <picongpu/fields/antenna/ApplyAntenna.kernel>
 #include <picongpu/fields/antenna/Profiles.hpp>
-///#include <picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp>
+#include <picongpu/fields/CellType.hpp>
+#include <picongpu/traits/FieldPosition.hpp>
 
 #include <pmacc/math/Vector.hpp>
 
@@ -41,9 +42,9 @@ namespace antenna
     template< typename T_Antenna >
     struct ApplyAntenna
     {
-        template< typename T_FieldJ >
+        template< typename T_Field >
         void operator()(
-            T_FieldJ & fieldJ,
+            T_Field & field,
             uint32_t const step,
             MappingDesc const cellDescription
         ) const
@@ -56,13 +57,25 @@ namespace antenna
     };
 
     //! Specialization for YMin antenna
-    template< typename T_Functor >
-    struct ApplyAntenna< YMin< T_Functor > >
+    template<
+        typename T_FunctorE,
+        typename T_FunctorB,
+        uint32_t T_gapFromAbsorber
+    >
+    struct ApplyAntenna<
+        YMin<
+            T_FunctorE,
+            T_FunctorB,
+            T_gapFromAbsorber
+        >
+    >
     {
-        template< typename T_FieldJ >
+        // time - time at which to take the source.
+        // it will be applied to the field at time + dt
+        template< typename T_Field >
         void operator()(
-            T_FieldJ & fieldJ,
-            uint32_t const step,
+            T_Field & field,
+            float_X const step,
             MappingDesc const cellDescription
         ) const
         {
@@ -71,7 +84,7 @@ namespace antenna
             bool const topBoundariesArePeriodic =
                 ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(
-                step
+                static_cast< uint32_t >( step )
             );
             bool const boxHasSlided = ( numSlides != 0 );
             bool const disableAntenna =
@@ -158,14 +171,24 @@ namespace antenna
             > mapper{ cellDescription };
             auto numGuardCells = mapper.getGuardingSuperCells( ) * SuperCellSize::toRT( );
 
+            // shift inside the cell, in units of cells
+            //// ISSUE: this is vector of vectors, see notes
+            using FieldPosition = typename traits::FieldPosition<
+                fields::CellType,
+                T_Field
+            >;
+            auto const shiftInCell = FieldPosition{}();
+
             // Compute corresponding grid indexes and shift to user idx
             auto beginGridIdx = beginLocalUserIdx + numGuardCells;
             auto endGridIdx = endLocalUserIdx + numGuardCells;
-            // shift between local grid idx and global user idx:
+            // shift between local grid idx and fractional global user idx:
             // global user idx = local grid idx + idxShift
-            auto const idxShift = globalCellOffset - numGuardCells;
+            auto const idxShift = pmacc::algorithms::precisionCast::precisionCast< float_X >(
+                globalCellOffset - numGuardCells ) + shiftInCell;
 
-            auto functor = typename YMin< T_Functor >::Functor{ fieldJ.getUnit() };
+            // TODO: generalize
+            auto functor = T_FunctorE{ field.getUnit() };
 
             // Kernel call is also analagous to laser
             PMACC_KERNEL(
@@ -178,7 +201,7 @@ namespace antenna
                 numWorkers
             )(
                 functor,
-                fieldJ.getDeviceDataBox( ),
+                field.getDeviceDataBox( ),
                 step,
                 beginGridIdx,
                 endGridIdx,
@@ -186,71 +209,16 @@ namespace antenna
             );
         }
 
-    private:
-
-        //using Thickness = maxwellSolver::yeePML::Thickness;
-
-        ///** Get absorber thickness for the local domain at the current time step.
-        // *
-        // * It depends on the current step because of the moving window.
-        // * Currently the function is almost a copy of yeePML::Solver::getLocalThickness()
-        // * Perhaps this logic should be moved to general absorber and reused here and from PML
-        // */
-        //Thickness getLocalThickness( uint32_t const currentStep ) const
-        //{
-        //    /* The logic of the following checks is the same as in
-        //    * absorber::ExponentialDamping::run( ), to disable the absorber
-        //    * at a border we set the corresponding thickness to 0.
-        //    */
-        //    auto & movingWindow = MovingWindow::getInstance( );
-        //    auto const numSlides = movingWindow.getSlideCounter( currentStep );
-        //    auto const numExchanges = NumberOfExchanges< simDim >::value;
-        //    auto const communicationMask = Environment< simDim >::get( ).GridController( ).getCommunicationMask( );
-        //    // First set to global absorber thickness
-        //    Thickness thickness;
-        //    for( uint32_t axis = 0u; axis < simDim; axis++ )
-        //        for( auto direction = 0; direction < 2; direction++ )
-        //            thickness( axis, direction ) = absorber::numCells[ axis ][ direction ];
-        //    for( uint32_t exchange = 1u; exchange < numExchanges; ++exchange )
-        //    {
-        //        /* Here we are only interested in the positive and negative
-        //        * directions for x, y, z axes and not the "diagonal" ones.
-        //        * So skip other directions except left, right, top, bottom,
-        //        * back, front
-        //        */
-        //        if( FRONT % exchange != 0 )
-        //            continue;
-
-        //        // Transform exchange into a pair of axis and direction
-        //        uint32_t axis = 0;
-        //        if( exchange >= BOTTOM && exchange <= TOP )
-        //            axis = 1;
-        //        if( exchange >= BACK )
-        //            axis = 2;
-        //        uint32_t direction = exchange % 2;
-
-        //        // No PML at the borders between two local domains
-        //        bool hasNeighbour = communicationMask.isSet( exchange );
-        //        if( hasNeighbour )
-        //            thickness( axis, direction ) = 0;
-
-        //        // Disable PML at the far side of the moving window
-        //        if( movingWindow.isSlidingWindowActive( currentStep ) && exchange == BOTTOM )
-        //            thickness( axis, direction ) = 0;
-        //    }
-        //    return thickness;
-        //}
-
     };
 
     //! Specialization for disabled antenna, just do nothing
     template<>
     struct ApplyAntenna< None >
     {
-        template< typename T_FieldJ >
+        template< typename T_Field >
         void operator()(
-            T_FieldJ & fieldJ,
-            uint32_t const step,
+            T_Field & field,
+            float_X const time,
             MappingDesc const cellDescription
         ) const
         {
