@@ -30,6 +30,59 @@ namespace fields
 {
 namespace antenna
 {
+namespace detail
+{
+
+    template<
+        typename T_FunctorIncidentField,
+        typename T_FieldBox
+    >
+    struct UpdateFunctor
+    {
+        using FunctorIncidentField = T_FunctorIncidentField;
+        using FieldBox = T_FieldBox;
+
+        // data box of field to update
+        FieldBox field;
+
+        // incident field functor (E incident for B field update,
+        // B incident for E field update)
+        FunctorIncidentField functorIncidentField;
+
+        // shift inside the cell for two functor invocations, in cells
+        float3_X inCellShift1, inCellShift2;
+
+        // multiplier for two functor invocations with shifts 1, 2
+        float3_X coeff1, coeff2;
+
+        // user cell idx = gridIdx + gridIdxShirt
+        pmacc::DataSpace< simDim > gridIdxShift;
+
+        // current time step, in iterations
+        float_X step;
+
+        HDINLINE UpdateFunctor( float3_64 const unitField ):
+            functorIncidentField( unitField )
+        {}
+
+        // Update field for given gridIdx
+        // gridIdx is in local domain, including guards
+        HDINLINE void operator()( pmacc::DataSpace< simDim > const & gridIdx )
+        {
+            // fractional since the later shift is fractional
+            auto const userCellIdx = pmacc::algorithms::precisionCast::precisionCast< float_X >(
+                gridIdx + gridIdxShift
+            );
+            field( gridIdx ) += coeff1 * functorIncidentField(
+                userCellIdx + inCellShift1,
+                step
+            ) + coeff2 * functorIncidentField(
+                userCellIdx + inCellShift2,
+                step
+            );
+        }
+    };
+
 
     /** apply antenna functor
     *
@@ -45,17 +98,13 @@ namespace antenna
     {
         template<
             typename T_Acc,
-            typename T_Functor,
-            typename T_FieldBox
+            typename T_UpdateFunctor
         >
         HDINLINE void operator()(
             T_Acc & acc,
-            T_Functor functor,
-            T_FieldBox field,
-            float_X const step,
+            T_UpdateFunctor functor,
             DataSpace< simDim > beginGridIdx,
-            DataSpace< simDim > endGridIdx,
-            floatD_X idxShift
+            DataSpace< simDim > endGridIdx
         ) const
         {
             // Structure copied from laser
@@ -95,21 +144,13 @@ namespace antenna
                 for( uint32_t d = 0; d < simDim; d++ )
                     isInside = isInside && ( gridIdx[ d ] < endGridIdx[ d ] );
                 if( isInside )
-                {
-                    // fractional since the shift is fractional
-                    auto const userCellIdx = pmacc::algorithms::precisionCast::precisionCast< float_X >(
-                        gridIdx + idxShift
-                    );
-                    field( gridIdx ) += functor(
-                        userCellIdx,
-                        step
-                    );
-                }
+                    functor( gridIdx );
             }
             );
         }
     };
 
+} // namespace detail
 } // namespace antenna
 } // namespace fields
 } // namespace picongpu

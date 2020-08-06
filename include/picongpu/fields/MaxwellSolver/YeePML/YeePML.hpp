@@ -22,6 +22,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/absorber/Absorber.hpp"
+#include "picongpu/fields/antenna/ApplyAntenna.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/Field.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/YeePML.kernel"
@@ -389,7 +390,8 @@ namespace maxwellSolver
         using CurlB = T_CurlB;
 
         YeePML( MappingDesc const cellDescription ) :
-            solver( cellDescription )
+            solver( cellDescription ),
+            cellDescription( cellDescription )
         {
         }
 
@@ -407,9 +409,23 @@ namespace maxwellSolver
              */
             solver.template updateBHalf < CORE + BORDER >( currentStep );
             auto & fieldB = solver.getFieldB( );
+            fields::antenna::ApplyAntenna applyAntenna;
+            // update B by half step, to step = currentStep + 0.5, so step for E_inc = currentStep
+            applyAntenna.updateB(
+                static_cast< float_X >( currentStep ),
+                0.5_X,
+                cellDescription
+            );
             EventTask eRfieldB = fieldB.asyncCommunication( __getTransactionEvent( ) );
 
             solver.template updateE< CORE >( currentStep );
+            // Antenna update does not use exchanged B, so does not have to wait for it
+            // update E by full step, to step = currentStep + 1, so step for B_inc = currentStep + 0.5
+            applyAntenna.updateE(
+                static_cast< float_X >( currentStep ) + 0.5_X,
+                1.0_X,
+                cellDescription
+            );
             __setTransactionEvent( eRfieldB );
             solver.template updateE< BORDER >( currentStep );
         }
@@ -428,6 +444,15 @@ namespace maxwellSolver
              */
             if( laserProfiles::Selected::INIT_TIME > 0.0_X )
                 LaserPhysics{ }( currentStep );
+
+            // Antenna update does not use exchanged E, so does not have to wait for it
+            fields::antenna::ApplyAntenna applyAntenna;
+            // update B by half step, to step currentStep + 1.5, so step for E_inc = currentStep + 1
+            applyAntenna.updateB(
+                static_cast< float_X >( currentStep ) + 1.0_X,
+                0.5_X,
+                cellDescription
+            );
 
             auto & fieldE = solver.getFieldE( );
             EventTask eRfieldE = fieldE.asyncCommunication( __getTransactionEvent( ) );
@@ -450,6 +475,7 @@ namespace maxwellSolver
     private:
 
         yeePML::detail::Solver< CurlE, CurlB > solver;
+        MappingDesc const cellDescription;
 
     };
 

@@ -24,8 +24,6 @@
 #include <picongpu/fields/absorber/Absorber.hpp>
 #include <picongpu/fields/antenna/ApplyAntenna.kernel>
 #include <picongpu/fields/antenna/Profiles.hpp>
-#include <picongpu/fields/CellType.hpp>
-#include <picongpu/traits/FieldPosition.hpp>
 
 #include <pmacc/math/Vector.hpp>
 
@@ -38,53 +36,165 @@ namespace fields
 {
 namespace antenna
 {
+namespace detail
+{
 
+    // Safeguard to not forget to support other antenna types once they are added
     template< typename T_Antenna >
     struct ApplyAntenna
     {
-        template< typename T_Field >
-        void operator()(
-            T_Field & field,
-            uint32_t const step,
-            MappingDesc const cellDescription
-        ) const
-        {
-            PMACC_CASSERT_MSG(
-                _internal_error_not_implemented_antenna_used,
-                true
-            );
-        }
+        PMACC_CASSERT_MSG(
+            _internal_error_not_supported_antenna_type_used,
+            true
+        );
     };
 
     //! Specialization for YMin antenna
+    // For now assumes 3d, Yee grid and Yee / YeePML solver
     template<
-        typename T_FunctorE,
-        typename T_FunctorB,
+        typename T_FunctorIncidentE,
+        typename T_FunctorIncidentB,
         uint32_t T_gapFromAbsorber
     >
     struct ApplyAntenna<
         YMin<
-            T_FunctorE,
-            T_FunctorB,
+            T_FunctorIncidentE,
+            T_FunctorIncidentB,
             T_gapFromAbsorber
         >
     >
     {
+        PMACC_CASSERT_MSG(
+            _internal_error_ymin_antenna_only_supported_for_3d,
+            simDim == 3
+        );
+
+        // This does not work yet because of circular dependencies caused
+        /*PMACC_CASSERT_MSG(
+            _internal_error_ymin_antenna_only_supported_for_yee_cells,
+            std::is_same< Solver::CellType, cellType::Yee >::type::value
+        );*/
+
+        // Update E from by using B incident source at t = sourceTimeIteration * dt
+        // by delta_t = timeIncrementIteration * dt
+        // To be called inside field solver
+        void updateE(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
+            MappingDesc const cellDescription
+        ) const
+        {
+            // for now hardcoded for Yee grid like in PIConGPU
+            constexpr auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+            auto const timeIncrement = timeIncrementIteration * DELTA_T;
+
+            // Ex component uses Bz incident field source
+            auto shiftBIncZ = float3_X{ 0.5_X, -0.5_X, 0.0_X };
+            // dEx/dt involves c2 * dt * dBz/dy so have to subtract BInc_z
+            auto coeffBIncZ = float3_X{ 0.0_X, 0.0_X, -c2 * timeIncrement / cellSize[ 1 ] };
+
+            // Ez component uses Bx incident field source
+            auto shiftBIncX = float3_X{ 0.0_X, -0.5_X, 0.5_X };
+            // dEz/dt involves -c2 * dt * dBx/dy so have to add BInc_x
+            auto coeffBIncX = float3_X{ c2 * timeIncrement / cellSize[ 1 ], 0.0_X, 0.0_X };
+
+            // Create the update functor
+            DataConnector & dc = Environment<>::get( ).DataConnector( );
+            auto & fieldE = *dc.get< picongpu::FieldE >(
+                picongpu::FieldE::getName( ),
+                true
+            );
+            auto dataBox = fieldE.getDeviceDataBox();
+            auto const & fieldB = *dc.get< picongpu::FieldB >(
+                picongpu::FieldB::getName( ),
+                true
+            );
+
+            UpdateFunctor<
+                T_FunctorIncidentB,
+                decltype( dataBox )
+            > functor( fieldB.getUnit() );
+            functor.field = dataBox;
+            functor.inCellShift1 = shiftBIncZ;
+            functor.coeff1 = coeffBIncZ;
+            functor.inCellShift2 = shiftBIncX;
+            functor.coeff2 = coeffBIncX;
+            functor.step = sourceTimeIteration;
+            // functor.gridIdxShift for now is initialized later
+            update(
+                functor,
+                cellDescription
+            );
+        }
+
+        // Update B from by using E incident source at t = sourceTimeIteration * dt
+        // by delta_t = timeIncrementIteration * dt
+        // To be called inside field solver
+        void updateB(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
+            MappingDesc const cellDescription
+        ) const
+        {
+            // for now hardcoded for Yee grid like in PIConGPU
+            auto const timeIncrement = timeIncrementIteration * DELTA_T;
+
+            // Bx component uses Ez incident field source
+            auto shiftEIncZ = float3_X{ 0.0_X, 0.0_X, 0.5_X };
+            // dBx/dt involves -dt * dEz/dy so have to add EInc_z
+            auto coeffEIncZ = float3_X{ 0.0_X, 0.0_X, timeIncrement / cellSize[ 1 ] };
+
+            // Bz component uses Ex incident field source
+            auto shiftEIncX = float3_X{ 0.5_X, 0.0_X, 0.0_X };
+            // dBz/dt involves dt * dBx/dy so have to subtract EInc_x
+            auto coeffEIncX = float3_X{ -timeIncrement / cellSize[ 1 ], 0.0_X, 0.0_X };
+
+            // Create the update functor
+            DataConnector & dc = Environment<>::get( ).DataConnector( );
+            auto & fieldB = *dc.get< picongpu::FieldB >(
+                picongpu::FieldB::getName( ),
+                true
+            );
+            auto dataBox = fieldB.getDeviceDataBox();
+            auto const & fieldE = *dc.get< picongpu::FieldE >(
+                picongpu::FieldE::getName( ),
+                true
+            );
+
+            UpdateFunctor<
+                T_FunctorIncidentE,
+                decltype( dataBox )
+            > functor( fieldE.getUnit() );
+            functor.field = dataBox;
+            functor.inCellShift1 = shiftEIncZ;
+            functor.coeff1 = coeffEIncZ;
+            functor.inCellShift2 = shiftEIncX;
+            functor.coeff2 = coeffEIncX;
+            functor.step = sourceTimeIteration;
+            // functor.gridIdxShift for now is initialized later
+            update(
+                functor,
+                cellDescription
+            );
+        }
+
+    private:
+
         // time - time at which to take the source.
         // it will be applied to the field at time + dt
-        template< typename T_Field >
-        void operator()(
-            T_Field & field,
-            float_X const step,
+        template< typename T_UpdateFunctor >
+        void update(
+            T_UpdateFunctor functor,
             MappingDesc const cellDescription
         ) const
         {
             // This logic mostly copies laser for now
+            auto const step = static_cast< uint32_t >( functor.step );
             bool const antennaNone = false;
             bool const topBoundariesArePeriodic =
                 ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(
-                static_cast< uint32_t >( step )
+                step
             );
             bool const boxHasSlided = ( numSlides != 0 );
             bool const disableAntenna =
@@ -105,6 +215,7 @@ namespace antenna
             // (the coordinate system in which a user functor is expressed,
             // no guards)
             auto beginUserIdx = Index::create( 0 );
+            beginUserIdx[ 1 ] += T_gapFromAbsorber;
             auto endUserIdx = subGrid.getGlobalDomain().size;
             for( uint32_t d = 0; d < simDim; d++ )
             {
@@ -171,24 +282,12 @@ namespace antenna
             > mapper{ cellDescription };
             auto numGuardCells = mapper.getGuardingSuperCells( ) * SuperCellSize::toRT( );
 
-            // shift inside the cell, in units of cells
-            //// ISSUE: this is vector of vectors, see notes
-            using FieldPosition = typename traits::FieldPosition<
-                fields::CellType,
-                T_Field
-            >;
-            auto const shiftInCell = FieldPosition{}();
-
             // Compute corresponding grid indexes and shift to user idx
             auto beginGridIdx = beginLocalUserIdx + numGuardCells;
             auto endGridIdx = endLocalUserIdx + numGuardCells;
             // shift between local grid idx and fractional global user idx:
             // global user idx = local grid idx + idxShift
-            auto const idxShift = pmacc::algorithms::precisionCast::precisionCast< float_X >(
-                globalCellOffset - numGuardCells ) + shiftInCell;
-
-            // TODO: generalize
-            auto functor = T_FunctorE{ field.getUnit() };
+            functor.gridIdxShift = globalCellOffset - numGuardCells;
 
             // Kernel call is also analagous to laser
             PMACC_KERNEL(
@@ -201,11 +300,8 @@ namespace antenna
                 numWorkers
             )(
                 functor,
-                field.getDeviceDataBox( ),
-                step,
                 beginGridIdx,
-                endGridIdx,
-                idxShift
+                endGridIdx
             );
         }
 
@@ -215,15 +311,54 @@ namespace antenna
     template<>
     struct ApplyAntenna< None >
     {
-        template< typename T_Field >
-        void operator()(
-            T_Field & field,
-            float_X const time,
+        void updateE(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
             MappingDesc const cellDescription
         ) const
         {
-            /// TODO: remove debug print
-            std::cout << "Applying none antenna\n";
+        }
+
+        void updateB(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
+            MappingDesc const cellDescription
+        ) const
+        {
+        }
+    };
+
+} // namespace detail
+
+    struct ApplyAntenna
+    {
+        using AntennaSetup = fields::Antenna;
+        using AntennaImplementation = detail::ApplyAntenna< AntennaSetup >;
+
+        void updateE(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
+            MappingDesc const cellDescription
+        )
+        {
+            AntennaImplementation{}.updateE(
+                sourceTimeIteration,
+                timeIncrementIteration,
+                cellDescription
+            );
+        }
+
+        void updateB(
+            float_X const sourceTimeIteration,
+            float_X const timeIncrementIteration,
+            MappingDesc const cellDescription
+        )
+        {
+            AntennaImplementation{}.updateB(
+                sourceTimeIteration,
+                timeIncrementIteration,
+                cellDescription
+            );
         }
     };
 

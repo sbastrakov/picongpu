@@ -29,13 +29,13 @@ namespace fields
 namespace antenna
 {
 
-    /* T_FunctorE = E incident field (r, t), to be added in B update
-     * T_FunctorB = B incident field (r, t), to be added in E update
-     * T_gapFromAbsorber = gap from the absorber
+    /* T_FunctorIncidentE = E incident field (r, t), to be added in B update
+     * T_FunctorIncidentB = B incident field (r, t), to be added in E update
+     * T_gapFromAbsorber = gap from the absorber in y
      */
     template<
-        typename T_FunctorE,
-        typename T_FunctorB,
+        typename T_FunctorIncidentE,
+        typename T_FunctorIncidentB,
         uint32_t T_gapFromAbsorber = 2
     >
     struct YMin;
