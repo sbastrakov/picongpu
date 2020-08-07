@@ -73,13 +73,14 @@ namespace detail
             auto const userCellIdx = pmacc::algorithms::precisionCast::precisionCast< float_X >(
                 gridIdx + gridIdxShift
             );
-            field( gridIdx ) += coeff1 * functorIncidentField(
+            auto const incidentField = coeff1 * functorIncidentField(
                 userCellIdx + inCellShift1,
                 step
             ) + coeff2 * functorIncidentField(
                 userCellIdx + inCellShift2,
                 step
             );
+            field( gridIdx ) += incidentField;
         }
     };
 

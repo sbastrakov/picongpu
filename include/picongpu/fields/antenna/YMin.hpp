@@ -30,14 +30,14 @@ namespace antenna
 {
 
     template<
-        typename T_FunctorE,
-        typename T_FunctorB,
+        typename T_FunctorIncidentE,
+        typename T_FunctorIncidentB,
         uint32_t T_gapFromAbsorber
     >
     struct YMin
     {
-        using FunctorE = T_FunctorE;
-        using FunctorB = T_FunctorB;
+        using FunctorIncidentE = T_FunctorIncidentE;
+        using FunctorIncidentB = T_FunctorIncidentB;
         constexpr static uint32_t gapFromAbsorber = T_gapFromAbsorber;
     };
 

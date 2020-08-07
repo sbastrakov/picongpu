@@ -192,7 +192,7 @@ namespace detail
             auto const step = static_cast< uint32_t >( functor.step );
             bool const antennaNone = false;
             bool const topBoundariesArePeriodic =
-                ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
+               false; /// ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(
                 step
             );
