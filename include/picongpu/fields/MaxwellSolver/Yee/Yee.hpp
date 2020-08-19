@@ -35,6 +35,10 @@
 #include <pmacc/dataManagement/DataConnector.hpp>
 
 
+
+#include <pmacc/cuSTL/container/DeviceBuffer.hpp>
+#include <pmacc/cuSTL/container/HostBuffer.hpp>
+
 namespace picongpu
 {
 namespace fields
@@ -128,6 +132,13 @@ namespace maxwellSolver
 
         void update_beforeCurrent(uint32_t)
         {
+            constexpr uint32_t maxShared = 32*1024; /* 32 KB */
+            constexpr uint32_t num_pbins = maxShared/(sizeof(float_X)*8);
+            auto r_bins = 528;
+            container::DeviceBuffer<float_X, 2> dBuffer( num_pbins, r_bins );
+            container::HostBuffer<float_X, 2> hBuffer( dBuffer.size() );
+            hBuffer = dBuffer;
+
             updateBHalf < CORE+BORDER >();
             EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
 
