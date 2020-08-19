@@ -35,7 +35,8 @@ namespace alpaka
                     public:
                         //-----------------------------------------------------------------------------
 #ifndef NDEBUG
-                        BlockSharedMemStMemberImpl(uint8_t* mem, unsigned int capacity) : m_mem(mem), m_capacity(capacity) {}
+                        BlockSharedMemStMemberImpl(uint8_t* mem, unsigned int capacity) : m_mem(mem), m_capacity(capacity) {
+                        }
 #else
                         BlockSharedMemStMemberImpl(uint8_t* mem, unsigned int) : m_mem(mem) {}
 #endif
@@ -54,12 +55,12 @@ namespace alpaka
                         void alloc() const
                         {
                             m_allocdBytes = allocPitch<T>();
+#if (defined ALPAKA_DEBUG_OFFLOAD_ASSUME_HOST) && (! defined NDEBUG)
+                            ALPAKA_ASSERT(m_allocdBytes + sizeof(T) <= m_capacity);
+#endif
                             uint8_t* buf = &m_mem[m_allocdBytes];
                             new (buf) T();
                             m_allocdBytes += sizeof(T);
-#if (defined ALPAKA_DEBUG_OFFLOAD_ASSUME_HOST) && (! defined NDEBUG)
-                            ALPAKA_ASSERT(m_allocdBytes < m_capacity);
-#endif
                         }
 
 #if BOOST_COMP_GNUC

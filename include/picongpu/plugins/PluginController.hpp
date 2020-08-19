@@ -68,9 +68,9 @@
 #if (ENABLE_ISAAC == 1) && (SIMDIM==DIM3)
 #    include "picongpu/plugins/IsaacPlugin.hpp"
 #endif
-
-#if (ENABLE_HDF5 == 1)
 #   include "picongpu/plugins/PhaseSpace/PhaseSpace.hpp"
+#if (ENABLE_HDF5 == 1)
+
 #   include "picongpu/plugins/particleCalorimeter/ParticleCalorimeter.hpp"
 #   include "picongpu/plugins/radiation/VectorTypes.hpp"
 #   include "picongpu/plugins/radiation/Radiation.hpp"
@@ -227,10 +227,11 @@ private:
         CountParticles<bmpl::_1>,
         PngPlugin< Visualisation<bmpl::_1, PngCreator> >,
         plugins::transitionRadiation::TransitionRadiation<bmpl::_1>
+        , plugins::multi::Master< PhaseSpace<particles::shapes::Counter::ChargeAssignment, bmpl::_1> >
 #if(ENABLE_HDF5 == 1)
         , plugins::radiation::Radiation<bmpl::_1>
         , plugins::multi::Master< ParticleCalorimeter<bmpl::_1> >
-        , plugins::multi::Master< PhaseSpace<particles::shapes::Counter::ChargeAssignment, bmpl::_1> >
+        
 #endif
 #if( PMACC_CUDA_ENABLED == 1 )
         , PositionsParticles<bmpl::_1>
