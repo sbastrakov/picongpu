@@ -136,6 +136,46 @@ namespace acc
         {
         }
 
+        float3_X getElong( DataSpace< simDim > const & localCell )
+        {
+            // transform coordinate system to center of x-z plane of initialization
+            constexpr uint8_t planeNormalDir = 1u;
+            DataSpace< simDim > offsetToCenterOfPlane( m_offsetToTotalDomain );
+            offsetToCenterOfPlane[ planeNormalDir ] = 0; // do not shift origin of plane normal
+            floatD_X const pos = precisionCast< float_X >( localCell + offsetToCenterOfPlane ) * cellSize.shrink< simDim >();
+            // @todo add half-cells via traits::FieldPosition< Solver::NumicalCellType, FieldE >()
+
+            // transversal position only
+            float3_X const w0_3D( Unitless::W0_X, 0., Unitless::W0_Z );
+            auto const w0( w0_3D.shrink< simDim >().remove< planeNormalDir >() );
+            auto const pos_trans( pos.remove< planeNormalDir >() );
+            auto const exp_compos( pos_trans * pos_trans / ( w0 * w0 ) );
+            float_X const exp_arg( exp_compos.sumOfComponents() );
+
+            m_elong *= math::exp( -1.0_X * exp_arg );
+
+            if( Unitless::initPlaneY != 0 ) // compile time if
+            {
+                /* If the laser is not initialized in the first cell we emit a
+                * negatively and positively propagating wave. Therefore we need to multiply the
+                * amplitude with a correction factor depending of the cell size in
+                * propagation direction.
+                * The negatively propagating wave is damped by the absorber.
+                *
+                * The `correctionFactor` assume that the wave is moving in y direction.
+                */
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+
+                // jump over the guard of the electric field
+                return correctionFactor * m_elong;
+            }
+            else
+            {
+                // jump over the guard of the electric field
+                return m_elong;
+            }
+        }
+
         /** device side manipulation for init plane (transversal)
          *
          * @tparam T_Args type of the arguments passed to the user manipulator functor
@@ -360,6 +400,13 @@ namespace acc
                 elong.x() = envelope / math::sqrt( 2.0_X ) * math::sin( phase );
                 elong.z() = envelope / math::sqrt( 2.0_X ) * math::cos( phase );
             }
+        }
+
+        acc::ExpRampWithPrepulse< Unitless > getLaser(
+            DataSpace< simDim > const & localSupercellOffset )
+        {
+            auto const superCellToLocalOriginCellOffset = localSupercellOffset * SuperCellSize::toRT();
+            return acc::ExpRampWithPrepulse< Unitless >( dataBoxE, superCellToLocalOriginCellOffset, offsetToTotalDomain, elong );
         }
 
         /** create device manipulator functor

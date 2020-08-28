@@ -541,6 +541,13 @@ public:
         return step;
     }
 
+    virtual void printLaser(uint32_t numSteps)
+    {
+        std::cout << "Printing laser profile for " << numSteps << " time steps\n";
+        fields::LaserPhysics{}.printLaser(numSteps);
+        std::cout << "Printing laser profile finished\n";
+    }
+
     /**
      * Run one simulation step.
      *

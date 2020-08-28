@@ -110,6 +110,44 @@ namespace fields
     /** Laser init in a single xz plane */
     struct LaserPhysics
     {
+        void printLaser(uint32_t numSteps)
+        {
+            // Cell index to print the laser values at
+            // Is in the global user coordinate system, corresponding to the -g parameter
+            // By default set to initPlaneY in y, and center in x, z
+            // Modify when necessary
+            auto globalDomainSize = Environment< simDim >::get().SubGrid().getGlobalDomain().size;
+            pmacc::DataSpace< simDim > globalIdx = globalDomainSize / 2;
+            globalIdx.y() = laserProfiles::Selected::Unitless::initPlaneY;
+            // Period of laser values output, in time steps
+            uint32_t period = 5;
+
+            // Find which local domain are we in, all other MPI ranks do nothing
+            auto localDomainSize = Environment< simDim >::get().SubGrid().getLocalDomain().size;
+            auto localDomainOffset = Environment< simDim >::get().SubGrid().getLocalDomain().offset;
+            auto localIdx = globalIdx - localDomainOffset;
+            bool isInside = true;
+            for( uint32_t d = 0; d < simDim; d++ )
+                if( ( localIdx[d] < 0 ) ||
+                    ( localIdx[d] >= localDomainSize[d] ) )
+                    isInside = false;
+            if (!isInside)
+                return;
+
+
+            std::vector< float3_X > elongValues;
+            for( uint32_t currentStep = 0; currentStep < numSteps; currentStep += period )
+            {
+                auto laserFactory = laserProfiles::Selected( currentStep );
+                auto laser = laserFactory.getLaser( localIdx / SuperCellSize::toRT() );
+                elongValues.push_back( laser.getElong( localIdx ) );
+            }
+            std::ofstream f("laserValues.txt");
+            f << "time_step_index   elong_value_PIC_units\n";
+            for( uint32_t i = 0; i < elongValues.size(); i++ )
+                f << i * period << " " << elongValues[i] << "\n";
+        }
+
         void operator()(uint32_t currentStep) const
         {
             /* The laser can be initialized in the plane of the first cell or

@@ -97,6 +97,9 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep) = 0;
 
+    // Patch to print laser profile
+    virtual void printLaser(uint32_t numSteps) = 0;
+
     /**
      * Initialize simulation
      *
@@ -273,6 +276,7 @@ public:
              *        add and act on changed values via
              *        `SimulationDescription().getCurrentStep()` in this loop
              */
+            printLaser(Environment<>::get().SimulationDescription().getRunSteps());
             while (currentStep < Environment<>::get().SimulationDescription().getRunSteps())
             {
                 tRound.toggleStart();
