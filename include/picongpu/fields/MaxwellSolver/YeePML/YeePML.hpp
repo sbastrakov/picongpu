@@ -22,6 +22,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/absorber/Absorber.hpp"
+#include "picongpu/fields/incidentField/Solver.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/Field.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/Parameters.hpp"
 #include "picongpu/fields/MaxwellSolver/YeePML/YeePML.kernel"
@@ -390,7 +391,8 @@ namespace maxwellSolver
         using CurlB = T_CurlB;
 
         YeePML( MappingDesc const cellDescription ) :
-            solver( cellDescription )
+            solver( cellDescription ),
+            cellDescription( cellDescription )
         {
         }
 
@@ -407,10 +409,20 @@ namespace maxwellSolver
              * solver.updateBHalf( )
              */
             solver.template updateBHalf < CORE + BORDER >( currentStep );
+            auto incidentFieldSolver = fields::incidentField::Solver{ cellDescription };
+            // update B by half step, to step = currentStep + 0.5, so step for E_inc = currentStep
+            incidentFieldSolver.updateBHalf(
+                static_cast< float_X >( currentStep )
+            );
             auto & fieldB = solver.getFieldB( );
             EventTask eRfieldB = fieldB.asyncCommunication( __getTransactionEvent( ) );
 
             solver.template updateE< CORE >( currentStep );
+            // Incident field solver update does not use exchanged B, so does not have to wait for it
+            // update E by full step, to step = currentStep + 1, so step for B_inc = currentStep + 0.5
+            incidentFieldSolver.updateE(
+                static_cast< float_X >( currentStep ) + 0.5_X
+            );
             __setTransactionEvent( eRfieldB );
             solver.template updateE< BORDER >( currentStep );
         }
@@ -429,6 +441,11 @@ namespace maxwellSolver
              */
             if( laserProfiles::Selected::INIT_TIME > 0.0_X )
                 LaserPhysics{ }( currentStep );
+
+            // Incident field solver update does not use exchanged E, so does not have to wait for it
+            auto incidentFieldSolver = fields::incidentField::Solver{ cellDescription };
+            // update B by half step, to step currentStep + 1.5, so step for E_inc = currentStep + 1
+            incidentFieldSolver.updateBHalf( static_cast< float_X >( currentStep ) + 1.0_X );
 
             auto & fieldE = solver.getFieldE( );
             EventTask eRfieldE = fieldE.asyncCommunication( __getTransactionEvent( ) );
@@ -451,6 +468,7 @@ namespace maxwellSolver
     private:
 
         yeePML::detail::Solver< CurlE, CurlB > solver;
+        MappingDesc const cellDescription;
 
     };
 

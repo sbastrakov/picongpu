@@ -1,0 +1,157 @@
+/* Copyright 2020 Sergei Bastrakov
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include "picongpu/simulation_defines.hpp"
+
+#include <cstdint>
+
+
+namespace picongpu
+{
+namespace fields
+{
+namespace incidentField
+{
+namespace detail
+{
+
+    template<
+        typename T_FunctorIncidentField,
+        typename T_FieldBox
+    >
+    struct UpdateFunctor
+    {
+        using FunctorIncidentField = T_FunctorIncidentField;
+        using FieldBox = T_FieldBox;
+
+        // data box of field to update
+        FieldBox field;
+
+        // incident field functor (E incident for B field update,
+        // B incident for E field update)
+        FunctorIncidentField functorIncidentField;
+
+        // shift inside the cell for two functor invocations, in cells
+        float3_X inCellShift1, inCellShift2;
+
+        // multiplier for two functor invocations with shifts 1, 2
+        float3_X coeff1, coeff2;
+
+        // user cell idx = gridIdx + gridIdxShirt
+        pmacc::DataSpace< simDim > gridIdxShift;
+
+        // current time step, in iterations
+        float_X step;
+
+        HDINLINE UpdateFunctor( float3_64 const unitField ):
+            functorIncidentField( unitField )
+        {}
+
+        // Update field for given gridIdx
+        // gridIdx is in local domain, including guards
+        HDINLINE void operator()( pmacc::DataSpace< simDim > const & gridIdx )
+        {
+            // fractional since the later shift is fractional
+            auto const userCellIdx = pmacc::algorithms::precisionCast::precisionCast< float_X >(
+                gridIdx + gridIdxShift
+            );
+            auto const incidentField = coeff1 * functorIncidentField(
+                userCellIdx + inCellShift1,
+                step
+            ) + coeff2 * functorIncidentField(
+                userCellIdx + inCellShift2,
+                step
+            );
+            field( gridIdx ) += incidentField;
+        }
+    };
+
+
+    /** apply antenna functor
+    *
+    * @tparam T_numWorkers number of workers
+    * @tparam T_PlaneSizeInSuperCell number of cells per dimension which
+    *  initialize the laser (size must be less or equal than the supercell size)
+    */
+    template<
+        uint32_t T_numWorkers,
+        typename T_PlaneSizeInSuperCell
+    >
+    struct ApplyAntennaKernel
+    {
+        template<
+            typename T_Acc,
+            typename T_UpdateFunctor
+        >
+        HDINLINE void operator()(
+            T_Acc & acc,
+            T_UpdateFunctor functor,
+            DataSpace< simDim > beginGridIdx,
+            DataSpace< simDim > endGridIdx
+        ) const
+        {
+            // Structure copied from laser
+            PMACC_CASSERT_MSG(
+                __PlaneSizeInSuperCell_y_must_be_less_or_equal_than_SuperCellSize_y,
+                T_PlaneSizeInSuperCell::y::value <= SuperCellSize::y::value
+            );
+
+            constexpr uint32_t planeSize = pmacc::math::CT::volume<
+                T_PlaneSizeInSuperCell >::type::value;
+            const uint32_t workerIdx = cupla::threadIdx(acc).x;
+
+            // offset of the superCell (in cells, without any guards)
+            // to the origin of the local domain
+            DataSpace< simDim > supercellOffsetCells = DataSpace< simDim >(
+                cupla::blockIdx(acc) ) * SuperCellSize::toRT();
+
+            mappings::threads::ForEachIdx<
+                mappings::threads::IdxConfig<
+                    planeSize,
+                    T_numWorkers
+                >
+            > { workerIdx }(
+                [&](
+                    uint32_t const linearIdx,
+                    uint32_t const
+                )
+            {
+                auto cellIdxInSuperCell = DataSpaceOperations<
+                    simDim
+                >::template map< T_PlaneSizeInSuperCell >( linearIdx );
+                auto const gridIdx = beginGridIdx + supercellOffsetCells +
+                    cellIdxInSuperCell;
+
+                // Check that we are inside (due to block size being not a multiple of)
+                bool isInside = true;
+                for( uint32_t d = 0; d < simDim; d++ )
+                    isInside = isInside && ( gridIdx[ d ] < endGridIdx[ d ] );
+                if( isInside )
+                    functor( gridIdx );
+            }
+            );
+        }
+    };
+
+} // namespace detail
+} // namespace incidentField
+} // namespace fields
+} // namespace picongpu

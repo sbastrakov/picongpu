@@ -170,6 +170,8 @@ namespace detail
      * Stores the global absorber thickness in case the absorbing boundary
      * conditions are used along each boundary. Note that in case of periodic
      * boundaries the corresponding values will be ignored.
+     * It stores the absorber thickness in case the absorbing boundary
+     * conditions are used along each boundary, and does not set 0 for periodic
      *
      * Is uniform for both PML and exponential damping absorbers.
      * First index: 0 = x, 1 = y, 2 = z.
