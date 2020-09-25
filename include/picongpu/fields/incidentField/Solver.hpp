@@ -498,11 +498,12 @@ namespace detail
             cellDescription( cellDescription )
         {
             // Compute offsets from local domain borders, without guards
+            absorber::Thickness thickness = absorber::getGlobalThickness();
             for( uint32_t axis = 0u; axis < simDim; axis++ )
             {
-                offsetMinBorder[ axis ] = absorber::getThickness( axis, 0 ) +
+                offsetMinBorder[ axis ] = thickness( axis, 0 ) +
                     GAP_FROM_ABSORBER[ axis ][ 0 ];
-                offsetMaxBorder[ axis ] = absorber::getThickness( axis, 1 ) +
+                offsetMaxBorder[ axis ] = thickness( axis, 1 ) +
                     GAP_FROM_ABSORBER[ axis ][ 1 ];
             }
         }
