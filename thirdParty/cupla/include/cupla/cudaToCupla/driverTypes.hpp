@@ -34,6 +34,7 @@
 #define cudaErrorNotReady cuplaErrorNotReady
 #define cudaErrorDeviceAlreadyInUse cuplaErrorDeviceAlreadyInUse
 #define cuplaErrorInvalidDevice cuplaErrorInvalidDevice
+#define cudaErrorUnknown cuplaErrorUnknown
 
 #define cudaError_t cuplaError_t
 #define cudaError cuplaError

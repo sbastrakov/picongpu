@@ -43,7 +43,8 @@ enum cuplaError
     cuplaErrorInitializationError = 3,
     cuplaErrorInvalidDevice = 8,
     cuplaErrorNotReady = 34,
-    cuplaErrorDeviceAlreadyInUse = 54
+    cuplaErrorDeviceAlreadyInUse = 54,
+    cuplaErrorUnknown = 999
 };
 
 enum EventProp

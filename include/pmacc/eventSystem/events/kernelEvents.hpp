@@ -235,7 +235,7 @@ namespace exec
             {
                 auto const typeName = std::string( typeid( ex ).name( ) );
                 CUDA_CHECK_KERNEL_MSG(
-                    1,
+                    cuplaErrorUnknown,
                     std::string("Unhandled exception of type '") + typeName +
                     "   ' with message '" + ex.what() + " in kernel " + kernelInfo
                 );
@@ -243,7 +243,7 @@ namespace exec
             catch ( ... )
             {
                 CUDA_CHECK_KERNEL_MSG(
-                    1,
+                    cuplaErrorUnknown,
                     std::string("Unhandled exception of unknown type in kernel ") + kernelInfo
                 );
             }

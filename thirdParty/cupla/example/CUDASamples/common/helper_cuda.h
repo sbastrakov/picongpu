@@ -126,10 +126,10 @@ static const char *_cudaGetErrorEnum(cudaError_t error)
 
         case cudaErrorCudartUnloading:
             return "cudaErrorCudartUnloading";
-
+*/
         case cudaErrorUnknown:
             return "cudaErrorUnknown";
-
+/*
         case cudaErrorNotYetImplemented:
             return "cudaErrorNotYetImplemented";
 
