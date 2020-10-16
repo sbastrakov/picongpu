@@ -179,7 +179,9 @@ namespace exec
             T_Args const & ... args
         ) const
         {
-
+            #if( PMACC_SYNC_KERNEL  == 1 )
+            try{
+            #endif
             std::string const kernelName = typeid( m_kernel.m_kernelFunctor ).name();
             std::string const kernelInfo = kernelName +
                 std::string( " [" ) + m_kernel.m_file + std::string( ":" ) +
@@ -227,6 +229,25 @@ namespace exec
                 cuplaDeviceSynchronize( ),
                 std::string(  "Crash after kernel activation" ) + kernelInfo
             );
+            #if( PMACC_SYNC_KERNEL  == 1 )
+            }
+            catch ( const std::exception & ex )
+            {
+                auto const typeName = std::string( typeid( ex ).name( ) );
+                CUDA_CHECK_KERNEL_MSG(
+                    1,
+                    std::string("Unhandled exception of type '") + typeName +
+                    "   ' with message '" + ex.what() + " in kernel " + kernelInfo
+                );
+            }
+            catch ( ... )
+            {
+                CUDA_CHECK_KERNEL_MSG(
+                    1,
+                    std::string("Unhandled exception of unknown type in kernel ") + kernelInfo
+                );
+            }
+            #endif
         }
 
         template<
