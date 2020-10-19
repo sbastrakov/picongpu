@@ -1,4 +1,4 @@
-/* Copyright 2013-2020 Felix Schmitt, Rene Widera, Benjamin Worpitz
+/* Copyright 2013-2020 Felix Schmitt, Rene Widera, Benjamin Worpitz, Sergei Bastrakov
  *
  * This file is part of PMacc.
  *
@@ -21,7 +21,6 @@
 
 #pragma once
 
-
 #include "pmacc/types.hpp"
 #include "pmacc/dimensions/DataSpace.hpp"
 #include "pmacc/traits/GetNComponents.hpp"
@@ -29,9 +28,10 @@
 #include "pmacc/Environment.hpp"
 #include "pmacc/nvidia/gpuEntryFunction.hpp"
 
+#include <iostream>
+#include <stdexcept>
 #include <string>
-
-
+#include <typeinfo>
 
 /* No namespace in this file since we only declare macro defines */
 
@@ -44,7 +44,6 @@
     /*no synchronize and check of kernel calls*/
 #   define CUDA_CHECK_KERNEL_MSG(...)  ;
 #endif
-
 
 namespace pmacc
 {
@@ -185,6 +184,14 @@ namespace exec
                 std::string( " [" ) + m_kernel.m_file + std::string( ":" ) +
                 std::to_string( m_kernel.m_line ) + std::string( " ]" );
 
+            /* alpaka reports errors as exceptions, in the check mode handle it
+             * here while we still have kernel information
+             */
+#if( PMACC_SYNC_KERNEL  == 1 )
+            try
+            {
+#endif
+
             CUDA_CHECK_KERNEL_MSG(
                 cuplaDeviceSynchronize( ),
                 std::string( "Crash before kernel call " ) + kernelInfo
@@ -227,6 +234,23 @@ namespace exec
                 cuplaDeviceSynchronize( ),
                 std::string(  "Crash after kernel activation" ) + kernelInfo
             );
+
+            // in the check mode, catch and report alpaka exceptions
+#if( PMACC_SYNC_KERNEL  == 1 )
+            }
+            catch( std::exception const & ex )
+            {
+                std::cerr << "Error: unhandled exception of type '"
+                    << typeid( ex ).name() << "' with message '" << ex.what()
+                    << "' while trying to launch kernel "<< kernelInfo << "\n";
+            }
+            catch( ... )
+            {
+                std::cerr << "Error: unhandled exception of unknown type "
+                    << "' while trying to launch kernel "<< kernelInfo << "\n";
+            }
+#endif
+
         }
 
         template<
