@@ -559,6 +559,31 @@ namespace picongpu
             CurrentDeposition{}(currentStep);
             CurrentInterpolationAndAdditionToEMF{}(currentStep);
             myFieldSolver->update_afterCurrent(currentStep);
+            
+            // save E field at the control points
+            DataConnector& dc = Environment<>::get().DataConnector();
+            auto & fieldE = *dc.get<picongpu::FieldE>(picongpu::FieldE::getName(), true);
+            fieldE.synchronize( );
+            __getTransactionEvent().waitForFinished();
+            auto hostE = fieldE.getHostDataBox( );
+            pmacc::DataSpace<2> guardInCells(4, 4);
+            pmacc::DataSpace<2> pointAInternal(12, 30);
+            pmacc::DataSpace<2> pointAActual = pointAInternal + guardInCells;
+            pmacc::DataSpace<2> pointBInternal(12, 12);
+            pmacc::DataSpace<2> pointBActual = pointBInternal + guardInCells;
+            pointA.push_back(hostE(pointAActual));
+            pointB.push_back(hostE(pointBActual));
+            
+            int numSteps = 1000;
+            if (currentStep == numSteps - 1)
+            {
+                std::ofstream fa("pointA.txt");
+                for( auto avalue : pointA)
+                    fa << avalue[ 0 ] << " " << avalue[ 1 ] << " " << avalue[ 2 ] << "\n";
+                std::ofstream fb("pointB.txt");
+                for( auto bvalue : pointB)
+                    fb << bvalue[ 0 ] << " " << bvalue[ 1 ] << " " << bvalue[ 2 ] << "\n";                    
+            }
         }
 
         virtual void movingWindowCheck(uint32_t currentStep)
@@ -651,6 +676,10 @@ namespace picongpu
         std::vector<uint32_t> periodic;
 
         std::vector<std::string> gridDistribution;
+        
+        // E values for the PML test
+        std::vector<float3_X> pointA;
+        std::vector<float3_X> pointB;
 
         bool slidingWindow;
         int32_t endSlidingOnStep;
