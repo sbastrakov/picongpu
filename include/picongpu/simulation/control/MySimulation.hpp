@@ -564,8 +564,11 @@ namespace picongpu
             DataConnector& dc = Environment<>::get().DataConnector();
             auto & fieldE = *dc.get<picongpu::FieldE>(picongpu::FieldE::getName(), true);
             fieldE.synchronize( );
+            auto & fieldB = *dc.get<picongpu::FieldB>(picongpu::FieldB::getName(), true);
+            fieldB.synchronize( );
             __getTransactionEvent().waitForFinished();
             auto hostE = fieldE.getHostDataBox( );
+            auto hostB = fieldB.getHostDataBox( );
             pmacc::DataSpace<2> guardInCells(4, 4);
             pmacc::DataSpace<2> pointAInternal(12, 30);
             pmacc::DataSpace<2> pointAActual = pointAInternal + guardInCells;
@@ -573,6 +576,22 @@ namespace picongpu
             pmacc::DataSpace<2> pointBActual = pointBInternal + guardInCells;
             pointA.push_back(hostE(pointAActual));
             pointB.push_back(hostE(pointBActual));
+            
+            /*// check that guard fields remain zero_tokens
+            float_X sum = 0.0_X;
+            for(int i = 0; i < 34; i++)
+                for(int j = 0; j < 4; j++)
+                {
+                    pmacc::DataSpace<2> idx(i, j);
+                    sum += abs2(hostE(idx)) + abs2(hostB(idx));
+                }
+            for(int i = 0; i < 4; i++)
+                for(int j = 0; j < 34; j++)
+                {
+                    pmacc::DataSpace<2> idx(i, j);
+                    sum += abs2(hostE(idx)) + abs2(hostB(idx));
+                }
+            std::cout << "iteration = " << currentStep << ", sumFields = " << sum << "\n";*/
             
             int numSteps = 1000;
             if (currentStep == numSteps - 1)

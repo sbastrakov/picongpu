@@ -393,9 +393,9 @@ namespace picongpu
                     auto& fieldE = solver.getFieldE();
                     EventTask eRfieldE = fieldE.asyncCommunication(__getTransactionEvent());
 
-                    solver.template updateBHalf<CORE>(currentStep);
+                    ///solver.template updateBHalf<CORE>(currentStep);
                     __setTransactionEvent(eRfieldE);
-                    solver.template updateBHalf<BORDER>(currentStep);
+                    ///solver.template updateBHalf<BORDER>(currentStep);
 
                     auto& fieldB = solver.getFieldB();
                     EventTask eRfieldB = fieldB.asyncCommunication(__getTransactionEvent());
