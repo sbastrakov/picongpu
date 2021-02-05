@@ -48,20 +48,7 @@ namespace picongpu
      *
      * volume of a superCell must be <= 1024
      */
-<<<<<<< HEAD
     using SuperCellSize = typename mCT::shrinkTo<mCT::Int<8, 8, 4>, simDim>::type;
-=======
-    // TODO: check dimension naming
-    constexpr uint8_t xSizeSuperCell = 8;
-    constexpr uint8_t ySizeSuperCell = 8;
-    constexpr uint8_t zSizeSuperCell = 4;
-
-    using SuperCellSize = typename mCT::shrinkTo<
-        mCT::Int< xSizeSuperCell, ySizeSuperCell, zSizeSuperCell >,
-        simDim
-    >::type;
->>>>>>> 08da32563... completed implementation+degbugged code units
-
     constexpr uint16_t numCellsPerSuperCell = xSizeSuperCell * ySizeSuperCell * zSizeSuperCell;
 
     /** define mapper which is used for kernel call mappings */

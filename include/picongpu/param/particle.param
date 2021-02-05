@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-/* Copyright 2013-2021 Axel Huebl, Rene Widera, Benjamin Worpitz,
-=======
-/* Copyright 2013-2020 Axel Huebl, Rene Widera, Marco Garten, Benjamin Worpitz,
->>>>>>> 2cfde8057... Modify the .param files for the test atomic physics setup
- *                     Richard Pausch
+/* Copyright 2013-2021 Axel Huebl, Rene Widera, Marco Garten, Benjamin Worpitz, Richard Pausch
+ *                     
  *
  * This file is part of PIConGPU.
  *
@@ -208,5 +204,4 @@ namespace manipulators
     using SetBoundElectrons = generic::Free< SetIonToNeutral >;
 } // namespace manipulators
 } // namespace particles
->>>>>>> 2cfde8057... Modify the .param files for the test atomic physics setup
 } // namespace picongpu
