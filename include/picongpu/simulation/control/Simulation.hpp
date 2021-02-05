@@ -1,6 +1,7 @@
 /* Copyright 2013-2021 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
  *                     Richard Pausch, Alexander Debus, Marco Garten,
- *                     Benjamin Worpitz, Alexander Grund, Sergei Bastrakov
+ *                     Benjamin Worpitz, Alexander Grund, Sergei Bastrakov,
+ *                     Brian Marre
  *
  * This file is part of PIConGPU.
  *
@@ -59,7 +60,11 @@
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
+<<<<<<< HEAD
 #include "picongpu/simulation/stage/Collision.hpp"
+=======
+#include "picongpu/simulation/stage/AtomicPhysics.hpp"
+>>>>>>> e50e814cf (Manuall put changes of atomic physics to dev and apply formatting)
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
@@ -331,6 +336,10 @@ namespace picongpu
             // this may include allocation of additional fields so has to be done before particles
             fieldBackground.init(*cellDescription);
 
+            // create atomic physics instance, stored as protected member
+            this->atomicPhysics = std::make_unique<simulation::stage::AtomicPhysics>(*cellDescription);
+
+
             // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung
             // Photons
             using AllSynchrotronPhotonsSpecies =
@@ -535,6 +544,7 @@ namespace picongpu
             fieldBackground.subtract(currentStep);
             myFieldSolver->update_beforeCurrent(currentStep);
             __setTransactionEvent(commEvent);
+            atomicPhysics->operator()(currentStep);
             CurrentBackground{*cellDescription}(currentStep);
             CurrentDeposition{}(currentStep);
             currentInterpolationAndAdditionToEMF(currentStep);
@@ -611,6 +621,8 @@ namespace picongpu
         // Field background stage, has to live always as it is used for registering options like a plugin.
         // Because of it, has a special init() method that has to be called during initialization of the simulation
         simulation::stage::FieldBackground fieldBackground;
+
+        std::unique_ptr<simulation::stage::AtomicPhysics> atomicPhysics;
 
 #if(PMACC_CUDA_ENABLED == 1)
         // creates lookup tables for the bremsstrahlung effect
