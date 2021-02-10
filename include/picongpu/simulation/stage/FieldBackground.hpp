@@ -108,25 +108,21 @@ namespace picongpu
                 void process(uint32_t const step, T_Functor functor) const
                 {
                     using namespace pmacc;
-                    DataConnector& dc = Environment<>::get().DataConnector();
-                    auto fieldE = dc.get<FieldE>(FieldE::getName(), true);
-                    auto fieldB = dc.get<FieldB>(FieldB::getName(), true);
                     using Background = cellwiseOperation::CellwiseOperation<T_area>;
                     Background background(cellDescription);
-                    background(
-                        fieldE,
-                        functor,
-                        FieldBackgroundE(fieldE->getUnit()),
-                        step,
-                        FieldBackgroundE::InfluenceParticlePusher);
-                    background(
-                        fieldB,
-                        functor,
-                        FieldBackgroundB(fieldB->getUnit()),
-                        step,
-                        FieldBackgroundB::InfluenceParticlePusher);
-                    dc.releaseData(FieldE::getName());
-                    dc.releaseData(FieldB::getName());
+                    DataConnector& dc = Environment<>::get().DataConnector();
+                    if(FieldBackgroundE::InfluenceParticlePusher)
+                    {
+                        auto fieldE = dc.get<FieldE>(FieldE::getName(), true);
+                        background(fieldE, functor, FieldBackgroundE(fieldE->getUnit()), step);
+                        dc.releaseData(FieldE::getName());
+                    }
+                    if(FieldBackgroundB::InfluenceParticlePusher)
+                    {
+                        auto fieldB = dc.get<FieldB>(FieldB::getName(), true);
+                        background(fieldB, functor, FieldBackgroundB(fieldB->getUnit()), step);
+                        dc.releaseData(FieldB::getName());
+                    }
                 }
 
                 //! Mapping for kernels
