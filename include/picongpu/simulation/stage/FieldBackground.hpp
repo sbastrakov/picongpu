@@ -27,6 +27,8 @@
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/Environment.hpp>
+#include <pmacc/nvidia/functors/Add.hpp>
+#include <pmacc/nvidia/functors/Sub.hpp>
 #include <pmacc/type/Area.hpp>
 
 #include <cstdint>
@@ -42,31 +44,74 @@ namespace picongpu
             class FieldBackground
             {
             public:
-                /** Create a field background functor
+                /** Create field background functor with a fake mapping description
                  *
-                 * Having this in constructor is a temporary solution.
-                 *
-                 * @param cellDescription mapping for kernels
+                 * The actual field background has to be set later by calling setMappingDescription()
                  */
-                FieldBackground(MappingDesc const cellDescription) : cellDescription(cellDescription)
+                FieldBackground() : cellDescription(DataSpace<simDim>(SuperCellSize::toRT()))
                 {
                 }
 
-                /** Add the field background to the current density
+                /** Set mapping description for kernels
                  *
-                 * @tparam T_Functor functor type compatible to nvidia::functors
+                 * @param newCellDescription new mapping
+                 */
+                void setMappingDescription(MappingDesc const newCellDescription)
+                {
+                    cellDescription = newCellDescription;
+                }
+
+                /** Apply the field background to the electromagnetic field
                  *
                  * @param step index of time iteration
-                 * @param functor functor to apply to the background
                  */
-                template<typename T_Functor>
-                void operator()(uint32_t const step, T_Functor functor) const
+                void apply(uint32_t const step) const
+                {
+                    process<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Add{});
+                }
+
+                /** Restore the original electromagnetic field by reverting application of the field background
+                 *
+                 * @param step index of time iteration
+                 */
+                void restore(uint32_t const step) const
+                {
+                    process<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Sub{});
+                }
+
+                /** Apply initial field background during filling the simulation
+                 *
+                 * @param step index of time iteration
+                 */
+                void fillSimulation(uint32_t const step) const
+                {
+                    /* restore background fields in GUARD
+                     *
+                     * loads the outer GUARDS of the global domain for absorbing/open boundary condtions
+                     *
+                     * @todo as soon as we add GUARD fields to the checkpoint data, e.g. for PML boundary
+                     *       conditions, this section needs to be removed
+                     */
+                    process<GUARD>(step, pmacc::nvidia::functors::Add());
+                }
+
+            private:
+                /** Apply the given functor to the field background in the given area
+                 *
+                 * @tparam T_area area to operate on
+                 * @tparam T_Functor functor type compatible to pmacc::nvidia::functors
+                 *
+                 * @param step index of time iteration
+                 * @param functor functor to apply
+                 */
+                template<uint32_t T_area, typename T_Functor>
+                void process(uint32_t const step, T_Functor functor) const
                 {
                     using namespace pmacc;
                     DataConnector& dc = Environment<>::get().DataConnector();
                     auto fieldE = dc.get<FieldE>(FieldE::getName(), true);
                     auto fieldB = dc.get<FieldB>(FieldB::getName(), true);
-                    using Background = cellwiseOperation::CellwiseOperation<CORE + BORDER + GUARD>;
+                    using Background = cellwiseOperation::CellwiseOperation<T_area>;
                     Background background(cellDescription);
                     background(
                         fieldE,
@@ -84,7 +129,6 @@ namespace picongpu
                     dc.releaseData(FieldB::getName());
                 }
 
-            private:
                 //! Mapping for kernels
                 MappingDesc cellDescription;
             };

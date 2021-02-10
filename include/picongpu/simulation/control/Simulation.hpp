@@ -82,9 +82,6 @@
 
 #include <pmacc/nvidia/reduce/Reduce.hpp>
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
-#include <pmacc/nvidia/functors/Add.hpp>
-#include <pmacc/nvidia/functors/Sub.hpp>
-
 #include <pmacc/meta/conversion/SeqToMap.hpp>
 #include <pmacc/meta/conversion/TypeToPointerPair.hpp>
 
@@ -327,6 +324,9 @@ namespace picongpu
             // create field solver
             this->myFieldSolver = new fields::Solver(*cellDescription);
 
+            // configure field background
+            fieldBackground.setMappingDescription(*cellDescription);
+
             // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung
             // Photons
             using AllSynchrotronPhotonsSpecies =
@@ -486,27 +486,7 @@ namespace picongpu
                     initialiserController->restart((uint32_t) this->restartStep, this->restartDirectory);
                     step = this->restartStep;
 
-                    /** restore background fields in GUARD
-                     *
-                     * loads the outer GUARDS of the global domain for absorbing/open boundary condtions
-                     *
-                     * @todo as soon as we add GUARD fields to the checkpoint data, e.g. for PML boundary
-                     *       conditions, this section needs to be removed
-                     */
-                    cellwiseOperation::CellwiseOperation<GUARD> guardBGField(*cellDescription);
-                    namespace nvfct = pmacc::nvidia::functors;
-                    guardBGField(
-                        fieldE,
-                        nvfct::Add(),
-                        FieldBackgroundE(fieldE->getUnit()),
-                        step,
-                        FieldBackgroundE::InfluenceParticlePusher);
-                    guardBGField(
-                        fieldB,
-                        nvfct::Add(),
-                        FieldBackgroundB(fieldB->getUnit()),
-                        step,
-                        FieldBackgroundB::InfluenceParticlePusher);
+                    fieldBackground.fillSimulation(step);
                 }
                 else
                 {
@@ -550,7 +530,7 @@ namespace picongpu
 #endif
             EventTask commEvent;
             ParticlePush{}(currentStep, commEvent);
-            FieldBackground{*cellDescription}(currentStep, nvidia::functors::Sub());
+            fieldBackground.restore(currentStep);
             myFieldSolver->update_beforeCurrent(currentStep);
             __setTransactionEvent(commEvent);
             CurrentBackground{*cellDescription}(currentStep);
@@ -578,13 +558,13 @@ namespace picongpu
 
             if(addBgFields)
             {
-                /** add background field: the movingWindowCheck is just at the start
+                /* add background field: the movingWindowCheck is just at the start
                  * of a time step before all the plugins are called (and the step
                  * itself is performed for this time step).
                  * Hence the background field is visible for all plugins
                  * in between the time steps.
                  */
-                simulation::stage::FieldBackground{*cellDescription}(currentStep, nvidia::functors::Add());
+                fieldBackground.apply(currentStep);
             }
         }
 
@@ -624,6 +604,7 @@ namespace picongpu
         std::shared_ptr<DeviceHeap> deviceHeap;
 
         fields::Solver* myFieldSolver;
+        simulation::stage::FieldBackground fieldBackground;
 
 #if(PMACC_CUDA_ENABLED == 1)
         // creates lookup tables for the bremsstrahlung effect
