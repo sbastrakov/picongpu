@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/background/cellwiseOperation.hpp"
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldE.hpp"
@@ -32,6 +33,7 @@
 #include <pmacc/type/Area.hpp>
 
 #include <cstdint>
+#include <stdexcept>
 
 
 namespace picongpu
@@ -40,46 +42,124 @@ namespace picongpu
     {
         namespace stage
         {
+            namespace detail
+            {
+                /* Functor to apply the given field background to the given field
+                 *
+                 * @tparam T_Field field affected, e.g. picongpu::FieldE
+                 * @tparam T_FieldBackground field background to apply, e.g. picongpu::FieldBackgroundE
+                 */
+                template<typename T_Field, typename T_FieldBackground>
+                class ApplyFieldBackground
+                {
+                public:
+                    //! Field affected
+                    using Field = T_Field;
+
+                    //! Field background to apply
+                    using FieldBackground = T_FieldBackground;
+
+                    /** Create a functor to apply the background
+                     *
+                     * @param cellDescription mapping for kernels
+                     */
+                    ApplyFieldBackground(MappingDesc const cellDescription)
+                        : cellDescription(cellDescription)
+                        , isEnabled(FieldBackground::InfluenceParticlePusher)
+                    {
+                    }
+
+                    /** Apply the given functor to the field background in the given area
+                     *
+                     * @tparam T_area area to operate on
+                     * @tparam T_Functor functor type compatible to pmacc::nvidia::functors
+                     *
+                     * @param step index of time iteration
+                     * @param functor functor to apply
+                     */
+                    template<uint32_t T_area, typename T_Functor>
+                    void operator()(uint32_t const step, T_Functor functor) const
+                    {
+                        if(!isEnabled)
+                            return;
+                        using namespace pmacc;
+                        using CallBackground = cellwiseOperation::CellwiseOperation<T_area>;
+                        CallBackground callBackground(cellDescription);
+                        DataConnector& dc = Environment<>::get().DataConnector();
+                        auto field = dc.get<Field>(Field::getName(), true);
+                        callBackground(field, functor, FieldBackground(field->getUnit()), step);
+                        dc.releaseData(Field::getName());
+                    }
+
+                private:
+                    //! Is the field background enabled
+                    bool isEnabled;
+
+                    //! Mapping for kernels
+                    MappingDesc const cellDescription;
+                };
+            } // namespace detail
+
             //! Functor for the stage of the PIC loop applying field background
             class FieldBackground
             {
             public:
-                /** Create field background functor with a fake mapping description
+                /** Register program options for field background
                  *
-                 * The actual field background has to be set later by calling setMappingDescription()
+                 * @param desc boost::program_options::options_description
                  */
-                FieldBackground() : cellDescription(DataSpace<simDim>(SuperCellSize::toRT()))
+                void registerHelp(po::options_description& desc)
                 {
+                    desc.add_options()(
+                        "fieldBackground.useExtraMemory",
+                        po::value<bool>(&useExtraMemory)->zero_tokens(),
+                        "use extra fields for field background to improve precision and potentially avoid some "
+                        "numerical noise");
                 }
 
-                /** Set mapping description for kernels
+                /** Initialize field background stage
                  *
-                 * @param newCellDescription new mapping
+                 * This method must be called once before calling add(), subtract() and fillSimulation().
+                 * The initialization has to be delayed for this class as it needs registerHelp() like the plugins do.
+                 *
+                 * @param cellDescription mapping for kernels
                  */
-                void setMappingDescription(MappingDesc const newCellDescription)
+                void init(MappingDesc const cellDescription)
                 {
-                    cellDescription = newCellDescription;
+                    applyE = std::make_unique<ApplyE>(cellDescription);
+                    applyB = std::make_unique<ApplyB>(cellDescription);
                 }
 
-                /** Apply the field background to the electromagnetic field
+                /** Add field background to the electromagnetic field
+                 *
+                 * Affects data sets named FieldE::getName(), FieldB::getName().
+                 * As the result of this operation, they will have a sum of old values and background values.
                  *
                  * @param step index of time iteration
                  */
-                void apply(uint32_t const step) const
+                void add(uint32_t const step) const
                 {
-                    process<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Add{});
+                    apply<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Add{});
                 }
 
-                /** Restore the original electromagnetic field by reverting application of the field background
+                /** Subtract field background from the electromagnetic field
+                 *
+                 * Affects data sets named FieldE::getName(), FieldB::getName().
+                 * As the result of this operation, they will have values like before calling add().
+                 *
+                 * Warning: when fieldBackground.useExtraMemory is enabled, the fields are assumed to not have changed
+                 * since the call to add(). Having fieldBackground.useExtraMemory disabled does not rely on this.
                  *
                  * @param step index of time iteration
                  */
-                void restore(uint32_t const step) const
+                void subtract(uint32_t const step) const
                 {
-                    process<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Sub{});
+                    apply<CORE + BORDER + GUARD>(step, pmacc::nvidia::functors::Sub{});
                 }
 
-                /** Apply initial field background during filling the simulation
+                /** Set field background to a consistent initial state for starting or resuming a simulation
+                 *
+                 * This method must be called during filling the simulation.
                  *
                  * @param step index of time iteration
                  */
@@ -92,11 +172,11 @@ namespace picongpu
                      * @todo as soon as we add GUARD fields to the checkpoint data, e.g. for PML boundary
                      *       conditions, this section needs to be removed
                      */
-                    process<GUARD>(step, pmacc::nvidia::functors::Add());
+                    apply<GUARD>(step, pmacc::nvidia::functors::Add());
                 }
 
             private:
-                /** Apply the given functor to the field background in the given area
+                /** Apply the given functor to E and B field backgrounds in the given area
                  *
                  * @tparam T_area area to operate on
                  * @tparam T_Functor functor type compatible to pmacc::nvidia::functors
@@ -105,28 +185,28 @@ namespace picongpu
                  * @param functor functor to apply
                  */
                 template<uint32_t T_area, typename T_Functor>
-                void process(uint32_t const step, T_Functor functor) const
+                void apply(uint32_t const step, T_Functor functor) const
                 {
-                    using namespace pmacc;
-                    using Background = cellwiseOperation::CellwiseOperation<T_area>;
-                    Background background(cellDescription);
-                    DataConnector& dc = Environment<>::get().DataConnector();
-                    if(FieldBackgroundE::InfluenceParticlePusher)
-                    {
-                        auto fieldE = dc.get<FieldE>(FieldE::getName(), true);
-                        background(fieldE, functor, FieldBackgroundE(fieldE->getUnit()), step);
-                        dc.releaseData(FieldE::getName());
-                    }
-                    if(FieldBackgroundB::InfluenceParticlePusher)
-                    {
-                        auto fieldB = dc.get<FieldB>(FieldB::getName(), true);
-                        background(fieldB, functor, FieldBackgroundB(fieldB->getUnit()), step);
-                        dc.releaseData(FieldB::getName());
-                    }
+                    if(!applyE || !applyB)
+                        throw std::runtime_error("simulation::stage::FieldBackground used without init() called");
+                    applyE->operator()<T_area>(step, functor);
+                    applyB->operator()<T_area>(step, functor);
                 }
 
-                //! Mapping for kernels
-                MappingDesc cellDescription;
+                //! Functor type to apply background to field E
+                using ApplyE = detail::ApplyFieldBackground<FieldE, FieldBackgroundE>;
+
+                //! Functor to apply background to field E
+                std::unique_ptr<ApplyE> applyE;
+
+                //! Functor type to apply background to field B
+                using ApplyB = detail::ApplyFieldBackground<FieldB, FieldBackgroundB>;
+
+                //! Functor to apply background to field B
+                std::unique_ptr<ApplyB> applyB;
+
+                //! Whether to use extra fields to store activated background fields
+                bool useExtraMemory = false;
             };
 
         } // namespace stage

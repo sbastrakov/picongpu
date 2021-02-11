@@ -130,6 +130,7 @@ namespace picongpu
         virtual void pluginRegisterHelp(po::options_description& desc)
         {
             SimulationHelper<simDim>::pluginRegisterHelp(desc);
+            fieldBackground.registerHelp(desc);
             desc.add_options()(
                 "versionOnce",
                 po::value<bool>(&showVersionOnce)->zero_tokens(),
@@ -324,8 +325,9 @@ namespace picongpu
             // create field solver
             this->myFieldSolver = new fields::Solver(*cellDescription);
 
-            // configure field background
-            fieldBackground.setMappingDescription(*cellDescription);
+            // initialize field background stage,
+            // this may include allocation of additional fields so has to be done before particles
+            fieldBackground.init(*cellDescription);
 
             // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung
             // Photons
@@ -530,7 +532,7 @@ namespace picongpu
 #endif
             EventTask commEvent;
             ParticlePush{}(currentStep, commEvent);
-            fieldBackground.restore(currentStep);
+            fieldBackground.subtract(currentStep);
             myFieldSolver->update_beforeCurrent(currentStep);
             __setTransactionEvent(commEvent);
             CurrentBackground{*cellDescription}(currentStep);
@@ -564,7 +566,7 @@ namespace picongpu
                  * Hence the background field is visible for all plugins
                  * in between the time steps.
                  */
-                fieldBackground.apply(currentStep);
+                fieldBackground.add(currentStep);
             }
         }
 
@@ -604,6 +606,9 @@ namespace picongpu
         std::shared_ptr<DeviceHeap> deviceHeap;
 
         fields::Solver* myFieldSolver;
+
+        // Field background stage, has to live always as it is used for registering options like a plugin.
+        // Because of it, has a special init() method that has to be called during initialization of the simulation
         simulation::stage::FieldBackground fieldBackground;
 
 #if(PMACC_CUDA_ENABLED == 1)
