@@ -308,7 +308,7 @@ namespace picongpu
                         }
                     });
 
-                    cupla::__syncthreads(acc);
+                    // cupla::__syncthreads(acc);
 
                     frame = ionBox.getPreviousFrame(frame);
                     particlesInSuperCell = frameSize;

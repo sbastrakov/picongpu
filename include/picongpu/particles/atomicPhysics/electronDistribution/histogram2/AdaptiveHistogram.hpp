@@ -152,7 +152,9 @@ namespace picongpu
                         T_RelativeError relativeError;
 
                         // defines initial global grid
+                    public:
                         float_X initialGridWidth; // unit: Argument
+                    private:
                         //}
 
                         // TODO: replace linear search, by ordering bins
@@ -240,7 +242,7 @@ namespace picongpu
                             // init adaptive bin width algorithm parameters
                             this->relativeErrorTarget = relativeErrorTarget;
                             this->initialGridWidth = initialGridWidth;
-                            printf("     this->initialGridWidth_INIT %d\n", this->initialGridWidth);
+                            printf("     this->initialGridWidth_INIT %f\n", this->initialGridWidth);
 
                             // functor of relative error
                             this->relativeError = relativeError;
@@ -387,6 +389,9 @@ namespace picongpu
                             bool debug // debug only
                         ) const
                         {
+                            // first check
+                            // return 0.1_X;
+
                             // preparation for debug access to run time acess
                             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
@@ -395,7 +400,7 @@ namespace picongpu
                             {
                                 // debug code
                                 printf(
-                                    "    +/-?: %s, initBinWidth: %d, boundary: %d\n",
+                                    "    +/-?: %s, initBinWidth: %f, boundary: %f\n",
                                     directionPositive ? "t" : "f",
                                     currentBinWidth,
                                     boundary);
@@ -411,11 +416,12 @@ namespace picongpu
 
                             // debug only
                             uint16_t loopCounter = 0u;
+                            uint16_t maxLoopCount = 0u;
 
                             if(isBelowTarget)
                             {
                                 // increase until no longer below
-                                while(isBelowTarget && (loopCounter <= 100))
+                                while(isBelowTarget && (loopCounter <= maxLoopCount))
                                 {
                                     // debug only
                                     loopCounter++;
@@ -442,7 +448,7 @@ namespace picongpu
                             else
                             {
                                 // decrease until below target for the first time
-                                while((!isBelowTarget) && (loopCounter <= 100))
+                                while((!isBelowTarget) && (loopCounter <= maxLoopCount))
                                 {
                                     // debug only
                                     loopCounter++;
@@ -468,7 +474,7 @@ namespace picongpu
                             {
                                 // debug code
                                 printf(
-                                    "    Final: +/-?: %s, initialBinWidth: %d, boundary: %d, loopN: %i\n",
+                                    "    Final: +/-?: %s, initialBinWidth: %f, boundary: %f, loopN: %i\n",
                                     directionPositive ? "t" : "f",
                                     currentBinWidth,
                                     boundary,
@@ -513,7 +519,7 @@ namespace picongpu
                             if(workerIdx == 0)
                             {
                                 // debug code
-                                printf("    initialBinWidth: %d, boundary: %d\n", currentBinWidth, boundary);
+                                printf("    initialBinWidth: %f, boundary: %f\n", currentBinWidth, boundary);
                             }
 
                             bool inBin = false;
@@ -581,7 +587,12 @@ namespace picongpu
                             T_AtomicDataBox atomicDataBox)
                         {
                             // compute global bin index
-                            float_X const binLeftBoundary = this->getBinLeftBoundary(acc, x, atomicDataBox, true);
+                            float_X const binLeftBoundary = this->getBinLeftBoundary(
+                                acc,
+                                x,
+                                atomicDataBox,
+                                true // debug switch
+                            );
 
                             // search for bin in collection of existing bins
                             auto const index = findBin(binLeftBoundary);
