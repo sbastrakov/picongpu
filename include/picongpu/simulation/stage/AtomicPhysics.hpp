@@ -76,7 +76,7 @@ namespace picongpu
                 void operator()(uint32_t const step) const
                 {
                     // create instance
-                    printf("    atomic physics stage for step %d \n", step);
+                    printf("atomic physics stage for step %d \n", step);
                     callAtomicPhysics(step, cellDescription);
                 }
 

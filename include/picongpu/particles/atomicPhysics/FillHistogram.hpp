@@ -74,7 +74,7 @@ namespace picongpu
                 //}
 
 
-                // go over frames
+                // go over frames using comon histogram
                 while(frame.isValid())
                 {
                     // parallel loop over all particles in the frame
@@ -83,8 +83,8 @@ namespace picongpu
                         if(linearIdx < particlesInSuperCell)
                         {
                             // NOTE: all particle[ ... ] returns in PIC units, not SI
-                            // note: there is UNIT_ENERGY that can help with conversion
-                            // note3: maybe getEnergy could become a generic algorithm
+                            // note: there is ATOMIC_UNIT_ENERGY that can be used as physical multiplicative unit
+                            // note3: getEnergy should become a generic algorithm
                             auto const particle = frame[linearIdx];
 
                             float_X const energy_SI

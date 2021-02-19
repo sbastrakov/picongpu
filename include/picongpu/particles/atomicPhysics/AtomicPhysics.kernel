@@ -162,7 +162,7 @@ namespace picongpu
                         printf("    allocated relative error instance\n");
                     }
 
-                    // init histogram
+                    // init histogram and relative error
                     if(workerIdx == 0)
                     {
                         // pass through parameters of histogram
@@ -176,8 +176,7 @@ namespace picongpu
                     if(workerIdx == 0)
                     {
                         printf("    init histogram\n");
-                        printf("        initialGridWidthInitLocal: %f\n", initialGridWidth);
-                        printf("        initialGridWidthInitHistogram: %f\n", histogram.initialGridWidth);
+                        printf("        initialGridWidthSpecified: %f\n", initialGridWidth);
                     }
 
                     fillHistogram<T_numWorkers>(acc, electronBox, mapper, &histogram, atomicDataBox);

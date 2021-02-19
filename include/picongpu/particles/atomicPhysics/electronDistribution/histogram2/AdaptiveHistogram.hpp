@@ -231,7 +231,13 @@ namespace picongpu
                             float_X initialGridWidth,
                             T_RelativeError& relativeError)
                         {
-                            printf("     initialGridWidth_INIT %d\n", initialGridWidth);
+                            // debug only
+                            printf(
+                                "        initialGridWidth_INIT_IN %f, relativeErrorTarget_INIT_IN %f\n",
+                                initialGridWidth,
+                                relativeErrorTarget);
+
+
                             // init histogram empty
                             this->numBins = 0u;
                             this->numNewBins = 0u;
@@ -242,7 +248,12 @@ namespace picongpu
                             // init adaptive bin width algorithm parameters
                             this->relativeErrorTarget = relativeErrorTarget;
                             this->initialGridWidth = initialGridWidth;
-                            printf("     this->initialGridWidth_INIT %f\n", this->initialGridWidth);
+
+                            // debug only
+                            printf(
+                                "        initialGridWidth_INIT_SET %f, relativeErrorTarget_INIT_SET %f\n",
+                                this->initialGridWidth,
+                                this->relativeErrorTarget);
 
                             // functor of relative error
                             this->relativeError = relativeError;
@@ -385,9 +396,7 @@ namespace picongpu
                             const bool directionPositive,
                             const float_X boundary, // unit: value
                             float_X currentBinWidth,
-                            T_AtomicDataBox atomicDataBox,
-                            bool debug // debug only
-                        ) const
+                            T_AtomicDataBox atomicDataBox) const
                         {
                             // first check
                             // return 0.1_X;
@@ -395,16 +404,6 @@ namespace picongpu
                             // preparation for debug access to run time acess
                             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-                            // debug acess
-                            if((workerIdx == 0) && debug)
-                            {
-                                // debug code
-                                printf(
-                                    "    +/-?: %s, initBinWidth: %f, boundary: %f\n",
-                                    directionPositive ? "t" : "f",
-                                    currentBinWidth,
-                                    boundary);
-                            }
 
                             // is initial binWidth realtiveError below the Target?
                             bool isBelowTarget
@@ -414,9 +413,26 @@ namespace picongpu
                                        AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
                                        atomicDataBox));
 
+                            bool debug = false;
+                            // debug acess
+                            if((workerIdx == 0))
+                            {
+                                // debug code
+                                printf(
+                                    "       getBinWidth: isBelowTarget %s, directionPositive %s, initBinWidth %f, "
+                                    "boundary %f\n",
+                                    isBelowTarget ? "true" : "false",
+                                    directionPositive ? "true" : "false",
+                                    currentBinWidth,
+                                    boundary);
+                                debug = true;
+                            }
+
                             // debug only
                             uint16_t loopCounter = 0u;
-                            uint16_t maxLoopCount = 0u;
+                            uint16_t maxLoopCount = 5u;
+
+                            float_X m_relativeError;
 
                             if(isBelowTarget)
                             {
@@ -425,19 +441,28 @@ namespace picongpu
                                 {
                                     // debug only
                                     loopCounter++;
+                                    if(debug)
+                                    {
+                                        printf("loop_1, loopcounter %i\n", loopCounter);
+                                    }
+
                                     // try higher binWidth
                                     currentBinWidth *= 2._X;
 
-                                    // until no longer below Target
-                                    isBelowTarget
-                                        = (this->relativeErrorTarget > this->relativeError(
-                                               acc,
-                                               currentBinWidth,
-                                               AdaptiveHistogram::centerBin(
-                                                   directionPositive,
-                                                   boundary,
-                                                   currentBinWidth),
-                                               atomicDataBox));
+                                    // until first time below Target
+                                    m_relativeError = this->relativeError(
+                                        acc,
+                                        currentBinWidth,
+                                        AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
+                                        atomicDataBox);
+
+                                    isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
+
+                                    printf(
+                                        "loop_1: isBelowTarget %s, currentBinWidth %f, relativeError %f\n ",
+                                        isBelowTarget ? "true" : "false",
+                                        currentBinWidth,
+                                        relativeError);
                                 }
 
                                 // last i-th try was not below target,
@@ -450,24 +475,37 @@ namespace picongpu
                                 // decrease until below target for the first time
                                 while((!isBelowTarget) && (loopCounter <= maxLoopCount))
                                 {
+                                    printf("loop_2, loopcounter%i\n", loopCounter);
                                     // debug only
                                     loopCounter++;
                                     // lower binWidth
                                     currentBinWidth /= 2._X;
 
                                     // until first time below Target
-                                    isBelowTarget
-                                        = (this->relativeErrorTarget >= this->relativeError(
-                                               acc,
-                                               currentBinWidth,
-                                               AdaptiveHistogram::centerBin(
-                                                   directionPositive,
-                                                   boundary,
-                                                   currentBinWidth),
-                                               atomicDataBox));
+                                    m_relativeError = this->relativeError(
+                                        acc,
+                                        currentBinWidth,
+                                        AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
+                                        atomicDataBox);
+
+                                    isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
+
+                                    printf(
+                                        "loop_2: isBelowTarget %s, currentBinWidth %f, relativeError %f, "
+                                        "relativeErrorTarget %f\n ",
+                                        isBelowTarget ? "true" : "false",
+                                        currentBinWidth,
+                                        m_relativeError,
+                                        this->relativeErrorTarget);
                                 }
                                 // no need to reset to value before
                                 // since this was first value that was below target
+                            }
+                            if(currentBinWidth <= 10._X)
+                            {
+                                printf(
+                                    "Warning in [atomicPhysics]: to low relative error target, used value %f\n",
+                                    this->relativeErrorTarget);
                             }
                             // debug acess
                             if((workerIdx == 0) && debug)
@@ -493,12 +531,8 @@ namespace picongpu
                          * does not change lastBinLeftBoundary
                          */
                         template<typename T_Acc>
-                        DINLINE float_X getBinLeftBoundary(
-                            T_Acc& acc,
-                            float_X const x,
-                            T_AtomicDataBox atomicDataBox,
-                            bool debug // debug only
-                        ) const
+                        DINLINE float_X
+                        getBinLeftBoundary(T_Acc& acc, float_X const x, T_AtomicDataBox atomicDataBox) const
                         {
                             // wether x is in positive direction with regards to last known
                             // Boundary
@@ -519,22 +553,25 @@ namespace picongpu
                             if(workerIdx == 0)
                             {
                                 // debug code
-                                printf("    initialBinWidth: %f, boundary: %f\n", currentBinWidth, boundary);
+                                printf(
+                                    "        getBinLeftBoundary: directionPositive %s, initialBinWidth: %f, boundary: "
+                                    "%f\n",
+                                    directionPositive ? "true" : "false",
+                                    currentBinWidth,
+                                    boundary);
                             }
+
+                            uint16_t loopCounter = 0u;
 
                             bool inBin = false;
                             while(!inBin)
                             {
+                                loopCounter++;
                                 // get currentBinWidth
                                 // currentBinWidth = 0.1_X;
                                 // debug sinc ethis call seems to cause infinite loop
-                                currentBinWidth = getBinWidth(
-                                    acc,
-                                    directionPositive,
-                                    boundary,
-                                    currentBinWidth,
-                                    atomicDataBox,
-                                    false);
+                                currentBinWidth
+                                    = getBinWidth(acc, directionPositive, boundary, currentBinWidth, atomicDataBox);
 
                                 inBin = AdaptiveHistogram::inBin(directionPositive, boundary, currentBinWidth, x);
 
@@ -550,15 +587,29 @@ namespace picongpu
                                 }
                                 else
                                 {
+                                    // particle is not in bin
                                     if(directionPositive)
                                     {
+                                        // to try the next bin, we shift the boundary one bin to the right
                                         boundary += currentBinWidth;
                                     }
                                     else
                                     {
+                                        // ... or left
                                         boundary -= currentBinWidth;
                                     }
+                                    // and reset the current width to the initial value to start finding the width with
+                                    // the initial value again
+                                    currentBinWidth = this->initialGridWidth;
                                 }
+
+                                printf(
+                                    "        getBinLeftBoundary: inBin %s, loopCounter %i, currentBinWidth %f, "
+                                    "boundary %f /n",
+                                    inBin ? "true" : "false",
+                                    loopCounter,
+                                    currentBinWidth,
+                                    boundary);
                             }
                             return boundary;
                         }
@@ -587,12 +638,7 @@ namespace picongpu
                             T_AtomicDataBox atomicDataBox)
                         {
                             // compute global bin index
-                            float_X const binLeftBoundary = this->getBinLeftBoundary(
-                                acc,
-                                x,
-                                atomicDataBox,
-                                true // debug switch
-                            );
+                            float_X const binLeftBoundary = this->getBinLeftBoundary(acc, x, atomicDataBox);
 
                             // search for bin in collection of existing bins
                             auto const index = findBin(binLeftBoundary);
@@ -619,8 +665,8 @@ namespace picongpu
                                 else
                                 {
                                     /// If we are here, there were more new bins since the last update
-                                    // call than memory allocated for them
-                                    // Normally, this should not happen
+                                    /// call than memory allocated for them
+                                    /// Normally, this should not happen
                                 }
                             }
                         }
