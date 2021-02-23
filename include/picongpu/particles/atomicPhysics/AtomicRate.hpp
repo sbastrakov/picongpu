@@ -21,6 +21,11 @@
 
 #include <pmacc/algorithms/math.hpp>
 
+// debug only
+#include <iostream>
+#include <cmath>
+
+
 #pragma once
 
 /** rate calculation from given atomic data, extracted from flylite, based on FLYCHK
@@ -65,7 +70,7 @@ namespace picongpu
                 using AtomicDataBox = T_AtomicDataBox;
                 using ConfigNumber = T_ConfigNumber;
 
-                // datatype of occupation number vector
+                // data type of occupation number vector
                 using LevelVector = pmacc::math::Vector<uint8_t,
                                                         T_numLevels>; // unitless
 
@@ -179,6 +184,7 @@ namespace picongpu
                     uint32_t indexTransition; // unitless
                     float_X Ratio; // unitless
 
+                    // excitation or deexcitation
                     if(energyDifference_SI < 0._X)
                     {
                         // deexcitation
@@ -190,6 +196,7 @@ namespace picongpu
                             oldIdx // upper atomic state Idx
                         );
 
+                        // ratio due to multiplicity
                         // unitless/unitless * (J + J) / J = unitless
                         Ratio = static_cast<float_X>(
                                     static_cast<float_64>(Multiplicity(acc, newIdx))
@@ -230,6 +237,24 @@ namespace picongpu
                         8._X * math::pow(picongpu::PI * picongpu::SI::BOHR_RADIUS, 2.0_X)
                         / math::sqrt(3._X)); // uint: m^2, SI
 
+                    // debug only
+                    /*printf("constant == 0 %s oscillatorStrength %f energy %f gaunt %f \n",
+                        c0_SI == 0 ? "true" : "false",
+                        collisionalOscillatorStrength,
+                        energyElectron,
+                        gauntFactor(energyDifference_SI,
+                            energyElectron_SI,
+                            indexTransition,
+                            atomicDataBox));*/
+                    // std::cout << collisionalOscillatorStrength << std::endl;
+                    if(!std::isnan(collisionalOscillatorStrength))
+                    {
+                        printf(
+                            "indexTransition %i, oscillatorStrength %f \n",
+                            indexTransition,
+                            collisionalOscillatorStrength);
+                    }
+
                     // m^2 * (J/J)^2 * unitless * J/J * unitless<-[ J, J, unitless, unitless ] = m^2
                     float_X crossSection_SI = c0_SI
                         * math::pow(
@@ -264,6 +289,9 @@ namespace picongpu
                     Idx lowerIdx;
                     Idx upperIdx;
 
+                    // debug only
+                    // uint16_t loopCount = 0u;
+
                     for(uint32_t i = 0u; i < atomicDataBox.getNumTransitions(); i++)
                     {
                         upperIdx = atomicDataBox.getUpperIdxTransition(i);
@@ -277,6 +305,10 @@ namespace picongpu
                             energyElectron, // unit: ATOMIC_UNIT_ENERGY
                             atomicDataBox); // unit: m^2, SI
 
+                        // debug only
+                        // loopCount++;
+                        // printf("loop %i: crossectionExcitation %f\n", loopCount, result);
+
                         // deexcitation crosssection
                         result += collisionalExcitationCrosssection(
                             acc,
@@ -284,6 +316,9 @@ namespace picongpu
                             lowerIdx,
                             energyElectron,
                             atomicDataBox); // unit: m^2, SI
+
+                        // debug only
+                        // printf("loop %i: crossectionDeexcitation %f\n", loopCount, result);
                     }
 
                     return result; // unit: m^2, SI

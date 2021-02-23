@@ -232,10 +232,11 @@ namespace picongpu
                             T_RelativeError& relativeError)
                         {
                             // debug only
-                            printf(
+                            /*printf(
                                 "        initialGridWidth_INIT_IN %f, relativeErrorTarget_INIT_IN %f\n",
                                 initialGridWidth,
                                 relativeErrorTarget);
+                            */
 
 
                             // init histogram empty
@@ -250,10 +251,11 @@ namespace picongpu
                             this->initialGridWidth = initialGridWidth;
 
                             // debug only
-                            printf(
+                            /*printf(
                                 "        initialGridWidth_INIT_SET %f, relativeErrorTarget_INIT_SET %f\n",
                                 this->initialGridWidth,
                                 this->relativeErrorTarget);
+                            */
 
                             // functor of relative error
                             this->relativeError = relativeError;
@@ -316,9 +318,7 @@ namespace picongpu
                                     true,
                                     leftBoundary,
                                     this->initialGridWidth,
-                                    atomicDataBox,
-                                    false // debug only
-                                );
+                                    atomicDataBox);
 
                                 return leftBoundary + binWidth / 2._X;
                             }
@@ -369,9 +369,7 @@ namespace picongpu
                                     true,
                                     leftBoundary,
                                     this->initialGridWidth,
-                                    atomicDataBox,
-                                    false // Debug only
-                                );
+                                    atomicDataBox);
                                 if(this->inBin(true, leftBoundary, binWidth, energy))
                                 {
                                     return i;
@@ -605,7 +603,7 @@ namespace picongpu
 
                                 printf(
                                     "        getBinLeftBoundary: inBin %s, loopCounter %i, currentBinWidth %f, "
-                                    "boundary %f /n",
+                                    "boundary %f \n",
                                     inBin ? "true" : "false",
                                     loopCounter,
                                     currentBinWidth,

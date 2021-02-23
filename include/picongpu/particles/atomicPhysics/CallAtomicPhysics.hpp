@@ -239,7 +239,7 @@ namespace picongpu
                      * BEWARE: prototype implementation ONLY,
                      *  - filenames are hardcoded
                      *  - only a single file can be loaded for all species
-                     *  - no param yet existing
+                     *  - no param file yet exists
                      * @TODO get out of param files seperate for each species, Brian Marre 2020
                      */
 
@@ -340,8 +340,8 @@ namespace picongpu
 
                     // histogram parameter, hardcoded for now
                     // TODO: make available as options from param file, Brian Marre 2020
-                    constexpr float_X initialGridWidth = 0.2_X; // unit: ATOMIC_UNIT_ENERGY
-                    constexpr float_X relativeErrorTarget = 0.5_X; // unit: 1/s /( 1/( m^3 * ATOMIC_UNIT_ENERGY ) )
+                    constexpr float_X initialGridWidth = 100._X; // unit: ATOMIC_UNIT_ENERGY
+                    constexpr float_X relativeErrorTarget = 20._X; // unit: 1/s /( 1/( m^3 * ATOMIC_UNIT_ENERGY ) )
                     constexpr uint16_t maxNumBins = 1000;
 
                     // renaming of Kernel, basic construct defined in

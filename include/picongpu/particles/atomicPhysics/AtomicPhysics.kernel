@@ -173,10 +173,11 @@ namespace picongpu
                     cupla::__syncthreads(acc);
                     // necessary since all access relativeError and histogram, but both are only valid after init
 
+                    // debug only
                     if(workerIdx == 0)
                     {
                         printf("    init histogram\n");
-                        printf("        initialGridWidthSpecified: %f\n", initialGridWidth);
+                        // printf("        initialGridWidthSpecified: %f\n", initialGridWidth);
                     }
 
                     fillHistogram<T_numWorkers>(acc, electronBox, mapper, &histogram, atomicDataBox);

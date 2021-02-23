@@ -26,6 +26,9 @@
 #include <utility>
 #include <pmacc/algorithms/math.hpp>
 
+// debug only
+#include <iostream>
+
 
 #pragma once
 
@@ -127,6 +130,14 @@ namespace picongpu
                                         T_numSamplePoints / 2u + 2u>(i, j, samplePoints);
                                 }
                             }
+
+                            /*
+                            // debug only
+                            printf("samplePoints {%f, %f, %f}\n",
+                                samplePoints[0],
+                                samplePoints[1],
+                                samplePoints[2]
+                                );*/
                         }
 
 
@@ -140,17 +151,51 @@ namespace picongpu
                         {
                             float_X result = 0._X; // unit: (1/s) / (m^3/J)
 
+                            // sanity checks
+                            // dE > 0, otherwise rate relative error not defined (dE==0),
+                            // or incorrectly calculated (dE < 0)
+                            if(dE <= 0._X)
+                            {
+                                printf("WARNING: rate relative error not defined, for binWidth: %f\n", dE);
+                            }
+
+                            // E > 0, required by pyhsics due to definition of energy
+                            if(E < 0._X)
+                            {
+                                printf("WARNING: rate relative error not defined, for central bin Energy: %f\n", E);
+                            }
+
+                            // debug only
+                            // uint16_t loopCounter = 0u;
+
                             // a ... order of rate approximation
                             for(uint32_t a = T_minOrderApprox; a <= T_maxOrderApprox; a++)
                             {
                                 // o ... derivative order of crossection sigma
                                 for(uint32_t o = 0u; o <= 2 * a; o++)
                                 {
+                                    // debug only
+                                    // loopCounter++;
+
+                                    // std::cout << "loopCounter " << loopCounter;
+                                    // std::cout << ", fak(o) " << fak(o);
+                                    // std::cout << ", fak(2u * a - o) " << fak(2u * a - o);
+                                    // std::cout << ", sigmaDerivative "<< sigmaDerivative(acc, E, dE, o,
+                                    // atomicDataBox);
+                                    // std::cout << ", velocityDerivative " << velocityDerivative(E, dE, 2u * a - o)
+                                    // * 1._X / (2u * a + 1u);
+                                    /*std::cout << "conversion factors " << math::pow(
+                                                  dE * picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X,
+                                                  static_cast<float_X>(2u * a + 1u)); */
+                                    // std::cout << std::endl;
+                                    // printf("loopCounter %i, sigmaDerivative %f\n", loopCounter, sigmaDerivative(acc,
+                                    // E, dE, o, atomicDataBox));
+
                                     // taylor expansion of rate integral, see my master thesis
                                     // \sum{ 1/(o! (2a-o)!) * sigma'(o) * v'(2a-o) * 1/(2a+1) * (dE/2)^(2a+1) * 2}
                                     // 1/unitless * m^2/J^o * m/s * 1/J^(2*a-o) * unitless * J^(2*a+1) * unitless
                                     // = m^3/J^(2a) * 1/s * J^(2a+1) = J * m^3 * 1/s
-                                    result += 1.0 / (fak(o) * fak(2u * a - o))
+                                    result += 1.0_X / (fak(o) * fak(2u * a - o))
                                         * sigmaDerivative(acc, E, dE, o, atomicDataBox)
                                         * velocityDerivative(E, dE, 2u * a - o) * 1._X / (2u * a + 1u)
                                         * math::pow(
@@ -159,8 +204,8 @@ namespace picongpu
                                         * 2._X; // unit: J * m^3 * 1/s
                                 }
                             }
-                            // printf("    deltaE: %d\n", dE);
-                            // printf("    relative error: %d\n", result);
+                            // printf("    deltaE: %f\n", dE);
+                            // printf("    relative error: %f\n", result);
                             return result;
                         }
 
@@ -229,32 +274,56 @@ namespace picongpu
                             T_AtomicDataBox const atomicDataBox // in file atomicData.hpp
                         ) const
                         {
-                            // samplePoint[ 0 ], is by definition always = 0
-                            float_X weight = this->weights[o * T_numSamplePoints]; // unit: unitless
+                            // debug only
+                            // printf("E %f , dE %f, o %i\n", E, dE, o);
 
-                            // float_X sigmaValue = AtomicRate::totalCrossSection(0u);
+                            const auto numSamplePoints = T_numSamplePoints;
+
+                            // get weight for sample point 0, j=0,
+                            // acess to samplePoint[ o * T_numSamplePoints + j ]
+                            // TODO: stuff this index arithmic into a method call/template
+                            float_X weight = this->weights[o * numSamplePoints]; // unit: unitless
+
+                            // get crossection of the energy bin
                             float_X sigmaValue = AtomicRate::totalCrossSection(
                                 acc,
                                 E, // unit: ATOMIC_UNIT_ENERGY
                                 atomicDataBox); // unit: m^2, SI
 
+                            //{ caluculate derivative
+                            // derivative approx. \sum weight_i * sigma(x_i)
+
+                            // first sample point, special since always at center of bin
                             float_X result = weight * sigmaValue; // unit: m^2, SI
-                            const auto numSamplePoints = T_numSamplePoints;
+
+                            // debug only
+                            // uint16_t loopCounter = 0u;
+                            /*printf("step %i: weight %f, sigmaValue %f, result %f\n",
+                                loopCounter, weight, sigmaValue, result);*/
+
 
                             // all further sample points
                             for(uint32_t j = 1u; j < T_numSamplePoints; j++) // j index of sample point
                             {
                                 weight = this->weights[o * numSamplePoints + j]; // unitless
 
-                                // sigmaValue = AtomicRate::totalCrossSection< T_ConfigNumberDataType >();
-                                //         E + chebyshevNodes< T_numSamplePoints - 1u >( j + 1u ) * dE / 2._X,
-                                //        atomicDataBox
-                                //         ); // unit: m^2, SI
+                                sigmaValue = AtomicRate::totalCrossSection(
+                                    acc,
+                                    E
+                                        + chebyshevNodes<numSamplePoints - 1u>(j + 1u) * dE
+                                            / 2._X, // unit: ATOMIC_UNIT_ENERGY
+                                    atomicDataBox); // unit: m^2, SI
 
                                 result += weight * sigmaValue; // unit: m^2, SI
+
+                                /*loopCounter++;
+                                // debug only
+                                printf("step %i: weight %f, sigmaValue %f, result\n",
+                                loopCounter, weight, sigmaValue, result);*/
                             }
-                            // m^2 / (J)^m
+
                             result /= math::pow(dE * picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X, static_cast<float_X>(o));
+                            //} m^2 / (J)^m
 
                             return result; // unit: m^2/J^m, SI
                         }
