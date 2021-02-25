@@ -160,7 +160,7 @@ namespace picongpu
                             }
 
                             // E > 0, required by pyhsics due to definition of energy
-                            if(E < 0._X)
+                            if(E <= 0._X)
                             {
                                 printf("WARNING: rate relative error not defined, for central bin Energy: %f\n", E);
                             }

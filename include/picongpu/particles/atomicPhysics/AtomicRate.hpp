@@ -86,13 +86,33 @@ namespace picongpu
                  * Source: https://www.tutorialspoint.com/binomial-coefficient-in-cplusplus;
                  *  22.11.2019
                  */
-                DINLINE static uint64_t binomialCoefficients(uint8_t n, uint8_t k)
+                DINLINE static float_64 binomialCoefficients(uint8_t n, uint8_t k)
                 {
-                    float_64 result = 1.;
-
-                    for(uint8_t i = 1u; i <= n; i++)
+                    // check for limits, no check for < 0 necessary, since uint
+                    if(n < k)
                     {
-                        result *= (1 + static_cast<float_64>(n - k) / static_cast<float_64>(i));
+                        printf("invalid call binomial(n,k), with n < k");
+                        return 0.f;
+                    }
+
+                    // reduce necessary steps using symmetry in k
+                    if(k > n / 2._X)
+                    {
+                        k = n - k;
+                    }
+
+                    float_64 result = 1u;
+
+                    for(uint8_t i = 1u; i <= k; i++)
+                    {
+                        result *= (n - i + 1) / static_cast<float_64>(i);
+                    }
+
+#pragma omp critical
+                    {
+                        // debug only
+                        std::cout << "n " << n << " k " << k << " binom " << result << std::endl;
+                        // printf("n %u, k %u, result %f\n", n, k, result);
                     }
 
                     return result;
@@ -102,17 +122,25 @@ namespace picongpu
                 // @param idx ... index of atomic state, unitless
                 // return unit: unitless
                 template<typename T_Acc>
-                DINLINE static uint64_t Multiplicity(T_Acc& acc, Idx idx)
+                DINLINE static float_64 Multiplicity(T_Acc& acc, Idx idx)
                 {
                     LevelVector const levelVector = ConfigNumber::getLevelVector(idx); // unitless
 
-                    uint64_t result = 1u;
+                    float_64 result = 1u;
 
                     for(uint8_t i = 0u; i < T_numLevels; i++)
                     {
                         result *= binomialCoefficients(
-                            static_cast<uint8_t>(2u * math::pow(float(i), 2.0f)),
+                            static_cast<uint8_t>(2u * math::pow(float(i + 1), 2.0f)),
                             levelVector[i]); // unitless
+
+                        // debug only
+                        /*printf("n: %i, OccupationNumber %i, binom %u \n",
+                            i+1,
+                            levelVector[i],
+                            binomialCoefficients(
+                                static_cast<uint8_t>(2u * math::pow(float(i+1), 2.0f)),
+                            levelVector[i]));*/
                     }
 
                     return result; // unitless
@@ -198,10 +226,27 @@ namespace picongpu
 
                         // ratio due to multiplicity
                         // unitless/unitless * (J + J) / J = unitless
-                        Ratio = static_cast<float_X>(
-                                    static_cast<float_64>(Multiplicity(acc, newIdx))
-                                    / static_cast<float_64>(Multiplicity(acc, oldIdx)))
+                        Ratio = static_cast<float_X>((Multiplicity(acc, newIdx)) / (Multiplicity(acc, oldIdx)))
                             * (energyElectron_SI + energyDifference_SI) / energyElectron_SI; // unitless
+
+                        // debug only
+                        /*if ( /*std::isnan(Ratio)*/ /* true )
+                         {
+                             std::cout << "Ratio: " << Ratio << "MultiplicityN: " << (Multiplicity(acc, newIdx)) <<
+                                 "MultiplicityO: " << (Multiplicity(acc, oldIdx)) << "term" << (energyElectron_SI +
+                         energyDifference_SI) / energyElectron_SI << "R-Multi." << (Multiplicity(acc, newIdx)) /
+                         (Multiplicity(acc, oldIdx)) << "cast R-Multi." << static_cast<float_X>( (Multiplicity(acc,
+                         newIdx)) / (Multiplicity(acc, oldIdx))) << std::endl;
+                         }*/
+                        /*printf("Mult. new %f, Mult. old %f, cast: %f energyElectron_SI %f,term %f, ratio %f, newIdx:
+%i, oldIdx: %i\n", static_cast<float_64>(Multiplicity(acc, newIdx)), static_cast<float_64>(Multiplicity(acc, oldIdx)),
+                            energyElectron_SI,
+,
+                            Ratio,
+                            newIdx,
+                            oldIdx);
+                        std::cout << Ratio << std::endl;
+                        */
 
                         energyElectron_SI = energyElectron_SI + energyDifference_SI; // unit; J, SI
                     }
@@ -247,13 +292,14 @@ namespace picongpu
                             indexTransition,
                             atomicDataBox));*/
                     // std::cout << collisionalOscillatorStrength << std::endl;
-                    if(!std::isnan(collisionalOscillatorStrength))
+                    /*if(std::isnan(collisionalOscillatorStrength))
                     {
                         printf(
-                            "indexTransition %i, oscillatorStrength %f \n",
+                            "indexTransition %i, oscillatorStrength %f , ratio %f\n",
                             indexTransition,
-                            collisionalOscillatorStrength);
-                    }
+                            atomicDataBox.getCollisionalOscillatorStrength(indexTransition),
+                            Ratio);
+                    }*/
 
                     // m^2 * (J/J)^2 * unitless * J/J * unitless<-[ J, J, unitless, unitless ] = m^2
                     float_X crossSection_SI = c0_SI

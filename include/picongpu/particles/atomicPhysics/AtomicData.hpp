@@ -68,7 +68,11 @@ namespace picongpu
 
                 uint32_t m_numTransitions;
                 uint32_t m_maxNumberTransitions;
+                // debug only
+            public:
                 DataBoxValue m_boxCollisionalOscillatorStrength;
+
+            private:
                 DataBoxValue m_boxCinx1;
                 DataBoxValue m_boxCinx2;
                 DataBoxValue m_boxCinx3;

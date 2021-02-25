@@ -456,11 +456,11 @@ namespace picongpu
 
                                     isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
 
-                                    printf(
+                                    /*printf(
                                         "loop_1: isBelowTarget %s, currentBinWidth %f, relativeError %f\n ",
                                         isBelowTarget ? "true" : "false",
                                         currentBinWidth,
-                                        relativeError);
+                                        relativeError);*/
                                 }
 
                                 // last i-th try was not below target,
@@ -488,13 +488,13 @@ namespace picongpu
 
                                     isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
 
-                                    printf(
+                                    /*printf(
                                         "loop_2: isBelowTarget %s, currentBinWidth %f, relativeError %f, "
                                         "relativeErrorTarget %f\n ",
                                         isBelowTarget ? "true" : "false",
                                         currentBinWidth,
                                         m_relativeError,
-                                        this->relativeErrorTarget);
+                                        this->relativeErrorTarget);*/
                                 }
                                 // no need to reset to value before
                                 // since this was first value that was below target
@@ -551,12 +551,12 @@ namespace picongpu
                             if(workerIdx == 0)
                             {
                                 // debug code
-                                printf(
+                                /*printf(
                                     "        getBinLeftBoundary: directionPositive %s, initialBinWidth: %f, boundary: "
                                     "%f\n",
                                     directionPositive ? "true" : "false",
                                     currentBinWidth,
-                                    boundary);
+                                    boundary);*/
                             }
 
                             uint16_t loopCounter = 0u;
@@ -601,13 +601,13 @@ namespace picongpu
                                     currentBinWidth = this->initialGridWidth;
                                 }
 
-                                printf(
+                                /*printf(
                                     "        getBinLeftBoundary: inBin %s, loopCounter %i, currentBinWidth %f, "
                                     "boundary %f \n",
                                     inBin ? "true" : "false",
                                     loopCounter,
                                     currentBinWidth,
-                                    boundary);
+                                    boundary);*/
                             }
                             return boundary;
                         }
