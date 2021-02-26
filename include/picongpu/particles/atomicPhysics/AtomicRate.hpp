@@ -111,7 +111,7 @@ namespace picongpu
 #pragma omp critical
                     {
                         // debug only
-                        std::cout << "n " << n << " k " << k << " binom " << result << std::endl;
+                        std::cout << "n " << int(n) << " k " << int(k) << " binom " << result << std::endl;
                         // printf("n %u, k %u, result %f\n", n, k, result);
                     }
 
