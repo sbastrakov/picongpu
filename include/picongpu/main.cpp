@@ -25,6 +25,8 @@
 #include <pmacc/types.hpp>
 
 #include <picongpu/simulation_defines.hpp>
+// load starter after user extensions and all params are loaded
+#include <picongpu/unitless/starter.unitless>
 
 #include <cstdlib>
 #include <iostream>
