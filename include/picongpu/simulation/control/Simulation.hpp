@@ -73,11 +73,6 @@
 #include <pmacc/random/methods/methods.hpp>
 #include <pmacc/random/RNGProvider.hpp>
 
-#if(PMACC_CUDA_ENABLED == 1)
-#    include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
-#    include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
-#endif
-
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 
 #include <pmacc/nvidia/reduce/Reduce.hpp>
@@ -333,12 +328,9 @@ namespace picongpu
             // this may include allocation of additional fields so has to be done before particles
             fieldBackground.init(*cellDescription);
 
-            // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung
-            // Photons
+            // Initialize random number generator and synchrotron functions, if there are synchrotron Photons
             using AllSynchrotronPhotonsSpecies =
                 typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies, synchrotronPhotons<>>::type;
-            using AllBremsstrahlungPhotonsSpecies =
-                typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies, bremsstrahlungPhotons<>>::type;
 
             // create factory for the random number generator
             const uint32_t userSeed = random::seed::ISeed<random::SeedGenerator>{}();
@@ -361,19 +353,7 @@ namespace picongpu
             {
                 this->synchrotronFunctions.init();
             }
-#if(PMACC_CUDA_ENABLED == 1)
-            // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
-            if(!bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value)
-            {
-                meta::ForEach<
-                    AllBremsstrahlungPhotonsSpecies,
-                    particles::bremsstrahlung::FillScaledSpectrumMap<bmpl::_1>>
-                    fillScaledSpectrumMap;
-                fillScaledSpectrumMap(this->scaledBremsstrahlungSpectrumMap);
-
-                this->bremsstrahlungPhotonAngle.init();
-            }
-#endif
+            bremsstrahlung.init(*cellDescription);
 
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
             auto nativeCudaStream = cupla::manager::Stream<cupla::AccDev, cupla::AccStream>::get().stream(0);
@@ -529,9 +509,7 @@ namespace picongpu
             ParticleIonization{*cellDescription}(currentStep);
             PopulationKinetics{}(currentStep);
             SynchrotronRadiation{*cellDescription, synchrotronFunctions}(currentStep);
-#if(PMACC_CUDA_ENABLED == 1)
-            Bremsstrahlung{*cellDescription, scaledBremsstrahlungSpectrumMap, bremsstrahlungPhotonAngle}(currentStep);
-#endif
+            bremsstrahlung(currentStep);
             EventTask commEvent;
             ParticlePush{}(currentStep, commEvent);
             fieldBackground.subtract(currentStep);
@@ -609,17 +587,13 @@ namespace picongpu
 
         fields::Solver* myFieldSolver;
         simulation::stage::CurrentInterpolationAndAdditionToEMF currentInterpolationAndAdditionToEMF;
+        
+        // Bremsstrahlung stage, has to live always due to precomputation done at initialization
+        simulation::stage::Bremsstrahlung bremsstrahlung;
 
         // Field background stage, has to live always as it is used for registering options like a plugin.
         // Because of it, has a special init() method that has to be called during initialization of the simulation
         simulation::stage::FieldBackground fieldBackground;
-
-#if(PMACC_CUDA_ENABLED == 1)
-        // creates lookup tables for the bremsstrahlung effect
-        // map<atomic number, scaled bremsstrahlung spectrum>
-        std::map<float_X, particles::bremsstrahlung::ScaledSpectrum> scaledBremsstrahlungSpectrumMap;
-        particles::bremsstrahlung::GetPhotonAngle bremsstrahlungPhotonAngle;
-#endif
 
         // Synchrotron functions (used in synchrotronPhotons module)
         particles::synchrotronPhotons::SynchrotronFunctions synchrotronFunctions;
@@ -697,8 +671,3 @@ namespace picongpu
 
 #include "picongpu/fields/Fields.tpp"
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
-
-#if(PMACC_CUDA_ENABLED == 1)
-#    include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
-#    include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
-#endif
