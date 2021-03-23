@@ -40,7 +40,6 @@ namespace picongpu
             class Bremsstrahlung
             {
             public:
-
                 Bremsstrahlung();
 
                 //! Copy construction is forbidden
@@ -64,13 +63,11 @@ namespace picongpu
                 void operator()(uint32_t const step) const;
 
             private:
-            
                 //! Implementation
                 class Impl;
-                
+
                 //! Pointer to implementation
                 std::unique_ptr<const Impl> pImpl;
-            
             };
 
         } // namespace stage

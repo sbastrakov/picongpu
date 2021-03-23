@@ -46,27 +46,24 @@ namespace picongpu
     {
         namespace stage
         {
-
 #if(PMACC_CUDA_ENABLED == 1)
             class Bremsstrahlung::Impl
             {
             public:
-                Impl(MappingDesc const cellDescription):
-                    cellDescription(cellDescription)
+                Impl(MappingDesc const cellDescription) : cellDescription(cellDescription)
                 {
-                    using AffectedSpecies =
-                    typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies, bremsstrahlungPhotons<>>::type;
+                    using AffectedSpecies = typename pmacc::particles::traits::
+                        FilterByFlag<VectorAllSpecies, bremsstrahlungPhotons<>>::type;
                     // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
                     if(!bmpl::empty<AffectedSpecies>::value)
                     {
-                        meta::ForEach<
-                            AffectedSpecies,
-                            particles::bremsstrahlung::FillScaledSpectrumMap<bmpl::_1>> fillScaledSpectrumMap;
+                        meta::ForEach<AffectedSpecies, particles::bremsstrahlung::FillScaledSpectrumMap<bmpl::_1>>
+                            fillScaledSpectrumMap;
                         fillScaledSpectrumMap(scaledSpectrumMap);
                         photonAngle.init();
                     }
                 }
-                
+
                 void operator()(uint32_t const step) const
                 {
                     using pmacc::particles::traits::FilterByFlag;
@@ -76,17 +73,16 @@ namespace picongpu
                         particleBremsstrahlung;
                     particleBremsstrahlung(cellDescription, step, scaledSpectrumMap, photonAngle);
                 }
-                
+
             private:
-            
                 //! Mapping for kernels
                 MappingDesc cellDescription;
-            
+
                 using ScaledSpectrumMap = std::map<float_X, particles::bremsstrahlung::ScaledSpectrum>;
-                
+
                 //! Loopup table: atomic number -> scaled bremsstrahlung spectrum
                 ScaledSpectrumMap scaledSpectrumMap;
-                
+
                 //! Loopup table for photon angle
                 particles::bremsstrahlung::GetPhotonAngle photonAngle;
             };
@@ -106,7 +102,7 @@ namespace picongpu
 
             // Needed to be defined here, not in the .hpp, as Impl has to be a complete type
             Bremsstrahlung::~Bremsstrahlung() = default;
-            
+
             void Bremsstrahlung::init(MappingDesc const cellDescription)
             {
                 pImpl = std::make_unique<Impl>(cellDescription);

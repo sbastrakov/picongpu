@@ -587,7 +587,7 @@ namespace picongpu
 
         fields::Solver* myFieldSolver;
         simulation::stage::CurrentInterpolationAndAdditionToEMF currentInterpolationAndAdditionToEMF;
-        
+
         // Bremsstrahlung stage, has to live always due to precomputation done at initialization
         simulation::stage::Bremsstrahlung bremsstrahlung;
 
