@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/EMFieldBase.hpp"
+#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/MaxwellSolver/Solvers.hpp"
 #include "picongpu/particles/traits/GetInterpolation.hpp"
 #include "picongpu/traits/GetMargin.hpp"

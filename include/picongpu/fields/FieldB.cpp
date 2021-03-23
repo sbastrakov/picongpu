@@ -18,9 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include "picongpu/fields/FieldE.hpp"
+#include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/EMFieldBase.hpp"
 #include "picongpu/simulation_types.hpp"
 #include "picongpu/traits/SIBaseUnits.hpp"
@@ -32,31 +30,30 @@
 
 namespace picongpu
 {
-    FieldE::FieldE(MappingDesc const& cellDescription) : fields::EMFieldBase<FieldE>(cellDescription, getName())
+    FieldB::FieldB(MappingDesc const& cellDescription) : fields::EMFieldBase<FieldB>(cellDescription, getName())
     {
     }
 
-    HDINLINE FieldE::UnitValueType FieldE::getUnit()
+    HOSTDEVICE FieldB::UnitValueType FieldB::getUnit()
     {
-        return UnitValueType{UNIT_EFIELD, UNIT_EFIELD, UNIT_EFIELD};
+        return UnitValueType{UNIT_BFIELD, UNIT_BFIELD, UNIT_BFIELD};
     }
 
-    std::vector<float_64> FieldE::getUnitDimension()
+    std::vector<float_64> FieldB::getUnitDimension()
     {
-        /* E is in volts per meters: V / m = kg * m / (A * s^3)
-         *   -> L * M * T^-3 * I^-1
+        /* B is in Tesla : kg / (A * s^2)
+         *   -> M * T^-2 * I^-1
          */
         std::vector<float_64> unitDimension(7, 0.0);
-        unitDimension.at(SIBaseUnits::length) = 1.0;
         unitDimension.at(SIBaseUnits::mass) = 1.0;
-        unitDimension.at(SIBaseUnits::time) = -3.0;
+        unitDimension.at(SIBaseUnits::time) = -2.0;
         unitDimension.at(SIBaseUnits::electricCurrent) = -1.0;
         return unitDimension;
     }
 
-    std::string FieldE::getName()
+    std::string FieldB::getName()
     {
-        return "E";
+        return "B";
     }
 
 } // namespace picongpu

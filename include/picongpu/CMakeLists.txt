@@ -446,6 +446,10 @@ include_directories(BEFORE ${PIC_EXTENSION_PATH}/include)
 list(APPEND ACCSRCFILES
     "${PIConGPUapp_SOURCE_DIR}/main.cpp"
     "${PIConGPUapp_SOURCE_DIR}/versionFormat.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/fields/FieldB.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/fields/FieldE.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/fields/FieldJ.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/fields/FieldTmp.cpp"
     "${PIConGPUapp_SOURCE_DIR}/simulation/stage/FieldBackground.cpp"
 )
 

@@ -18,8 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
+#include "picongpu/fields/FieldTmp.hpp"
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/FieldTmp.kernel"
 #include "picongpu/fields/MaxwellSolver/Solvers.hpp"

@@ -18,10 +18,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/FieldJ.hpp"
+#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/FieldJ.kernel"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "picongpu/fields/currentDeposition/Deposit.hpp"

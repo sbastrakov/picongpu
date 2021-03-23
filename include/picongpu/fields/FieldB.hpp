@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
 #include "picongpu/fields/Fields.def"
 #include "picongpu/fields/EMFieldBase.hpp"
+#include "picongpu/simulation_defines.hpp"
 
 #include <pmacc/algorithms/PromoteType.hpp>
 
@@ -47,13 +47,13 @@ namespace picongpu
          *
          * @param cellDescription mapping for kernels
          */
-        HINLINE FieldB(MappingDesc const& cellDescription);
+        FieldB(MappingDesc const& cellDescription);
 
         //! Unit type of field components
         using UnitValueType = promoteType<float_64, ValueType>::type;
 
         //! Get units of field components
-        HDINLINE static UnitValueType getUnit();
+        HOSTDEVICE static UnitValueType getUnit();
 
         /** Get unit representation as powers of the 7 base measures
          *
@@ -62,10 +62,10 @@ namespace picongpu
          *  thermodynamic temperature theta, amount of substance N,
          *  luminous intensity J)
          */
-        HINLINE static std::vector<float_64> getUnitDimension();
+        static std::vector<float_64> getUnitDimension();
 
         //! Get text name
-        HINLINE static std::string getName();
+        static std::string getName();
     };
 
 } // namespace picongpu
