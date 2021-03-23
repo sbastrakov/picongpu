@@ -70,11 +70,9 @@
 #include "picongpu/simulation/stage/ParticlePush.hpp"
 #include "picongpu/simulation/stage/PopulationKinetics.hpp"
 #include "picongpu/simulation/stage/SynchrotronRadiation.hpp"
+
 #include <pmacc/random/methods/methods.hpp>
 #include <pmacc/random/RNGProvider.hpp>
-
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
-
 #include <pmacc/nvidia/reduce/Reduce.hpp>
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
 #include <pmacc/meta/conversion/SeqToMap.hpp>
@@ -328,10 +326,6 @@ namespace picongpu
             // this may include allocation of additional fields so has to be done before particles
             fieldBackground.init(*cellDescription);
 
-            // Initialize random number generator and synchrotron functions, if there are synchrotron Photons
-            using AllSynchrotronPhotonsSpecies =
-                typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies, synchrotronPhotons<>>::type;
-
             // create factory for the random number generator
             const uint32_t userSeed = random::seed::ISeed<random::SeedGenerator>{}();
             const uint32_t seed = std::hash<std::string>{}(std::to_string(userSeed));
@@ -348,11 +342,7 @@ namespace picongpu
             rngFactory->init(gridCon.getScalarPosition() ^ seed);
             dc.consume(std::move(rngFactory));
 
-            // Initialize synchrotron functions, if there are synchrotron photon species
-            if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
-            {
-                this->synchrotronFunctions.init();
-            }
+            synchrotronRadiation.init(*cellDescription);
             bremsstrahlung.init(*cellDescription);
 
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
@@ -508,7 +498,7 @@ namespace picongpu
             CurrentReset{}(currentStep);
             ParticleIonization{*cellDescription}(currentStep);
             PopulationKinetics{}(currentStep);
-            SynchrotronRadiation{*cellDescription, synchrotronFunctions}(currentStep);
+            synchrotronRadiation(currentStep);
             bremsstrahlung(currentStep);
             EventTask commEvent;
             ParticlePush{}(currentStep, commEvent);
@@ -588,15 +578,15 @@ namespace picongpu
         fields::Solver* myFieldSolver;
         simulation::stage::CurrentInterpolationAndAdditionToEMF currentInterpolationAndAdditionToEMF;
 
+        // Synchrotron radiation stage, has to live always due to precomputation done at initialization
+        simulation::stage::SynchrotronRadiation synchrotronRadiation;
+
         // Bremsstrahlung stage, has to live always due to precomputation done at initialization
         simulation::stage::Bremsstrahlung bremsstrahlung;
 
         // Field background stage, has to live always as it is used for registering options like a plugin.
         // Because of it, has a special init() method that has to be called during initialization of the simulation
         simulation::stage::FieldBackground fieldBackground;
-
-        // Synchrotron functions (used in synchrotronPhotons module)
-        particles::synchrotronPhotons::SynchrotronFunctions synchrotronFunctions;
 
         // output classes
 
@@ -670,4 +660,3 @@ namespace picongpu
 } /* namespace picongpu */
 
 #include "picongpu/fields/Fields.tpp"
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
