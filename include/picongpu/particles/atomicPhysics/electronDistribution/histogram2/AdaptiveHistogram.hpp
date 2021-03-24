@@ -99,6 +99,10 @@
 #include <utility>
 #include "picongpu/traits/attribute/GetMass.hpp"
 
+// debug only
+#include <iostream>
+#include <cmath>
+
 
 namespace picongpu
 {
@@ -237,7 +241,6 @@ namespace picongpu
                                 initialGridWidth,
                                 relativeErrorTarget);
                             */
-
 
                             // init histogram empty
                             this->numBins = 0u;
@@ -402,7 +405,6 @@ namespace picongpu
                             // preparation for debug access to run time acess
                             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-
                             // is initial binWidth realtiveError below the Target?
                             bool isBelowTarget
                                 = (this->relativeErrorTarget >= this->relativeError(
@@ -411,24 +413,21 @@ namespace picongpu
                                        AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
                                        atomicDataBox));
 
-                            bool debug = false;
-                            // debug acess
-                            if((workerIdx == 0))
-                            {
-                                // debug code
-                                printf(
-                                    "       getBinWidth: isBelowTarget %s, directionPositive %s, initBinWidth %f, "
-                                    "boundary %f\n",
-                                    isBelowTarget ? "true" : "false",
-                                    directionPositive ? "true" : "false",
+                            // debug only
+                            std::cout << "getBinWidth: isBelowTarget " << (isBelowTarget ? "true" : "false") <<
+                                " directionPositive " << directionPositive << " initBinWidth " <<
+                                currentBinWidth << " boundary " << boundary <<
+                                " relativeError " << this->relativeError(
+                                    acc,
                                     currentBinWidth,
-                                    boundary);
-                                debug = true;
-                            }
+                                    AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
+                                    atomicDataBox,
+                                    false)
+                                << std::endl;
 
                             // debug only
                             uint16_t loopCounter = 0u;
-                            uint16_t maxLoopCount = 5u;
+                            uint16_t maxLoopCount = 100u;
 
                             float_X m_relativeError;
 
@@ -437,13 +436,6 @@ namespace picongpu
                                 // increase until no longer below
                                 while(isBelowTarget && (loopCounter <= maxLoopCount))
                                 {
-                                    // debug only
-                                    loopCounter++;
-                                    if(debug)
-                                    {
-                                        printf("loop_1, loopcounter %i\n", loopCounter);
-                                    }
-
                                     // try higher binWidth
                                     currentBinWidth *= 2._X;
 
@@ -456,11 +448,12 @@ namespace picongpu
 
                                     isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
 
-                                    /*printf(
-                                        "loop_1: isBelowTarget %s, currentBinWidth %f, relativeError %f\n ",
-                                        isBelowTarget ? "true" : "false",
-                                        currentBinWidth,
-                                        relativeError);*/
+                                    // debug only
+                                    loopCounter++;
+                                    std::cout << "loop_1, loopcounter " << loopCounter << /*
+                                        " currentBinWidth " << currentBinWidth <<
+                                        " boundary " << boundary <<
+                                        */" relativeError " << m_relativeError << std::endl;
                                 }
 
                                 // last i-th try was not below target,
@@ -473,9 +466,6 @@ namespace picongpu
                                 // decrease until below target for the first time
                                 while((!isBelowTarget) && (loopCounter <= maxLoopCount))
                                 {
-                                    printf("loop_2, loopcounter%i\n", loopCounter);
-                                    // debug only
-                                    loopCounter++;
                                     // lower binWidth
                                     currentBinWidth /= 2._X;
 
@@ -488,13 +478,11 @@ namespace picongpu
 
                                     isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
 
-                                    /*printf(
-                                        "loop_2: isBelowTarget %s, currentBinWidth %f, relativeError %f, "
-                                        "relativeErrorTarget %f\n ",
-                                        isBelowTarget ? "true" : "false",
-                                        currentBinWidth,
-                                        m_relativeError,
-                                        this->relativeErrorTarget);*/
+                                    loopCounter++;
+                                    std::cout << "loop_2, loopcounter " << loopCounter <<
+                                        /*" currentBinWidth " << currentBinWidth <<
+                                        " boundary " << boundary <<
+                                        */" relativeError " << m_relativeError << std::endl;
                                 }
                                 // no need to reset to value before
                                 // since this was first value that was below target
@@ -506,7 +494,7 @@ namespace picongpu
                                     this->relativeErrorTarget);
                             }
                             // debug acess
-                            if((workerIdx == 0) && debug)
+                            if((workerIdx == 0) )
                             {
                                 // debug code
                                 printf(
@@ -567,7 +555,7 @@ namespace picongpu
                                 loopCounter++;
                                 // get currentBinWidth
                                 // currentBinWidth = 0.1_X;
-                                // debug sinc ethis call seems to cause infinite loop
+                                // debug since this call seems to cause infinite loop
                                 currentBinWidth
                                     = getBinWidth(acc, directionPositive, boundary, currentBinWidth, atomicDataBox);
 

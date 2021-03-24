@@ -130,22 +130,26 @@ namespace picongpu
                      * - provides weighting coefficents
                      * - sample points stored by caller
                      * - if storage of sample point also necessary create wrapper
-                     * - if different orders of derivative required get several instances
                      *
-                     * @tparam T_numSamplePoints ... numer of sample points to be used, >= 1
-                     * @tparam T_orderDerivative ... order of derivative to be calculated, >= 0
-                     * @tparam T_Value ... datatype o coeffiecents,
+                     * @tparam T_Value ... datatype of coeffiecents,
                      *           choose to match the return datatype of f
-                     * @tparam T_Argument ... datatype of argument space of x, should e float-like
+                     * @tparam T_Argument ... datatype of argument space of x, should be float-like
                      */
                     template<typename T_Value, typename T_Argument>
                     struct FornbergNumericalDifferentiation
                     {
                     public:
-                        // Notes on conversion:
+                        // Notes on conversion of indexation:
                         // m ... orderDerivative
                         // n+1 ... T_numSamplePoints
                         // nu ... index
+
+                        /** calculates the weighting to use for numerical deriviation for a given
+                         *
+                         * @tparam T_numSamplePoints ... number of sample points to be used, >= 1
+                         * @tparam T_SizeMemory ... size of required arrays in memory
+                         * @param T_orderDerivative ... order of derivative to be calculated, >= 0
+                         */
                         template<uint32_t T_numSamplePoints, uint32_t T_SizeMemory>
                         HDINLINE static T_Value weighting(
                             uint32_t T_orderDerivative,
@@ -321,7 +325,57 @@ namespace picongpu
                             }
                         }
 
+                    HDINLINE static void test()
+                    {
+                        uint8_t constexpr numSamplePoints = 9u;
+                        uint8_t constexpr orderDerivative = 1u;
+                        // test with {-4, -3, -2, -1, 0, 1, 2, 3, 4}
+                        // 1th derivative, order 8
+                        float_X literature[numSamplePoints];
+
+                        literature[0] = 1._X/280._X;
+                        literature[1] = -4._X/105._X;
+                        literature[2] = 1._X/5._X;
+                        literature[3] = -4._X/5._X;
+                        literature[4] = 0._X;
+                        literature[5] = 4._X/5._X;
+                        literature[6] = -1._X/5._X;
+                        literature[7] = 4._X/105._X;
+                        literature[8] = -1._X/280._X;
+
+                        float_X samplePoints[numSamplePoints];
+
+                        samplePoints[0] = -4._X;
+                        std::cout << "samplePoints ( "<< samplePoints[0];
+                        for (uint8_t i = 1u; i < numSamplePoints; i++)
+                        {
+                            samplePoints[i] = samplePoints[i-1] + 1._X;
+                            std::cout << samplePoints[i] << ", ";
+                        }
+                        std::cout << ")"<< std::endl;
+
+                        std::cout << "literature (";
+                        for (uint8_t i=0u; i<numSamplePoints; i++)
+                        {
+                            std::cout << literature[i] << ", ";
+                        }
+                        std::cout << ")" << std::endl;
+
+                        float_X result[numSamplePoints];
+                        std::cout << "test(" ;
+                        for(uint8_t i=0u; i < numSamplePoints; i++)
+                        {
+                            std::cout << i << ": " <<
+                                FornbergNumericalDifferentiation::weighting<
+                                    numSamplePoints,
+                                    numSamplePoints / 2u + 2u>
+                                (orderDerivative, i) << ", ";
+                        }
+                        std::cout << std::endl;
+                    }
+
                     private:
+                        //{ equations
                         template<uint32_t T_numSamplePoints>
                         HDINLINE static T_Value equation1(
                             T_Value I,
@@ -334,6 +388,7 @@ namespace picongpu
                             return static_cast<T_Value>(
                                 1._X / static_cast<T_Value>(alpha[n] - alpha[nu]) * (I * alpha[n] - m * II));
                         }
+
                         template<uint32_t T_numSamplePoints>
                         HDINLINE static T_Value equation2(
                             T_Value I,
@@ -410,11 +465,13 @@ namespace picongpu
                         {
                             return static_cast<T_Value>(I * m);
                         }
+                        //} eqautions
 
                         // m ... T_orderDerivative
                         // n+1 ... T_numSamplePoints
                         // nu ... index
 
+                        //{ generation algorithms
                         // 4.): case (m,m,nu)
                         template<uint32_t T_numSamplePoints>
                         HDINLINE static T_Value getWeightMMNu(
@@ -1241,7 +1298,9 @@ namespace picongpu
                             }
                             return weights[m];
                         }
+                        //} generation algorithms
                     };
+
 
                 } // namespace histogram2
             } // namespace electronDistribution

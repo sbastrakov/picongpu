@@ -192,6 +192,9 @@ namespace picongpu
                     // make T_DataType paramtere available for later use
                     using DataType = T_DataType;
 
+                    //atomic number, available for later use
+                    static constexpr uint8_t Z = T_atomicNumber;
+
                     // number of levels, n_max, used for configNumber, made available for later use
                     static constexpr uint8_t numberLevels = T_numberLevels;
                     //}
@@ -282,15 +285,14 @@ namespace picongpu
 
                         T_DataType stepLength;
 
-
-                        // BEWARE: for loop counts down, strating with n_max
+                        // BEWARE: for loop counts down, starting with n_max
                         for(uint8_t n = numberLevels; n >= 1; n--)
                         {
                             // calculate current stepLength
                             stepLength = ConfigNumber::stepLength(n);
 
                             // get occupation number N_n by getting largest whole number factor
-                            result[n - 1] = static_cast<uint16_t>(N / stepLength);
+                            result[n - 1] = static_cast<uint8_t>(N / stepLength);
 
                             // remove contribution of current N_n
                             N -= stepLength * (result[n - 1]);

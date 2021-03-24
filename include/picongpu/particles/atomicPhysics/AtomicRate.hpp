@@ -108,12 +108,12 @@ namespace picongpu
                         result *= (n - i + 1) / static_cast<float_64>(i);
                     }
 
-#pragma omp critical
-                    {
-                        // debug only
-                        std::cout << "n " << int(n) << " k " << int(k) << " binom " << result << std::endl;
-                        // printf("n %u, k %u, result %f\n", n, k, result);
-                    }
+                    // debug only
+                    /*#pragma omp critical
+                                        {
+                                            //std::cout << "n " << int(n) << " k " << int(k) << " binom " << result <<
+                       std::endl;
+                                        }*/
 
                     return result;
                 }
@@ -128,6 +128,18 @@ namespace picongpu
 
                     float_64 result = 1u;
 
+                    // debug only
+                    // Conversion idx to levelVector
+                    /*int Z = int(ConfigNumber::Z);
+                    std::cout << "Idx " << idx << " ,Z " << Z << std::endl;
+                    std::cout << "{";
+                    for (uint8_t i = 0u; i < T_numLevels; i++ )
+                    {
+                        std::cout << int(levelVector[i]) << ",";
+                        //printf("idx %hhi \n", idx);
+                    }
+                    std::cout << "}" << std::endl;*/
+
                     for(uint8_t i = 0u; i < T_numLevels; i++)
                     {
                         result *= binomialCoefficients(
@@ -135,12 +147,12 @@ namespace picongpu
                             levelVector[i]); // unitless
 
                         // debug only
-                        /*printf("n: %i, OccupationNumber %i, binom %u \n",
-                            i+1,
-                            levelVector[i],
-                            binomialCoefficients(
-                                static_cast<uint8_t>(2u * math::pow(float(i+1), 2.0f)),
-                            levelVector[i]));*/
+                        // test algorithm Multiplicity
+                        /*std::cout << "n " << int(i) + 1u << " OccupationNumber " << int(levelVector[i]) << " binom "
+                                  << binomialCoefficients(
+                                         static_cast<uint8_t>(2u * math::pow(float(i + 1), 2.0f)),
+                                         levelVector[i])
+                                  << " result " << result << std::endl;*/
                     }
 
                     return result; // unitless
@@ -229,24 +241,23 @@ namespace picongpu
                         Ratio = static_cast<float_X>((Multiplicity(acc, newIdx)) / (Multiplicity(acc, oldIdx)))
                             * (energyElectron_SI + energyDifference_SI) / energyElectron_SI; // unitless
 
+                        // security check for NaNs in Ratio and debug outputif present
+                        if( !(Ratio >= 0) && !(Ratio < 0) ) // only true if both !(<0) and !(>=0), if nan than comparison always false
+                        {
+                            printf("Warning: NaN in ratio calculation, ask developer for more information\n"
+                                "   newIdx %u ,oldIdx %u ,energyElectron_SI %f ,energyDifference_SI %f", 
+                                newIdx, oldIdx, energyElectron_SI, energyDifference_SI);
+                        }
+
                         // debug only
-                        /*if ( /*std::isnan(Ratio)*/ /* true )
-                         {
-                             std::cout << "Ratio: " << Ratio << "MultiplicityN: " << (Multiplicity(acc, newIdx)) <<
+                        if(std::isnan(Ratio))
+                        {
+                            std::cout << "Ratio: " << Ratio << "MultiplicityN: " << (Multiplicity(acc, newIdx)) <<
                                  "MultiplicityO: " << (Multiplicity(acc, oldIdx)) << "term" << (energyElectron_SI +
-                         energyDifference_SI) / energyElectron_SI << "R-Multi." << (Multiplicity(acc, newIdx)) /
-                         (Multiplicity(acc, oldIdx)) << "cast R-Multi." << static_cast<float_X>( (Multiplicity(acc,
-                         newIdx)) / (Multiplicity(acc, oldIdx))) << std::endl;
-                         }*/
-                        /*printf("Mult. new %f, Mult. old %f, cast: %f energyElectron_SI %f,term %f, ratio %f, newIdx:
-%i, oldIdx: %i\n", static_cast<float_64>(Multiplicity(acc, newIdx)), static_cast<float_64>(Multiplicity(acc, oldIdx)),
-                            energyElectron_SI,
-,
-                            Ratio,
-                            newIdx,
-                            oldIdx);
-                        std::cout << Ratio << std::endl;
-                        */
+                            energyDifference_SI) / energyElectron_SI << "R-Multi." << (Multiplicity(acc, newIdx)) /
+                            (Multiplicity(acc, oldIdx)) << "cast R-Multi." << static_cast<float_X>( (Multiplicity(acc,
+                            newIdx)) / (Multiplicity(acc, oldIdx))) << std::endl;
+                        }
 
                         energyElectron_SI = energyElectron_SI + energyDifference_SI; // unit; J, SI
                     }
@@ -292,14 +303,14 @@ namespace picongpu
                             indexTransition,
                             atomicDataBox));*/
                     // std::cout << collisionalOscillatorStrength << std::endl;
-                    /*if(std::isnan(collisionalOscillatorStrength))
+                    if(std::isnan(collisionalOscillatorStrength))
                     {
                         printf(
                             "indexTransition %i, oscillatorStrength %f , ratio %f\n",
                             indexTransition,
                             atomicDataBox.getCollisionalOscillatorStrength(indexTransition),
                             Ratio);
-                    }*/
+                    }
 
                     // m^2 * (J/J)^2 * unitless * J/J * unitless<-[ J, J, unitless, unitless ] = m^2
                     float_X crossSection_SI = c0_SI
@@ -318,6 +329,9 @@ namespace picongpu
                         return 0._X;
                     }
 
+                    // debug only
+                    /*std::cout << "crossSection" << crossSection_SI << std::endl;*/
+
                     // usual return path
                     return crossSection_SI;
                 }
@@ -328,7 +342,8 @@ namespace picongpu
                 DINLINE static float_X totalCrossSection(
                     T_Acc& acc,
                     float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                    AtomicDataBox atomicDataBox)
+                    AtomicDataBox atomicDataBox,
+                    bool debug=false)
                 {
                     float_X result = 0._X; // unit: m^2, SI
 
@@ -336,7 +351,7 @@ namespace picongpu
                     Idx upperIdx;
 
                     // debug only
-                    // uint16_t loopCount = 0u;
+                    uint16_t loopCount = 0u;
 
                     for(uint32_t i = 0u; i < atomicDataBox.getNumTransitions(); i++)
                     {
@@ -352,8 +367,19 @@ namespace picongpu
                             atomicDataBox); // unit: m^2, SI
 
                         // debug only
-                        // loopCount++;
-                        // printf("loop %i: crossectionExcitation %f\n", loopCount, result);
+                        loopCount++;
+                        if(std::isnan(result))
+                        {
+                            std::cout << "loop " << loopCount << " crossSectionExcitation " <<
+                                collisionalExcitationCrosssection(
+                                    acc,
+                                    lowerIdx, // unitless
+                                    upperIdx, // unitless
+                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                                    atomicDataBox)
+                                << " lowerIdx " << lowerIdx << " upperIdx " << upperIdx <<
+                                " energyElectron " << energyElectron << std::endl;
+                        }
 
                         // deexcitation crosssection
                         result += collisionalExcitationCrosssection(
@@ -364,7 +390,24 @@ namespace picongpu
                             atomicDataBox); // unit: m^2, SI
 
                         // debug only
-                        // printf("loop %i: crossectionDeexcitation %f\n", loopCount, result);
+                        if(std::isnan(result))
+                        {
+                            std::cout << "loop " << loopCount << " crossSectionDeExcitation " <<
+                                collisionalExcitationCrosssection(
+                                    acc,
+                                    upperIdx, // unitless
+                                    lowerIdx, // unitless
+                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                                    atomicDataBox)
+                                << std::endl;
+                        }
+                    }
+
+                    // debug only
+                    if ( debug )
+                    {
+                        /*std::cout << "totalCrossSection " << result << " energyElectron " << 
+                            energyElectron << std::endl;*/
                     }
 
                     return result; // unit: m^2, SI

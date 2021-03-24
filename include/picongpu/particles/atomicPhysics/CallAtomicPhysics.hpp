@@ -54,7 +54,7 @@
  * "pointer" atomicData     ... pointer to atomic data
  *
  * @public-member:
- * "uint" maxPrincipalAtomicQuantumNumber  ... maximum principal quantum number included
+ * "uint" protonNumber  ... proton number of Species
  *      in input data set
  * "type" IonSpecies    ... ion species we apply atomic physics to
  *
@@ -110,7 +110,8 @@ namespace picongpu
                                                          // data contains states with very large indices
 
                 // number of atomic shells modelled
-                static constexpr uint8_t maxPrincipalAtomicQuantumNumber = 10u;
+                // TODO: take from sepciesDefinition.param file 
+                static constexpr uint8_t protonNumber = 6u;
                 //} atomic state
 
                 //{ electrons
@@ -153,7 +154,7 @@ namespace picongpu
                 // number of transitions in input data file
                 uint32_t numberTransitions;
                 // memory space for pointer to atomic data
-                std::unique_ptr<AtomicData<maxPrincipalAtomicQuantumNumber, T_ConfigNumberDataType>> atomicData;
+                std::unique_ptr<AtomicData<protonNumber, T_ConfigNumberDataType>> atomicData;
 
             public:
                 States readStateData(std::string fileName)
@@ -273,7 +274,7 @@ namespace picongpu
 
                     // create atomic Data storage class on host and store pointer as private member
                     atomicData = std::make_unique<
-                        AtomicData<maxPrincipalAtomicQuantumNumber, T_ConfigNumberDataType>>(
+                        AtomicData<protonNumber, T_ConfigNumberDataType>>(
                         levelDataItems.size(),
                         transitionDataItems.size());
 
