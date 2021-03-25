@@ -43,56 +43,19 @@ namespace picongpu
                 namespace histogram2
                 {
                     template<
-                        uint32_t T_minOrderApprox, // half of starting order of error approximation,
-                                                   // in crosssection + velocity and 0th order in
-                                                   // electron density
-                        uint32_t T_maxOrderApprox, // half of maximum order of error approximation,
-                                                   // T_minOrderapprox <= a <= T_maxOrderApprox,
-                                                   //  2*a ... order of a term of the rate approximation
-                        uint32_t T_numSamplePoints, // number of sample points used for numerical differentiation
-                                                    // >= 2*a + 1
-                        typename T_WeightingGen, // type of numerical differentiation method used
-                        typename T_AtomicRate, // atomic rate functor
-                        typename T_AtomicDataBox,
-                        typename T_ConfigNumberDataType>
+                        typename T_AtomicRate, // functor for calculating atomic rates
+                        typename T_AtomicDataBox, // data storage for atomic structure data
+                        typename T_ConfigNumberDataType> // functor for conversion of atomic state indices
                     class RateRelativeError
                     {
-                        // TODO: add pmacc assert to check T_numSamplePoints >= 2*T_maxOrderApprox + 1
                         using AtomicRate = T_AtomicRate;
-                        // necessary for velocity derivation
+                        constexpr static uint8_t numSamplePoints = 5u;
+
+                        constexpr static uint8_t maxA = 2u; // up to (2*maxA)th order derivatives
+                        constexpr static uint8_t minA = 1u; // from first order derivative
 
                         // storage of weights for later use
-                        //float_X weights[T_numSamplePoints * (2u * T_maxOrderApprox + 1u)];
-                        float_X weights[ 5u*5u ];
-
-                        // return unitless
-                        /** returns the k-th of T_numNodes chebyshev nodes x_k, interval [-1, 1]
-                         *
-                         * x_k = cos( (2k-1)/(2n) * pi )
-                         *
-                         * @tparam T_numNodes ... how many chebyshev nodes are requested
-                         * @param k ... index of chebyshev Nodes
-                         *
-                         * BEWARE: k=0 is NOT allowed, k \in {1, ... , T_numSamplePoints}
-                         * BEWARE: max({ x_k }) = x_1 and min({ x_k }) = x_(T_numSamplePoints)
-                         *
-                         * see https://en.wikipedia.org/wiki/Chebyshev_nodes for more information
-                         */
-                        template<uint32_t T_numNodes>
-                        DINLINE static float_X chebyshevNodes(uint32_t const k)
-                        {
-                            // check for bounds on k
-                            // return boundaries if outside of boundary
-                            if(k < 1u)
-                                return -1._X;
-                            if(k > T_numNodes)
-                                return 1._X;
-
-                            return math::cos<float_X>(
-                                static_cast<float_X>(2u * k - 1u) / static_cast<float_X>(2 * T_numNodes)
-                                * picongpu::PI);
-                        }
-
+                        float_X weights[numSamplePoints * (2 * maxA + 1)];
 
                         // return unitless
                         DINLINE static float_64 fak(const uint32_t n)
@@ -107,12 +70,14 @@ namespace picongpu
                             return result;
                         }
 
-                       DINLINE static float_X samplePoints( uint8_t j)
-                       {
-                            if(j < 4)
+                        // hard coded sample points for now
+                        DINLINE static float_X samplePoints(uint8_t j)
+                        {
+                            if(j <= 4)
                             {
                                 return -1._X/2._X + float_X(j);
                             }
+
                             return 0._X;
                        }
 
@@ -120,30 +85,10 @@ namespace picongpu
                         // calculates weightings once
                         DINLINE void init()
                         {
-                            //float_X samplePoints[T_numSamplePoints];
+                            // debug only
+                            /*std::cout << "init weights" << std::endl;*/
 
-                            /*
-                            // include reference point
-                            samplePoints[0] = 0._X;
-
-                            for(uint32_t i = 1u; i < T_numSamplePoints; i++)
-                            {
-                                samplePoints[i] = chebyshevNodes<(T_numSamplePoints - 1u)>(i);
-                            }
-
-                            // calculate weightings for each order derivative until maximum
-                            for(uint32_t i = 0u; i <= (2u * T_maxOrderApprox); i++) // i ... order of derivation
-                            {
-                                for(uint32_t j = 0u; j < T_numSamplePoints; j++) // j ... sample point
-                                {
-                                    this->weights[j + i * T_numSamplePoints] = T_WeightingGen::template weighting<
-                                        T_numSamplePoints,
-                                        T_numSamplePoints / 2u + 2u>(i, j, samplePoints);
-                                }
-                            }*/
-                            //T_WeightingGen::template test();
-
-                            // debug workaround
+                            // debug workaround, hard coded literature values for now
                             // 0th order derivative
                             this->weights[0u] = float_X(35./128.);
                             this->weights[1u] = float_X(35./32.);
@@ -178,25 +123,15 @@ namespace picongpu
                             this->weights[2u+4u*5u] = float_X(6);
                             this->weights[3u+4u*5u] = float_X(-4);
                             this->weights[4u+4u*5u] = float_X(1);
-
-                            /*
-                            // debug only
-                            printf("samplePoints {%f, %f, %f}\n",
-                                samplePoints[0],
-                                samplePoints[1],
-                                samplePoints[2]
-                                );*/
                         }
 
-
-                        // return unit: [1/s]/[ 1/(m^3 * J) ], error per electron density
+                        // return unit: [1/s]/[ 1/(m^3 * ATOMIC_UNIT_ENERGY) ], error per spectral electron density
                         template<typename T_Acc>
                         DINLINE float_X operator()(
                             T_Acc& acc,
                             float_X dE, // unit: ATOMIC_UNIT_ENERGY
                             float_X E, // unit: ATOMIC_UNIT_ENERGY
-                            T_AtomicDataBox atomicDataBox,
-                            bool debug=true) const
+                            T_AtomicDataBox atomicDataBox) const
                         {
                             float_X result = 0._X; // unit: (1/s) / (m^3/J)
 
@@ -205,20 +140,20 @@ namespace picongpu
                             // or incorrectly calculated (dE < 0)
                             if(dE <= 0._X)
                             {
-                                printf("WARNING: rate relative error not defined, for binWidth: %f\n", dE);
+                                printf("WARNING: rate relative error not defined for binWidth: %f\n", dE);
                             }
 
                             // E > 0, required by pyhsics due to definition of energy
                             if(E <= 0._X)
                             {
-                                printf("WARNING: rate relative error not defined, for central bin Energy: %f\n", E);
+                                printf("WARNING: rate relative error not defined for central bin Energy: %f\n", E);
                             }
 
                             // debug only
                             uint16_t loopCounter = 0u;
 
                             // a ... order of rate approximation
-                            for(uint32_t a = T_minOrderApprox; a <= T_maxOrderApprox; a++)
+                            for(uint32_t a = minA; a <= maxA; a++)
                             {
                                 // o ... derivative order of crossection sigma
                                 for(uint32_t o = 0u; o <= 2 * a; o++)
@@ -232,32 +167,39 @@ namespace picongpu
                                     std::cout << ", fak(" << (2u * a - o) << ") " << fak(2u * a - o);
                                     std::cout << ", sigmaDerivative(E:" << E <<", dE:" << dE << ", o:" << o <<") " <<
                                         sigmaDerivative(acc, E, dE, o, atomicDataBox);
-                                    std::cout << ", velocityDerivative(E:" << E << ", dE:" << dE << ", k:"<< (2u * a - o) << ") "<<
-                                        velocityDerivative(E, dE, 2u * a - o) * 1._X / (2u * a + 1u);
+                                    std::cout << ", velocityDerivative(E:" << E << ", dE:" << dE << ", k:"<< (2u * a -
+                                    o) << ") "<< velocityDerivative(E, dE, 2u * a - o) * 1._X / (2u * a + 1u);
                                     std::cout << " conversion factors " << math::pow(
                                                   dE * picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X,
                                                   static_cast<float_X>(2u * a + 1u));
-                                    std::cout << std::endl;
+                                    std::cout << std::endl;*/
                                     // printf("loopCounter %i, sigmaDerivative %f\n", loopCounter, sigmaDerivative(acc,
                                     // E, dE, o, atomicDataBox));*/
 
                                     // taylor expansion of rate integral, see my master thesis
                                     // \sum{ 1/(o! (2a-o)!) * sigma'(o) * v'(2a-o) * 1/(2a+1) * (dE/2)^(2a+1) * 2}
-                                    // 1/unitless * m^2/J^o * m/s * 1/J^(2*a-o) * unitless * J^(2*a+1) * unitless
-                                    // = m^3/J^(2a) * 1/s * J^(2a+1) = J * m^3 * 1/s
+                                    // 1/unitless * m^2/ATOMIC_UNIT_ENERGY^o * m/s * 1/ATOMIC_UNIT_ENERGY^(2*a-o) *
+                                    // unitless * ATOMIC_UNIT_ENERGY^(2*a+1) * unitless
+                                    // = m^3/ATOMIC_UNIT_ENERGY^(2a) * 1/s * ATOMIC_UNIT_ENERGY^(2a+1) =
+                                    // ATOMIC_UNIT_ENERGY * m^3 * 1/s
                                     result += 1.0_X / (fak(o) * fak(2u * a - o))
-                                        * sigmaDerivative(acc, E, dE, o, atomicDataBox, debug)
+                                        * sigmaDerivative(acc, E, dE, o, atomicDataBox)
                                         * velocityDerivative(E, dE, 2u * a - o) * 1._X / (2u * a + 1u)
                                         * math::pow(
-                                                  dE * picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X,
+                                                  dE / 2._X,
                                                   static_cast<float_X>(2u * a + 1u))
-                                        * 2._X; // unit: J * m^3 * 1/s
+                                        * 2._X; // unit: ATOMIC_UNIT_ENERGY * m^3 * 1/s
                                 }
                             }
                             // debug only
-                            // printf("    deltaE: %f\n", dE);
-                            // printf("    relative error: %f\n", result);
-                            return result;
+                            /*printf("    deltaE: %f\n", dE);
+                            printf("    E: %f\n", E);
+                            printf("    relative error: %f\n", result);*/
+
+                            // return absolute realitve error value
+                            if(result >= 0)
+                                return result;
+                            return -result;
                         }
 
                     private:
@@ -281,7 +223,7 @@ namespace picongpu
                                            2.0_X));
                         }
 
-                        // return unit: m/s * 1/J^m), SI
+                        // return unit: m/s * 1/(ATOMIC_UNIT_ENERGY^m)
                         DINLINE float_X velocityDerivative(
                             float_X E, // unit: ATOMIC_UNIT_ENERGY
                             float_X dE, // unit: ATOMIC_UNIT_ENERGY
@@ -298,25 +240,15 @@ namespace picongpu
                             // debug only
                             uint16_t loopCounter = 0u;
 
-                            for(uint32_t j = 0u; j < /*T_numSamplePoints*/5u; j++) // j index of sample point
+                            for(uint32_t j = 0u; j < numSamplePoints; j++) // j index of sample point
                             {
                                 // debug only
                                 loopCounter++;
 
-                                samplePoint = E + samplePoints(j) * dE/2._X;
-                                /*if( j == 0 )
-                                {
-                                    // first samplePoint, is by construction always = 0:
-                                    samplePoint = E;
-                                }
-                                else
-                                {
-                                    // calculate chebyshev sample point
-                                    samplePoint = E + chebyshevNodes<T_numSamplePoints -1u>(j) * dE / 2._X;
-                                }*/
+                                samplePoint = E + RateRelativeError::samplePoints(j) * dE / 2._X;
 
                                 // get Weight from pregenerated table
-                                weight = this->weights[m * /*T_numSamplePoints*/5u + j]; // unit: unitless
+                                weight = this->weights[m * numSamplePoints + j]; // unit: unitless
 
                                 // velocity( [ ATOMIC_UNIT_ENERGY ] ) -> m/s, SI
                                 velocityValue = velocity(samplePoint); // unit: m/s, SI
@@ -324,30 +256,29 @@ namespace picongpu
                                 result += weight * velocityValue; // unit: m/s, SI
 
                                 // debug only
-                                std::cout << "loopCounter " << loopCounter << " samplePoint(m,j) " << samplePoint <<
-                                    " weight " << weight << " velocityValue " << velocityValue << " result " <<
-                                    result << std::endl;
+                                /*std::cout << "velocity derivative: loopCounter " << loopCounter << " samplePoint(" <<
+                                   j << ") " << samplePoint << " weight (" << m * numSamplePoints + j << ") " << weight
+                                   << " energy " << E << " binWidth " << dE << " velocityValue " << velocityValue << "
+                                   result " << result << std::endl;*/
                             }
 
                             // get correct return unit
-                            // pow( 1/[ ATOMIC_UNIT_ENERGY * AU_To_J ] = 1/J, m )-> 1/(J^m)
-                            result /= math::pow(
-                                dE / 2._X * picongpu::SI::ATOMIC_UNIT_ENERGY,
-                                static_cast<float_X>(m)); // unit: m/s * 1/J^m, SI
+                            // pow( 1/[ ATOMIC_UNIT_ENERGY ] = 1/ATOMIC_UNIT_ENERGY, m )-> 1/(ATOMIC_UNIT_ENERGY^m)
+                            result
+                                /= math::pow(dE / 2._X, static_cast<float_X>(m)); // unit: m/s * 1/ATOMIC_UNIT_ENERGY^m
 
-                            return result;
+                            return result; // unit: m^2/J^m, SI
                         }
 
 
-                        // return unit: m^2/J^m, SI
+                        // return unit: m^2/ATOMIC_UNIT_ENERGY^o
                         template<typename T_Acc>
                         DINLINE float_X sigmaDerivative(
                             T_Acc& acc,
                             float_X E, // central energy of bin, unit: ATOMIC_UNIT_ENERGY
                             float_X dE, // delta energy, unit: ATOMIC_UNIT_ENERGY
                             uint32_t o, // order of derivative, unitless
-                            T_AtomicDataBox const atomicDataBox, // in file atomicData.hpp
-                            bool debug=false
+                            T_AtomicDataBox const atomicDataBox // in file atomicData.hpp
                         ) const
                         {
                             // debug only
@@ -362,59 +293,36 @@ namespace picongpu
                             // debug only
                             uint16_t loopCounter = 0u;
 
-                            for(uint32_t j = 0u; j < /*T_numSamplePoints*/5u; j++) // j index of sample point
+                            for(uint32_t j = 0u; j < numSamplePoints; j++) // j index of sample point
                             {
                                 // debug only
                                 loopCounter++;
 
-
                                 samplePoint = E + samplePoints(j) * dE/2._X;
-                                /*if( j == 0 )
-                                {
-                                    // first samplePoint, is by construction always = 0:
-                                    samplePoint = E;
-                                }
-                                else
-                                {
-                                    // calculate chebyshev sample point
-                                    samplePoint = E + chebyshevNodes<T_numSamplePoints -1u>(j) * dE / 2._X;
-                                }*/
 
                                 // get Weight from pregenerated table
                                 // TODO: stuff this index arithmic into a method call/template
-                                weight = this->weights[o * /*T_numSamplePoints*/5u + j]; // unit: unitless
+                                weight = this->weights[o * numSamplePoints + j]; // unit: unitless
 
-                            // get crossection of the energy bin
+                                // get crossection of the energy bin
                                 float_X sigmaValue = AtomicRate::totalCrossSection(
                                     acc,
                                     samplePoint, // unit: ATOMIC_UNIT_ENERGY
-                                    atomicDataBox,
-                                    debug); // unit: m^2, SI
+                                    atomicDataBox); // unit: m^2, SI
 
                                 result += weight * sigmaValue; // unit: m^2, SI
 
                                 // debug only
-                                std::cout << "loopCounter " << loopCounter << " samplePoint(m,j) " << samplePoint <<
-                                    " weight " << weight << " sigmaValue " << sigmaValue << " result " <<
-                                    result << std::endl;
+                                /*std::cout << "cross section derivative: loopCounter " << loopCounter << "
+                                   samplePoint(" << j << ") " << samplePoint << " weight (" << m * numSamplePoints + j
+                                   << ") " << weight << " energy " << E << " binWidth " << dE << " sigmaValue " <<
+                                   sigmaValue << " result " << result << std::endl;*/
                             }
 
-                            /*printf("step %i: weight %f, sigmaValue %f, result %f\n",
-                                loopCounter, weight, sigmaValue, result);*/
-
-                            // orignial version
-                           /*sigmaValue = AtomicRate::totalCrossSection(
-                              acc,
-                              E
-                                  + chebyshevNodes<numSamplePoints - 1u>(j + 1u) * dE
-                                      / 2._X, // unit: ATOMIC_UNIT_ENERGY
-                              atomicDataBox); // unit: m^2, SI*/
-
-
-                            result /= math::pow(dE * picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X, static_cast<float_X>(o));
+                            result /= math::pow(dE / 2._X, static_cast<float_X>(o));
                             //} m^2 / (J)^m
 
-                            return result; // unit: m^2/J^m, SI
+                            return result; // unit: m^2/ATOMIC_UNIT_ENERGY^m, SI
                         }
                     };
 

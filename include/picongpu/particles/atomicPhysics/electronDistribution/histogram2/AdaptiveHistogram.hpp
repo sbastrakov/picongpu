@@ -414,15 +414,15 @@ namespace picongpu
                                        atomicDataBox));
 
                             // debug only
-                            std::cout << "getBinWidth: isBelowTarget " << (isBelowTarget ? "true" : "false") <<
-                                " directionPositive " << directionPositive << " initBinWidth " <<
-                                currentBinWidth << " boundary " << boundary <<
-                                " relativeError " << this->relativeError(
-                                    acc,
-                                    currentBinWidth,
-                                    AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
-                                    atomicDataBox,
-                                    false)
+                            std::cout
+                                << "getBinWidth: isBelowTarget " << (isBelowTarget ? "true" : "false")
+                                << " directionPositive " << directionPositive << " initBinWidth " << currentBinWidth
+                                << " boundary " << boundary << " relativeError "
+                                << this->relativeError(
+                                       acc,
+                                       currentBinWidth,
+                                       AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
+                                       atomicDataBox)
                                 << std::endl;
 
                             // debug only
@@ -450,10 +450,10 @@ namespace picongpu
 
                                     // debug only
                                     loopCounter++;
-                                    std::cout << "loop_1, loopcounter " << loopCounter << /*
+                                    /*std::cout << "loop_1, loopcounter " << loopCounter <<
                                         " currentBinWidth " << currentBinWidth <<
                                         " boundary " << boundary <<
-                                        */" relativeError " << m_relativeError << std::endl;
+                                        " relativeError " << m_relativeError << std::endl;*/
                                 }
 
                                 // last i-th try was not below target,
@@ -479,10 +479,10 @@ namespace picongpu
                                     isBelowTarget = (this->relativeErrorTarget >= m_relativeError);
 
                                     loopCounter++;
-                                    std::cout << "loop_2, loopcounter " << loopCounter <<
-                                        /*" currentBinWidth " << currentBinWidth <<
+                                    /*std::cout << "loop_2, loopcounter " << loopCounter <<
+                                        " currentBinWidth " << currentBinWidth <<
                                         " boundary " << boundary <<
-                                        */" relativeError " << m_relativeError << std::endl;
+                                        " relativeError " << m_relativeError << std::endl;*/
                                 }
                                 // no need to reset to value before
                                 // since this was first value that was below target

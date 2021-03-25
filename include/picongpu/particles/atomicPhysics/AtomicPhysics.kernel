@@ -122,10 +122,6 @@ namespace picongpu
                     // hard coded for now
                     // TODO: get from param file
                     using RelativeError = electronDistribution::histogram2::RateRelativeError<
-                        1u, // T_minOrderApprox
-                        1u, // T_maxOrderApprox
-                        3u, // T_numSamplePoints
-                        WeightingGen,
                         AtomicRate,
                         T_AtomicDataBox,
                         ConfigNumberDataType>;
@@ -165,10 +161,10 @@ namespace picongpu
                     // init histogram and relative error
                     if(workerIdx == 0)
                     {
-                        // pass through parameters of histogram
-                        histogram.init(relativeErrorTarget, initialGridWidth, relativeError);
                         // calculate weightings once
                         relativeError.init();
+                        // pass through parameters of histogram
+                        histogram.init(relativeErrorTarget, initialGridWidth, relativeError);
                     }
                     cupla::__syncthreads(acc);
                     // necessary since all access relativeError and histogram, but both are only valid after init
@@ -189,15 +185,14 @@ namespace picongpu
                         printf("    histogram filled\n");
                     }
 
-                    /*solveRateEquation< T_numWorkers, AtomicRate >(
+                    solveRateEquation<T_numWorkers, AtomicRate>(
                         acc,
                         mapper,
                         rngFactoryInt,
                         rngFactoryFloat,
                         ionBox,
                         atomicDataBox,
-                        &histogram
-                    );
+                        &histogram);
                     cupla::__syncthreads( acc );
 
                     // debug code only
@@ -205,7 +200,6 @@ namespace picongpu
                     {
                         printf("rate applied");
                     }
-                    */
 
                     /*
                     decelerateElectrons< T_numWorkers >(
