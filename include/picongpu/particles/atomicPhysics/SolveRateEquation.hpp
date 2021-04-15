@@ -33,6 +33,8 @@
 
 #include <cstdint>
 
+// debug only
+//#include <iostream>
 
 namespace picongpu
 {
@@ -83,7 +85,8 @@ namespace picongpu
                 RandomGenFloat randomGenFloat,
                 T_Ion ion,
                 T_AtomicDataBox const atomicDataBox,
-                T_Histogram* histogram)
+                T_Histogram* histogram,
+                bool debug)
             {
                 // workaround: the types may be obtained in a better fashion
                 // TODO: relace with better version
@@ -107,6 +110,8 @@ namespace picongpu
                 float_X deltaEnergy;
                 float_X quasiProbability;
 
+                // debug only
+                uint16_t loopCounter = 0u;
 
                 // set remaining time to pic time step at the beginning
                 float_X timeRemaining_SI = picongpu::SI::DELTA_T_SI;
@@ -115,7 +120,6 @@ namespace picongpu
                 {
                     // read out old state index
                     oldState = configNumber.getStateIndex();
-
 
                     // get a random new state index, ?checkdatentyp randomIntGen
                     newStatesCollectionIndex = randomGenInt() % atomicDataBox.getNumStates();
@@ -146,11 +150,10 @@ namespace picongpu
                     constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
                     // calculate density of electrons based on weight of electrons in this bin
                     densityElectrons = histogram->getWeightBin(histogramIndex)
-                        / (numCellsPerSuperCell * picongpu::CELL_VOLUME * UNIT_VOLUME * energyElectronBinWidth
-                           * picongpu::SI::ATOMIC_UNIT_ENERGY);
+                        / (numCellsPerSuperCell * picongpu::CELL_VOLUME * UNIT_VOLUME * energyElectronBinWidth);
                     // (weighting * #/weighting) /
-                    //      ( numCellsPerSuperCell * Volume * m^3/Volume * AU * J/AU )
-                    // = # / (m^3 * J) => unit: 1/(m^3 * J), SI
+                    //      ( numCellsPerSuperCell * Volume * m^3/Volume * AU )
+                    // = # / (m^3 * AU) => unit: 1/(m^3 * AU), SI
 
                     if(oldState == newState)
                     {
@@ -163,7 +166,7 @@ namespace picongpu
                             oldState, // unitless
                             energyElectron, // unit: ATOMIC_UNIT_ENERGY
                             energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                            densityElectrons, // unit: 1/(m^3*J), SI
+                            densityElectrons, // unit: 1/(m^3*AU), SI
                             atomicDataBox); // unit: 1/s, SI
 
                         quasiProbability = 1._X - rate_SI * timeRemaining_SI;
@@ -191,6 +194,21 @@ namespace picongpu
                         quasiProbability = rate_SI * timeRemaining_SI;
                     }
 
+                    // debug only
+                    if(debug)
+                    {
+                        /*std::cout << "loopCounter " << loopCounter <<
+                            " timeRemaining " << timeRemaining_SI <<
+                            " oldState " << oldState <<
+                            " newState " << newState <<
+                            " energyElectron " << energyElectron <<
+                            " energyElectronBinWidth " << energyElectronBinWidth <<
+                            " densityElectrons " << densityElectrons <<
+                            " histogramIndex " << histogramIndex <<
+                            " quasiProbability " << quasiProbability <<
+                            " rateSI " << rate_SI << std::endl;*/
+                    }
+
 
                     if(quasiProbability >= 1.0_X)
                     {
@@ -205,6 +223,11 @@ namespace picongpu
                         if(rate_SI > 0)
                         {
                             timeRemaining_SI -= 1.0_X / rate_SI;
+                        }
+                        else
+                        {
+                            // special case: no other possibility
+                            timeRemaining_SI = 0._X;
                         }
 
                         // record energy removed or added to electrons
@@ -246,6 +269,7 @@ namespace picongpu
                             );
                         }
                     }
+                    loopCounter++;
                 }
             }
 
@@ -266,7 +290,8 @@ namespace picongpu
                 RngFactoryFloat rngFactoryFloat,
                 T_IonBox ionBox,
                 T_AtomicDataBox const atomicDataBox,
-                T_Histogram* histogram)
+                T_Histogram* histogram,
+                bool debug)
             {
                 using namespace mappings::threads;
 
@@ -304,7 +329,8 @@ namespace picongpu
                                 generatorFloat,
                                 particle,
                                 atomicDataBox,
-                                histogram);
+                                histogram,
+                                debug);
                         }
                     });
 

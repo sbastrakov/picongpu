@@ -185,6 +185,16 @@ namespace picongpu
                         printf("    histogram filled\n");
                     }
 
+                    bool debug;
+                    if(workerIdx == 0)
+                    {
+                        debug = false;
+                    }
+                    else
+                    {
+                        debug = false;
+                    }
+
                     solveRateEquation<T_numWorkers, AtomicRate>(
                         acc,
                         mapper,
@@ -192,13 +202,14 @@ namespace picongpu
                         rngFactoryFloat,
                         ionBox,
                         atomicDataBox,
-                        &histogram);
+                        &histogram,
+                        debug);
                     cupla::__syncthreads( acc );
 
                     // debug code only
                     if( workerIdx == 0 )
                     {
-                        printf("rate applied");
+                        printf("    rate applied");
                     }
 
                     /*

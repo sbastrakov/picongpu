@@ -267,7 +267,7 @@ namespace picongpu
                             result
                                 /= math::pow(dE / 2._X, static_cast<float_X>(m)); // unit: m/s * 1/ATOMIC_UNIT_ENERGY^m
 
-                            return result; // unit: m^2/J^m, SI
+                            return result; // unit: m/s * 1/ATOMIC_UNIT_ENERGY^m
                         }
 
 

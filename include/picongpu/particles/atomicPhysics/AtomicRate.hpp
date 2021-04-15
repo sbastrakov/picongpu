@@ -190,7 +190,7 @@ namespace picongpu
                 }
 
             public:
-                // return unit: J, SI
+                // return unit: ATOMIC_UNIT_ENERGY
                 template<typename T_Acc>
                 DINLINE static float_X energyDifference(
                     T_Acc& acc,
@@ -198,7 +198,8 @@ namespace picongpu
                     Idx const newIdx, // unitless
                     AtomicDataBox atomicDataBox)
                 {
-                    return (atomicDataBox(newIdx) - atomicDataBox(oldIdx)) * picongpu::UNITCONV_eV_to_Joule;
+                    return (atomicDataBox(newIdx) - atomicDataBox(oldIdx)) * picongpu::UNITCONV_eV_to_AU;
+                    // unit: ATOMIC_UNIT_ENERGY
                 }
 
                 /** @param energyElectron ... kinetic energy only, unit: ATOMIC_UNIT_ENERGY
@@ -212,23 +213,21 @@ namespace picongpu
                     float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
                     AtomicDataBox atomicDataBox)
                 {
-                    // unit conversion to SI
-                    float_X energyElectron_SI = energyElectron * picongpu::SI::ATOMIC_UNIT_ENERGY;
-                    // unit: J, SI
-
                     // energy difference between atomic states
-                    // J <- (eV - eV) * eV_to_J
-                    float_X energyDifference_SI = energyDifference(acc, oldIdx, newIdx,
-                                                                   atomicDataBox); // unit: J, SI
+                    float_X energyDifference_m = energyDifference(
+                        acc,
+                        oldIdx,
+                        newIdx,
+                        atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
 
                     uint32_t indexTransition; // unitless
                     float_X Ratio; // unitless
 
                     // excitation or deexcitation
-                    if(energyDifference_SI < 0._X)
+                    if(energyDifference_m < 0._X)
                     {
                         // deexcitation
-                        energyDifference_SI = -energyDifference_SI; // unit: J, SI
+                        energyDifference_m = -energyDifference_m; // unit: J, SI
 
                         // collisional absorption obscillator strength of transition [unitless]
                         indexTransition = atomicDataBox.findTransition(
@@ -237,29 +236,33 @@ namespace picongpu
                         );
 
                         // ratio due to multiplicity
-                        // unitless/unitless * (J + J) / J = unitless
+                        // unitless/unitless * (AU + AU) / AU = unitless
                         Ratio = static_cast<float_X>((Multiplicity(acc, newIdx)) / (Multiplicity(acc, oldIdx)))
-                            * (energyElectron_SI + energyDifference_SI) / energyElectron_SI; // unitless
+                            * (energyElectron + energyDifference_m) / energyElectron; // unitless
 
                         // security check for NaNs in Ratio and debug outputif present
                         if( !(Ratio >= 0) && !(Ratio < 0) ) // only true if both !(<0) and !(>=0), if nan than comparison always false
                         {
-                            printf("Warning: NaN in ratio calculation, ask developer for more information\n"
-                                "   newIdx %u ,oldIdx %u ,energyElectron_SI %f ,energyDifference_SI %f", 
-                                newIdx, oldIdx, energyElectron_SI, energyDifference_SI);
+                            printf(
+                                "Warning: NaN in ratio calculation, ask developer for more information\n"
+                                "   newIdx %u ,oldIdx %u ,energyElectron_SI %f ,energyDifference_m %f",
+                                newIdx,
+                                oldIdx,
+                                energyElectron,
+                                energyDifference_m);
                         }
 
                         // debug only
-                        if(std::isnan(Ratio))
+                        /*if(std::isnan(Ratio))
                         {
                             std::cout << "Ratio: " << Ratio << "MultiplicityN: " << (Multiplicity(acc, newIdx)) <<
-                                 "MultiplicityO: " << (Multiplicity(acc, oldIdx)) << "term" << (energyElectron_SI +
-                            energyDifference_SI) / energyElectron_SI << "R-Multi." << (Multiplicity(acc, newIdx)) /
+                                 "MultiplicityO: " << (Multiplicity(acc, oldIdx)) << "term" << (energyElectron +
+                            energyDifference_m) / energyElectron << "R-Multi." << (Multiplicity(acc, newIdx)) /
                             (Multiplicity(acc, oldIdx)) << "cast R-Multi." << static_cast<float_X>( (Multiplicity(acc,
                             newIdx)) / (Multiplicity(acc, oldIdx))) << std::endl;
-                        }
+                        }*/
 
-                        energyElectron_SI = energyElectron_SI + energyDifference_SI; // unit; J, SI
+                        energyElectron = energyElectron + energyDifference_m; // unit; J, SI
                     }
                     else
                     {
@@ -276,12 +279,16 @@ namespace picongpu
                     // BEWARE: input data may be incomplete
                     // TODO: implement better fallback calculation
 
-                    // TODO: Implement crosssection of not changing state
+                    // TODO: Implement cross section of not changing state
 
                     // check whether transition index exists
                     if(indexTransition == atomicDataBox.getNumTransitions())
+                    {
+                        // debug only
+                        // std::cout << " transition not found, oldIdx " << oldIdx << " newIdx" << newIdx << std::endl;
                         // fallback
                         return 0._X; // 0 crossection for non existing transition, unit: m^2, SI
+                    }
 
                     // unitless * unitless = unitless
                     float_X const collisionalOscillatorStrength
@@ -298,7 +305,7 @@ namespace picongpu
                         c0_SI == 0 ? "true" : "false",
                         collisionalOscillatorStrength,
                         energyElectron,
-                        gauntFactor(energyDifference_SI,
+                        gauntFactor(energyDifference_m,
                             energyElectron_SI,
                             indexTransition,
                             atomicDataBox));*/
@@ -312,14 +319,11 @@ namespace picongpu
                             Ratio);
                     }
 
-                    // m^2 * (J/J)^2 * unitless * J/J * unitless<-[ J, J, unitless, unitless ] = m^2
-                    float_X crossSection_SI = c0_SI
-                        * math::pow(
-                                    (picongpu::SI::ATOMIC_UNIT_ENERGY / 2._X) / energyDifference_SI,
-                                    2.0_X)
-                        * collisionalOscillatorStrength * (energyDifference_SI / energyElectron_SI)
-                        * gauntFactor(energyDifference_SI,
-                                      energyElectron_SI,
+                    // m^2 * (AU/AU)^2 * unitless * AU/AU * unitless<-[ J, J, unitless, unitless ] = m^2
+                    float_X crossSection_SI = c0_SI * math::pow((1._X / 2._X) / energyDifference_m, 2.0_X)
+                        * collisionalOscillatorStrength * (energyDifference_m / energyElectron)
+                        * gauntFactor(energyDifference_m,
+                                      energyElectron,
                                       indexTransition,
                                       atomicDataBox); // unit: m^2, SI
 
@@ -368,7 +372,7 @@ namespace picongpu
 
                         // debug only
                         loopCount++;
-                        if(std::isnan(result))
+                        /*if(std::isnan(result))
                         {
                             std::cout << "loop " << loopCount << " crossSectionExcitation " <<
                                 collisionalExcitationCrosssection(
@@ -379,7 +383,7 @@ namespace picongpu
                                     atomicDataBox)
                                 << " lowerIdx " << lowerIdx << " upperIdx " << upperIdx <<
                                 " energyElectron " << energyElectron << std::endl;
-                        }
+                        }*/
 
                         // deexcitation crosssection
                         result += collisionalExcitationCrosssection(
@@ -390,7 +394,7 @@ namespace picongpu
                             atomicDataBox); // unit: m^2, SI
 
                         // debug only
-                        if(std::isnan(result))
+                        /*if(std::isnan(result))
                         {
                             std::cout << "loop " << loopCount << " crossSectionDeExcitation " <<
                                 collisionalExcitationCrosssection(
@@ -400,7 +404,7 @@ namespace picongpu
                                     energyElectron, // unit: ATOMIC_UNIT_ENERGY
                                     atomicDataBox)
                                 << std::endl;
-                        }
+                        }*/
                     }
 
                     // debug only
@@ -435,7 +439,7 @@ namespace picongpu
                     Idx const newIdx, // new atomic state
                     float_X const energyElectron, // unit: ATOMIC_UNIT_ENERGY
                     float_X const energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                    float_X const densityElectrons, // unit: 1/(m^3*J), SI
+                    float_X const densityElectrons, // unit: 1/(m^3*AU)
                     AtomicDataBox const atomicDataBox)
                 {
                     // constants in SI
@@ -444,8 +448,7 @@ namespace picongpu
 
                     const float_64 E_e_SI = energyElectron * picongpu::UNITCONV_AU_to_eV * UNITCONV_eV_to_Joule;
                     // unit: J, SI
-                    const float_64 dE_SI = energyElectronBinWidth * picongpu::UNITCONV_AU_to_eV * UNITCONV_eV_to_Joule;
-                    // unit: J, SI
+                    // unit: AU, =: ATOMIC_UNIT_ENERGY
 
                     float_X sigma_SI = collisionalExcitationCrosssection(
                         acc,
@@ -454,11 +457,13 @@ namespace picongpu
                         energyElectron, // unit: ATOMIC_UNIT_ENERGY
                         atomicDataBox); // unit: (m^2), SI
 
-                    // J * m^2 * 1/(m^3*J) * m/s * sqrt( unitless - [ ( (kg*m^2/s^2)/J )^2 = Nm/J = J/J = unitless ] )
-                    // = J/J m^3/m^3 * 1/s
-                    return dE_SI * sigma_SI * densityElectrons * c_SI
-                        * math::sqrt(
-                               1 - math::pow(1._X / (1._X + E_e_SI / (m_e_SI * math::pow(c_SI, 2.0_X))), 2.0_X));
+                    // debug only
+                    // std::cout << "    simga_SI " << sigma_SI << std::endl;
+
+                    // AU * m^2 * 1/(m^3*AU) * m/s * sqrt( unitless - [ ( (kg*m^2/s^2)/J )^2 = Nm/J = J/J = unitless ]
+                    // ) = AU/AU m^3/m^3 * 1/s
+                    return energyElectronBinWidth * sigma_SI * densityElectrons * c_SI
+                        * math::sqrt(1 - math::pow(1._X / (1._X + E_e_SI / (m_e_SI * math::pow(c_SI, 2.0_X))), 2.0_X));
                     // unit: 1/s; SI
                 }
 

@@ -414,7 +414,7 @@ namespace picongpu
                                        atomicDataBox));
 
                             // debug only
-                            std::cout
+                            /*std::cout
                                 << "getBinWidth: isBelowTarget " << (isBelowTarget ? "true" : "false")
                                 << " directionPositive " << directionPositive << " initBinWidth " << currentBinWidth
                                 << " boundary " << boundary << " relativeError "
@@ -423,7 +423,7 @@ namespace picongpu
                                        currentBinWidth,
                                        AdaptiveHistogram::centerBin(directionPositive, boundary, currentBinWidth),
                                        atomicDataBox)
-                                << std::endl;
+                                << std::endl;*/
 
                             // debug only
                             uint16_t loopCounter = 0u;
@@ -434,7 +434,7 @@ namespace picongpu
                             if(isBelowTarget)
                             {
                                 // increase until no longer below
-                                while(isBelowTarget && (loopCounter <= maxLoopCount))
+                                while(isBelowTarget) //&& (loopCounter <= maxLoopCount))
                                 {
                                     // try higher binWidth
                                     currentBinWidth *= 2._X;
@@ -497,12 +497,13 @@ namespace picongpu
                             if((workerIdx == 0) )
                             {
                                 // debug code
-                                printf(
+                                /*printf(
                                     "    Final: +/-?: %s, initialBinWidth: %f, boundary: %f, loopN: %i\n",
                                     directionPositive ? "t" : "f",
                                     currentBinWidth,
                                     boundary,
                                     loopCounter);
+                                */
                             }
 
                             return currentBinWidth;
