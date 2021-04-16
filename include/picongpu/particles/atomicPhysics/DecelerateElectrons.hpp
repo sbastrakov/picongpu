@@ -46,7 +46,7 @@ namespace picongpu
                 T_Histogram const& histogram,
                 T_AtomicDataBox atomicDataBox)
             {
-                // todo: compute, probably via a generic algorithm
+                // TODO: compute, probably via a generic algorithm from particle
                 float_X const energy
                     = picongpu::particles::atomicPhysics::GetRealKineticEnergy::KineticEnergy(electron)
                     / picongpu::SI::ATOMIC_UNIT_ENERGY; // unit: ATOMIC_UNIT_ENERGY
@@ -55,7 +55,7 @@ namespace picongpu
                 // look up in the histogram, which bin is this energy
                 uint16_t binIndex = histogram.getBinIndex(acc, energy, atomicDataBox);
 
-                // this could happen only if histogram did not have enough memory
+                // case electron missing from histogram due to not enough histogram bins/too few intermediate bins
                 if(binIndex == histogram.getMaxNumberBins())
                     return;
 

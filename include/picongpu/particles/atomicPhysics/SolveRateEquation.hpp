@@ -121,7 +121,7 @@ namespace picongpu
                     // read out old state index
                     oldState = configNumber.getStateIndex();
 
-                    // get a random new state index, ?checkdatentyp randomIntGen
+                    // get a random new state index
                     newStatesCollectionIndex = randomGenInt() % atomicDataBox.getNumStates();
                     newState = atomicDataBox.getAtomicStateConfigNumberIndex(newStatesCollectionIndex);
 
@@ -187,9 +187,8 @@ namespace picongpu
 
                         // get the change of electron energy
                         deltaEnergy = AtomicRate::energyDifference(acc, oldState, newState, atomicDataBox)
-                            * ion[weighting_] * picongpu::particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-                            / picongpu::SI::ATOMIC_UNIT_ENERGY;
-                        // J / (J/AU) => unit: ATOMIC_UNIT_ENERGY
+                            * ion[weighting_] * picongpu::particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE;
+                        // unit: ATOMIC_UNIT_ENERGY
 
                         quasiProbability = rate_SI * timeRemaining_SI;
                     }

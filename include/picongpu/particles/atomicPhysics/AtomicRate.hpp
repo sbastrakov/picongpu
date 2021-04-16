@@ -227,7 +227,7 @@ namespace picongpu
                     if(energyDifference_m < 0._X)
                     {
                         // deexcitation
-                        energyDifference_m = -energyDifference_m; // unit: J, SI
+                        energyDifference_m = -energyDifference_m; // unit: ATOMIC_UNIT_ENERGY
 
                         // collisional absorption obscillator strength of transition [unitless]
                         indexTransition = atomicDataBox.findTransition(
@@ -262,7 +262,7 @@ namespace picongpu
                             newIdx)) / (Multiplicity(acc, oldIdx))) << std::endl;
                         }*/
 
-                        energyElectron = energyElectron + energyDifference_m; // unit; J, SI
+                        energyElectron = energyElectron + energyDifference_m; // unit; ATOMIC_UNIT_ENERGY
                     }
                     else
                     {
@@ -310,7 +310,9 @@ namespace picongpu
                             indexTransition,
                             atomicDataBox));*/
                     // std::cout << collisionalOscillatorStrength << std::endl;
-                    if(std::isnan(collisionalOscillatorStrength))
+
+                    // NaN check
+                    if((!(collisionalOscillatorStrength >= 0)) && (!(collisionalOscillatorStrength < 0)))
                     {
                         printf(
                             "indexTransition %i, oscillatorStrength %f , ratio %f\n",
@@ -319,7 +321,8 @@ namespace picongpu
                             Ratio);
                     }
 
-                    // m^2 * (AU/AU)^2 * unitless * AU/AU * unitless<-[ J, J, unitless, unitless ] = m^2
+                    // m^2 * (AUE/AUE)^2 * unitless * AUE/AUE * unitless<-[ J, J, unitless, unitless ] = m^2
+                    // AUE =^= ATOMIC_UNIT_ENERGY
                     float_X crossSection_SI = c0_SI * math::pow((1._X / 2._X) / energyDifference_m, 2.0_X)
                         * collisionalOscillatorStrength * (energyDifference_m / energyElectron)
                         * gauntFactor(energyDifference_m,
@@ -327,7 +330,7 @@ namespace picongpu
                                       indexTransition,
                                       atomicDataBox); // unit: m^2, SI
 
-                    // safeguard against negative cross sections due to approximations
+                    // safeguard against negative cross sections due to imperfect approximations
                     if(crossSection_SI < 0._X)
                     {
                         return 0._X;
@@ -372,18 +375,22 @@ namespace picongpu
 
                         // debug only
                         loopCount++;
-                        /*if(std::isnan(result))
+                        // NaN check
+                        if((!(result >= 0)) && (!(result < 0)))
                         {
-                            std::cout << "loop " << loopCount << " crossSectionExcitation " <<
+                            printf(
+                                "loop %i crossSectionExcitation %f lowerIdx %u, upperIdx %u energyElectron %f \n",
+                                loopCount,
                                 collisionalExcitationCrosssection(
                                     acc,
                                     lowerIdx, // unitless
                                     upperIdx, // unitless
                                     energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                                    atomicDataBox)
-                                << " lowerIdx " << lowerIdx << " upperIdx " << upperIdx <<
-                                " energyElectron " << energyElectron << std::endl;
-                        }*/
+                                    atomicDataBox),
+                                lowerIdx,
+                                upperIdx,
+                                energyElectron);
+                        }
 
                         // deexcitation crosssection
                         result += collisionalExcitationCrosssection(
@@ -394,17 +401,19 @@ namespace picongpu
                             atomicDataBox); // unit: m^2, SI
 
                         // debug only
-                        /*if(std::isnan(result))
+                        // NaN check
+                        if((!(result >= 0)) && (!(result < 0)))
                         {
-                            std::cout << "loop " << loopCount << " crossSectionDeExcitation " <<
+                            printf(
+                                "loop %i crossSectionDeExcitation %f \n",
+                                loopCount,
                                 collisionalExcitationCrosssection(
                                     acc,
                                     upperIdx, // unitless
                                     lowerIdx, // unitless
                                     energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                                    atomicDataBox)
-                                << std::endl;
-                        }*/
+                                    atomicDataBox));
+                        }
                     }
 
                     // debug only
