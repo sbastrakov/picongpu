@@ -106,7 +106,7 @@ namespace picongpu
 
                 //{ atomic state
                 // data type used for configNumber
-                using T_ConfigNumberDataType = uint64_t; // must be large, since atomic input
+                using T_ConfigNumberDataType = uint32_t; // must be large, since atomic input
                                                          // data contains states with very large indices
 
                 // number of atomic shells modelled
@@ -130,14 +130,14 @@ namespace picongpu
                 //{ input data
                 // define std:vector of entries of atomic data sets
                 using States = typename std::vector<std::pair<
-                    uint64_t, // index of atomic state
+                    T_ConfigNumberDataType, // index of atomic state
                     float_X // state energy relative to ground state of its ionization state
                             // in eV
                     >>;
                 // same as States but for Transitions
                 using Transitions = typename std::vector<std::tuple<
-                    uint64_t, // lower state index
-                    uint64_t, // higher state index
+                    T_ConfigNumberDataType, // lower state index
+                    T_ConfigNumberDataType, // higher state index
                     float_X, // collisional oscillator strength
                     float_X, // cinx1, gaunt coefficent used by formula
                     float_X, // cinx2, gaunt coefficent used by formula
@@ -178,7 +178,7 @@ namespace picongpu
 
                     while(file >> stateIndex >> energyOverGroundState)
                     {
-                        uint64_t idx = static_cast<uint64_t>(stateIndex);
+                        T_ConfigNumberDataType idx = static_cast<T_ConfigNumberDataType>(stateIndex);
                         auto item = std::make_pair(idx, energyOverGroundState);
                         result.push_back(item);
                     }

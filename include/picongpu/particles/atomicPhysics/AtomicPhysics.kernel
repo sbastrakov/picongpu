@@ -131,7 +131,7 @@ namespace picongpu
 
                     if(workerIdx == 0)
                     {
-                        printf("    start kernel\n");
+                        printf("start kernel\n");
                     }
 
                     // get new histogram
@@ -209,7 +209,7 @@ namespace picongpu
                     // debug code only
                     if( workerIdx == 0 )
                     {
-                        printf("    rate applied");
+                        printf("    rate applied\n");
                     }
 
                     decelerateElectrons< T_numWorkers >(
@@ -223,7 +223,7 @@ namespace picongpu
                     // debug code only
                     if( workerIdx == 0 )
                     {
-                        printf("electrons decellerated");
+                        printf("    electrons decellerated\n");
                     }
                 }
             };

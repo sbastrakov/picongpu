@@ -88,6 +88,7 @@ namespace picongpu
                 T_Histogram* histogram,
                 bool debug)
             {
+                printf("        process Ion\n");
                 // workaround: the types may be obtained in a better fashion
                 // TODO: relace with better version
                 auto configNumber = ion[atomicConfigNumber_];
