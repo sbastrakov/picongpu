@@ -32,6 +32,7 @@
  *  @tparam T_maxNumberBins ... maximum number of bins of the histogram
  *  @tparam T_mayNumNewBins ... maximum number of new bins before updateWithNewBins
  *                                must be called by one thread
+ *                                BEWARE: causes invalid memory access if set incorrectly
  *
  * private members:
  * ----------------

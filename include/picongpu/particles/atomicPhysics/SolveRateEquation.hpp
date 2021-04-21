@@ -88,12 +88,22 @@ namespace picongpu
                 T_Histogram* histogram,
                 bool debug)
             {
-                printf("        process Ion\n");
+                // case of no electrons in current super cell
+                if(histogram->getNumBins() == 0)
+                    return;
+
+                // debug only
+                std::cout << "        process Ion" << std::endl;
+                // return;
+
                 // workaround: the types may be obtained in a better fashion
                 // TODO: relace with better version
                 auto configNumber = ion[atomicConfigNumber_];
                 using ConfigNumber = decltype(configNumber);
                 using ConfigNumberDataType = decltype(ion[atomicConfigNumber_].getStateIndex()); // ? shorten
+
+                // debug only
+                // std::cout << "        got ion configNumber object" << std::endl;
 
                 using AtomicRate = T_AtomicRate;
 
@@ -117,10 +127,19 @@ namespace picongpu
                 // set remaining time to pic time step at the beginning
                 float_X timeRemaining_SI = picongpu::SI::DELTA_T_SI;
 
+                // debug only
+                // std::cout << "            start state change loop" << std::endl;
+
                 while(timeRemaining_SI > 0.0_X)
                 {
+                    // debug only
+                    // std::cout << "loopCounter" << loopCounter << " get current state index " << std::endl;
+
                     // read out old state index
-                    oldState = configNumber.getStateIndex();
+                    oldState = ion[atomicConfigNumber_].getStateIndex();
+
+                    // debug only
+                    // std::cout << "roll new state index" << std::endl;
 
                     // get a random new state index
                     newStatesCollectionIndex = randomGenInt() % atomicDataBox.getNumStates();
@@ -130,14 +149,24 @@ namespace picongpu
                     // unperformant since many states do not actually exist
                     // and very large number of states possible in uint64 >> 15000
 
+                    // debug only
+                    // std::cout << "get histogram index" << std::endl;
+
                     // choose random histogram collection index
                     histogramIndex = static_cast<uint16_t>(randomGenInt()) % histogram->getNumBins();
+
+
+                    // debug only
+                    // std::cout << "get energy electron" << std::endl;
 
                     // get energy of histogram bin with this collection index
                     energyElectron = histogram->getEnergyBin(
                         acc,
                         histogramIndex,
                         atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+
+                    // debug only
+                    // std::cout << "get electron bin Width" << std::endl;
 
                     // get width of histogram bin with this collection index
                     energyElectronBinWidth = histogram->getBinWidth(
@@ -147,6 +176,9 @@ namespace picongpu
                         histogram->getInitialGridWidth(), // unit: ATOMIC_UNIT_ENERGY
                         atomicDataBox);
 
+                    // debug only
+                    // std::cout << "calculate electron density" << std::endl;
+
                     constexpr float_64 UNIT_VOLUME = UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH;
                     constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
                     // calculate density of electrons based on weight of electrons in this bin
@@ -155,6 +187,9 @@ namespace picongpu
                     // (weighting * #/weighting) /
                     //      ( numCellsPerSuperCell * Volume * m^3/Volume * AU )
                     // = # / (m^3 * AU) => unit: 1/(m^3 * AU), SI
+
+                    // debug only
+                    // std::cout << "check if old == new" << std::endl;
 
                     if(oldState == newState)
                     {
@@ -172,6 +207,9 @@ namespace picongpu
 
                         quasiProbability = 1._X - rate_SI * timeRemaining_SI;
                         deltaEnergy = 0._X;
+
+                        // debug only
+                        // std::cout << "  yes" << std::endl;
                     }
                     else
                     {
@@ -192,21 +230,18 @@ namespace picongpu
                         // unit: ATOMIC_UNIT_ENERGY
 
                         quasiProbability = rate_SI * timeRemaining_SI;
+                        // debug only
+                        // std::cout << "  no" << std::endl;
                     }
 
                     // debug only
                     if(debug)
                     {
-                        /*std::cout << "loopCounter " << loopCounter <<
-                            " timeRemaining " << timeRemaining_SI <<
-                            " oldState " << oldState <<
-                            " newState " << newState <<
-                            " energyElectron " << energyElectron <<
-                            " energyElectronBinWidth " << energyElectronBinWidth <<
-                            " densityElectrons " << densityElectrons <<
-                            " histogramIndex " << histogramIndex <<
-                            " quasiProbability " << quasiProbability <<
-                            " rateSI " << rate_SI << std::endl;*/
+                        std::cout << "loopCounter " << loopCounter << " timeRemaining " << timeRemaining_SI
+                                  << " oldState " << oldState << " newState " << newState << " energyElectron "
+                                  << energyElectron << " energyElectronBinWidth " << energyElectronBinWidth
+                                  << " densityElectrons " << densityElectrons << " histogramIndex " << histogramIndex
+                                  << " quasiProbability " << quasiProbability << " rateSI " << rate_SI << std::endl;
                     }
 
 
@@ -215,6 +250,9 @@ namespace picongpu
                         // case: more than one change per time remaining
                         // -> change once and reduce time remaining by mean time between such transitions
                         //  can only happen in the case of newState != olstate, since otherwise 1 - ( >0 ) < 1
+
+                        // debug only
+                        // std::cout << "    intermediate state" << std::endl;
 
                         // change atomic state of ion
                         ion[atomicConfigNumber_] = newState;
@@ -249,6 +287,9 @@ namespace picongpu
                             // on average change from original state into new more than once
                             // in timeRemaining
                             // => can not remain in current state -> must choose new state
+
+                            // debug only
+                            // std::cout << "    unphysical rate" << std::endl;
                         }
                         else if(randomGenFloat() <= quasiProbability)
                         {
@@ -267,6 +308,9 @@ namespace picongpu
                                 histogramIndex, // unitless
                                 deltaEnergy // unit: ATOMIC_UNIT_ENERGY
                             );
+
+                            // debug only
+                            // std::cout << "    final state" << std::endl;
                         }
                     }
                     loopCounter++;

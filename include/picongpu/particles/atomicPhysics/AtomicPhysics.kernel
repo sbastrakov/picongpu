@@ -43,6 +43,7 @@
 // conversion to/from atomic state index
 #include "picongpu/particles/atomicPhysics/stateRepresentation/ConfigNumber.hpp"
 
+// debug only
 #include <cstdint>
 
 
@@ -131,7 +132,7 @@ namespace picongpu
 
                     if(workerIdx == 0)
                     {
-                        printf("start kernel\n");
+                        std::cout << "start kernel" << std::endl;
                     }
 
                     // get new histogram
@@ -143,7 +144,7 @@ namespace picongpu
 
                     if(workerIdx == 0)
                     {
-                        printf("    allocation histogram in SMEM\n");
+                        std::cout << "    allocation histogram in SMEM" << std::endl;
                     }
 
                     // get new weightings
@@ -182,7 +183,7 @@ namespace picongpu
                     // debug code only
                     if(workerIdx == 0)
                     {
-                        printf("    histogram filled\n");
+                        std::cout << "    histogram filled" << std::endl;
                     }
 
                     bool debug;
@@ -209,7 +210,7 @@ namespace picongpu
                     // debug code only
                     if( workerIdx == 0 )
                     {
-                        printf("    rate applied\n");
+                        std::cout << "    rate applied" << std::endl;
                     }
 
                     decelerateElectrons< T_numWorkers >(
@@ -223,7 +224,7 @@ namespace picongpu
                     // debug code only
                     if( workerIdx == 0 )
                     {
-                        printf("    electrons decellerated\n");
+                        printf("    electrons decelerated\n");
                     }
                 }
             };

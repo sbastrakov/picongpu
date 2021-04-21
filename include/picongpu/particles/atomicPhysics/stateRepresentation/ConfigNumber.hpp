@@ -253,7 +253,7 @@ namespace picongpu
 
                             // must not test for < 0 since levelvector is vector of unsigned int
                             PMACC_ASSERT_MSG(
-                                g(n + 1) >= *levelVector[n],
+                                g(n + 1) >= levelVector[n],
                                 "occuation numbers too large, must be <=2*n^2");
 
                             nextStepLength(&stepLength, n);

@@ -140,6 +140,7 @@ namespace picongpu
                     }
                     std::cout << "}" << std::endl;*/
 
+                    // TODO: chnage power function call to explicit multipication
                     for(uint8_t i = 0u; i < T_numLevels; i++)
                     {
                         result *= binomialCoefficients(

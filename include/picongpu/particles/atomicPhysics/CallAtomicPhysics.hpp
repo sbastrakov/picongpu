@@ -249,6 +249,9 @@ namespace picongpu
                     std::string stateDataFileName = "/home/marre55/CarbonLevels.txt";
                     std::string transitionDataFileName = "/home/marre55/CarbonTransitions.txt";
 
+                    // debug only
+                    std::cout << "read atomic input data" << std::endl;
+
                     // read in atomic data:
                     // levels
                     auto levelDataItems = readStateData(stateDataFileName);
@@ -329,7 +332,7 @@ namespace picongpu
                     // electrons
                     auto& electrons = *dc.get<ElectronSpecies>(ElectronFrameType::getName(), true);
 
-                    // area to aply kernel to
+                    // area to apply kernel to
                     AreaMapping<
                         CORE + BORDER, // full local domain, no guards
                         MappingDesc>
