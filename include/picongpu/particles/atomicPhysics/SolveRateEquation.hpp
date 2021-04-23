@@ -237,11 +237,11 @@ namespace picongpu
                     // debug only
                     if(debug)
                     {
-                        std::cout << "loopCounter " << loopCounter << " timeRemaining " << timeRemaining_SI
+                        /*std::cout << "loopCounter " << loopCounter << " timeRemaining " << timeRemaining_SI
                                   << " oldState " << oldState << " newState " << newState << " energyElectron "
                                   << energyElectron << " energyElectronBinWidth " << energyElectronBinWidth
                                   << " densityElectrons " << densityElectrons << " histogramIndex " << histogramIndex
-                                  << " quasiProbability " << quasiProbability << " rateSI " << rate_SI << std::endl;
+                                  << " quasiProbability " << quasiProbability << " rateSI " << rate_SI << std::endl;*/
                     }
 
 
