@@ -364,9 +364,6 @@ namespace picongpu
                        initialGridWidth, // unit: ATOMIC_UNIT_ENERGY
                        relativeErrorTarget, // unit: 1/s /( 1/( m^3 * J ) ), SI
                        step);
-
-                    dc.releaseData(ElectronFrameType::getName());
-                    dc.releaseData(IonFrameType::getName());
                 }
             };
 
