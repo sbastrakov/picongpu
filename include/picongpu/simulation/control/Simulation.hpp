@@ -60,11 +60,8 @@
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
-<<<<<<< HEAD
 #include "picongpu/simulation/stage/Collision.hpp"
-=======
 #include "picongpu/simulation/stage/AtomicPhysics.hpp"
->>>>>>> e50e814cf (Manuall put changes of atomic physics to dev and apply formatting)
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
