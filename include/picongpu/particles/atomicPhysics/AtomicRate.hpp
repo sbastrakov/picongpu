@@ -246,7 +246,7 @@ namespace picongpu
                         {
                             printf(
                                 "Warning: NaN in ratio calculation, ask developer for more information\n"
-                                "   newIdx %u ,oldIdx %u ,energyElectron_SI %f ,energyDifference_m %f",
+                                "   newIdx %zu ,oldIdx %zu ,energyElectron_SI %f ,energyDifference_m %f",
                                 newIdx,
                                 oldIdx,
                                 energyElectron,
