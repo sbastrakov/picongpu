@@ -32,6 +32,9 @@
 #include <stdio.h>
 
 
+// debug only
+#include <iostream>
+
 /** @file
  *
  * This file implements the Atomic Physics stage of the PIC-loop.

@@ -99,6 +99,9 @@
 #include <memory>
 #include <functional>
 
+// debug only
+#include <iostream>
+
 
 namespace picongpu
 {
@@ -542,8 +545,20 @@ namespace picongpu
             myFieldSolver->update_beforeCurrent(currentStep);
             __setTransactionEvent(commEvent);
             atomicPhysics->operator()(currentStep);
+
+            // debug only
+            std::cout << "end atomic physics stage" << std::endl;
+
             CurrentBackground{*cellDescription}(currentStep);
+
+            // debug only
+            std::cout << "end current background" << std::endl;
+
             CurrentDeposition{}(currentStep);
+
+            // debug only
+            std::cout << "end current deposition" << std::endl;
+
             currentInterpolationAndAdditionToEMF(currentStep);
             myFieldSolver->update_afterCurrent(currentStep);
         }

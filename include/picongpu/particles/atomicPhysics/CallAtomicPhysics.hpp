@@ -36,6 +36,9 @@
 #include <string>
 #include <utility>
 
+// debug only
+#include <iostream>
+
 
 /**@file
  * This file implements the CallAtomicPhyiscs functor called by the AtomicPhysics stage
@@ -346,7 +349,7 @@ namespace picongpu
                     // TODO: make available as options from param file, Brian Marre 2020
                     constexpr float_X initialGridWidth = 100._X; // unit: ATOMIC_UNIT_ENERGY
                     constexpr float_X relativeErrorTarget = 20._X; // unit: 1/s /( 1/( m^3 * ATOMIC_UNIT_ENERGY ) )
-                    constexpr uint16_t maxNumBins = 1000;
+                    constexpr uint16_t maxNumBins = 27;
 
                     // renaming of Kernel, basic construct defined in
                     //   <picongpu/particles/atomicPhysics/AtomicPhysics.kernel>
@@ -364,6 +367,9 @@ namespace picongpu
                        initialGridWidth, // unit: ATOMIC_UNIT_ENERGY
                        relativeErrorTarget, // unit: 1/s /( 1/( m^3 * J ) ), SI
                        step);
+
+                    // debug only
+                    std::cout << "atomic physics step completed" << std::endl;
                 }
             };
 

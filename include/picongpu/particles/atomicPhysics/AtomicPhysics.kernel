@@ -45,6 +45,7 @@
 
 // debug only
 #include <cstdint>
+#include <iostream>
 
 
 /**@file
@@ -103,7 +104,7 @@ namespace picongpu
 
                     // TODO: get this from ion species
                     // hard coded for now
-                    using ConfigNumberDataType = uint64_t;
+                    using ConfigNumberDataType = uint32_t;
                     constexpr uint8_t numLevels = 10u;
 
                     // conversion to/from atomic state index
@@ -134,9 +135,9 @@ namespace picongpu
                     if(workerIdx == 0)
                     {
                         // cpu
-                        // std::cout << "start kernel" << std::endl;
+                        std::cout << "start kernel" << std::endl;
                         // gpu
-                        printf("start kernel\n");
+                        // printf("start kernel\n");
                     }
 
                     // get new histogram
@@ -149,9 +150,9 @@ namespace picongpu
                     if(workerIdx == 0)
                     {
                         // cpu
-                        // std::cout << "    allocation histogram in SMEM" << std::endl;
+                        std::cout << "    allocation histogram in SMEM" << std::endl;
                         // gpu
-                        printf("    allocation histogram in SMEM\n");
+                        // printf("    allocation histogram in SMEM\n");
                     }
 
                     // get new weightings
@@ -163,7 +164,10 @@ namespace picongpu
 
                     if(workerIdx == 0)
                     {
-                        printf("    allocated relative error instance\n");
+                        // cpu
+                        std::cout << "    allocated relative error instance" << std::endl;
+                        // gpu
+                        // printf("    allocated relative error instance\n");
                     }
 
                     // init histogram and relative error
@@ -180,6 +184,8 @@ namespace picongpu
                     // debug only
                     if(workerIdx == 0)
                     {
+                        // CPU
+                        std::cout << "    init histogram" << std::endl;
                         // gpu
                         printf("    init histogram\n");
                         // printf("        initialGridWidthSpecified: %f\n", initialGridWidth);
@@ -192,9 +198,9 @@ namespace picongpu
                     if(workerIdx == 0)
                     {
                         // cpu
-                        // std::cout << "    histogram filled" << std::endl;
+                        std::cout << "    histogram filled" << std::endl;
                         // gpu
-                        printf("    histogram filled\n");
+                        // printf("    histogram filled\n");
                     }
 
                     bool debug;
@@ -222,9 +228,9 @@ namespace picongpu
                     if( workerIdx == 0 )
                     {
                         // cpu
-                        // std::cout << "    rate applied" << std::endl;
+                        std::cout << "    rate applied" << std::endl;
                         // gpu
-                        printf("    rate applied\n");
+                        // printf("    rate applied\n");
                     }
 
                     decelerateElectrons< T_numWorkers >(
@@ -238,7 +244,10 @@ namespace picongpu
                     // debug only
                     if( workerIdx == 0 )
                     {
-                        printf("    electrons decelerated\n");
+                        // cpu
+                        std::cout << "    electrons decelerated" << std::endl;
+                        // gpu
+                        // printf("    electrons decelerated\n");
                     }
                 }
             };

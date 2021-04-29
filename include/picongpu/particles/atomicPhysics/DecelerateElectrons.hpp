@@ -32,6 +32,8 @@
 
 #include <cstdint>
 
+// debug only
+#include <iostream>
 
 namespace picongpu
 {
@@ -65,7 +67,11 @@ namespace picongpu
                 float_X const deltaEnergy = deltaEnergyBin * weight / weightBin; // unit:: ATOMIC_UNIT_ENERGY
 
                 float_X const scalingFactor = 1._X - deltaEnergy / energy; // unitless
+
                 electron[momentum_] *= scalingFactor;
+
+                std::cout << "scalingFactor " << scalingFactor << " electronMomentumNew " << electron[momentum_]
+                          << std::endl;
             }
 
             // Fill the histogram return via the last parameter

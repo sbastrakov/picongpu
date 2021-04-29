@@ -34,7 +34,7 @@
 #include <cstdint>
 
 // debug only
-//#include <iostream>
+#include <iostream>
 
 namespace picongpu
 {
