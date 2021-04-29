@@ -233,6 +233,8 @@ namespace picongpu
                         // printf("    rate applied\n");
                     }
 
+                    return;
+
                     decelerateElectrons< T_numWorkers >(
                         acc,
                         mapper,

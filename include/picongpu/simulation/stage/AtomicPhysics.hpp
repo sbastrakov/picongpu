@@ -80,7 +80,7 @@ namespace picongpu
                 {
                     // create instance
                     printf("atomic physics stage for step %d \n", step);
-                    callAtomicPhysics(step, cellDescription);
+                    //callAtomicPhysics(step, cellDescription);
                 }
 
             private:
