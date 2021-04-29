@@ -191,6 +191,8 @@ namespace picongpu
                     // debug only
                     // std::cout << "check if old == new" << std::endl;
 
+                    return;
+
                     if(oldState == newState)
                     {
                         // calculating quasiProbability for special case of keeping in current state
