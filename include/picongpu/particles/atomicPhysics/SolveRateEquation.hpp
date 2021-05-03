@@ -137,13 +137,16 @@ namespace picongpu
                     // read out old state index
                     oldState = ion[atomicConfigNumber_].getStateIndex();
 
-                    //std::cout << randomGenInt() << std::endl;
+                    // debug only
+                    // std::cout << rand() << std::endl;
+                    // randomGenInt() << std::endl;
+                    // return;
 
                     // debug only
                     // std::cout << "roll new state index" << std::endl;
 
                     // get a random new state index
-                    newStatesCollectionIndex = randomGenInt() % atomicDataBox.getNumStates();
+                    newStatesCollectionIndex = /*randomGenInt()*/ rand() % atomicDataBox.getNumStates();
 
                     newState = atomicDataBox.getAtomicStateConfigNumberIndex(newStatesCollectionIndex);
 
@@ -155,7 +158,7 @@ namespace picongpu
                     // std::cout << "get histogram index" << std::endl;
 
                     // choose random histogram collection index
-                    histogramIndex = static_cast<uint16_t>(randomGenInt()) % histogram->getNumBins();
+                    histogramIndex = static_cast<uint16_t>(/*randomGenInt()*/ rand()) % histogram->getNumBins();
 
                     // debug only
                     // std::cout << "get energy electron" << std::endl;
@@ -292,7 +295,7 @@ namespace picongpu
                             // debug only
                             // std::cout << "    unphysical rate" << std::endl;
                         }
-                        else if(randomGenFloat() <= quasiProbability)
+                        else if(/*randomGenFloat()*/ rand() / float_X(RAND_MAX) <= quasiProbability)
                         {
                             // case change only possible once
                             // => randomly change to newState in time remaining
@@ -349,8 +352,6 @@ namespace picongpu
 
                 pmacc::DataSpace<simDim> const supercellIdx(
                     mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(acc))));
-
-                ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
 
                 auto frame = ionBox.getLastFrame(supercellIdx);
                 auto particlesInSuperCell = ionBox.getSuperCell(supercellIdx).getSizeLastFrame();
