@@ -23,10 +23,8 @@
 #include "picongpu/particles/startPosition/functors.def"
 #include "picongpu/particles/manipulators/manipulators.def"
 
-#include <pmacc/nvidia/functors/Assign.hpp>
-
+#include <pmacc/math/operation.hpp>
 #include <pmacc/math/Vector.hpp>
-
 
 // particles randomly distributed, 1 macro particle per cell
 namespace picongpu
@@ -69,7 +67,7 @@ namespace picongpu
                     using Particle = T_Particle;
 
                     // number of bound electrons at initialization state of the neutral atom
-                    float_X const protonNumber = traits::GetAtomicNumbers<T_Particle>::type::numberOfProtons;
+                    float_X const protonNumber = picongpu::traits::GetAtomicNumbers<T_Particle>::type::numberOfProtons;
 
                     // init normal ionization
                     particle[boundElectrons_] = protonNumber;
@@ -110,7 +108,7 @@ namespace picongpu
                 static constexpr float_64 gamma = 1.39139;
                 const DriftParam_direction_t direction;
             };
-            using Assign200keVDrift = unary::Drift<Drift200keVParam, nvidia::functors::Assign>;
+            using Assign200keVDrift = unary::Drift<Drift200keVParam, pmacc::math::operation::Assign>;
 
             struct TemperatureParam
             {
