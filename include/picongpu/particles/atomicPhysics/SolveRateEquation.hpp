@@ -356,9 +356,11 @@ namespace picongpu
                 auto frame = ionBox.getLastFrame(supercellIdx);
                 auto particlesInSuperCell = ionBox.getSuperCell(supercellIdx).getSizeLastFrame();
 
+                // Offset without guards for random numbers
+                auto const supercellLocalOffset = supercellIdx - mapper.getGuardingSuperCells();
                 pmacc::mappings::threads::WorkerCfg<numWorkers> workerCfg(workerIdx);
-                auto generatorInt = rngFactoryInt(acc, supercellIdx, workerCfg);
-                auto generatorFloat = rngFactoryFloat(acc, supercellIdx, workerCfg);
+                auto generatorInt = rngFactoryInt(acc, supercellLocalOffset, workerCfg);
+                auto generatorFloat = rngFactoryFloat(acc, supercellLocalOffset, workerCfg);
 
                 // go over frames
                 while(frame.isValid())
