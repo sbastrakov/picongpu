@@ -81,8 +81,8 @@ namespace picongpu
                 typename T_Histogram>
             DINLINE void processIon(
                 T_Acc const& acc,
-                RandomGenInt randomGenInt,
-                RandomGenFloat randomGenFloat,
+                RandomGenInt& randomGenInt,
+                RandomGenFloat& randomGenFloat,
                 T_Ion ion,
                 T_AtomicDataBox const atomicDataBox,
                 T_Histogram* histogram,
@@ -94,7 +94,6 @@ namespace picongpu
 
                 // debug only
                 std::cout << "        process Ion" << std::endl;
-                // return;
 
                 // workaround: the types may be obtained in a better fashion
                 // TODO: relace with better version
@@ -138,11 +137,14 @@ namespace picongpu
                     // read out old state index
                     oldState = ion[atomicConfigNumber_].getStateIndex();
 
+                    //std::cout << randomGenInt() << std::endl;
+
                     // debug only
                     // std::cout << "roll new state index" << std::endl;
 
                     // get a random new state index
                     newStatesCollectionIndex = randomGenInt() % atomicDataBox.getNumStates();
+
                     newState = atomicDataBox.getAtomicStateConfigNumberIndex(newStatesCollectionIndex);
 
                     // newState = randomGenInt( ) % ConfigNumber::numberStates( );
@@ -154,7 +156,6 @@ namespace picongpu
 
                     // choose random histogram collection index
                     histogramIndex = static_cast<uint16_t>(randomGenInt()) % histogram->getNumBins();
-
 
                     // debug only
                     // std::cout << "get energy electron" << std::endl;
@@ -190,8 +191,6 @@ namespace picongpu
 
                     // debug only
                     // std::cout << "check if old == new" << std::endl;
-
-                    return;
 
                     if(oldState == newState)
                     {
