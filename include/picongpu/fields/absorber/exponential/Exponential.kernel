@@ -36,6 +36,8 @@ namespace picongpu
     {
         namespace absorber
         {
+            namespace exponential
+            {
             namespace detail
             {
                 /** damp each field component at exchange the border
@@ -179,6 +181,7 @@ namespace picongpu
                 }
             };
 
+            } // namespace exponential
         } // namespace absorber
     } // namespace fields
 } // namespace picongpu

@@ -24,6 +24,7 @@
 #include <pmacc/traits/GetStringProperties.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 
@@ -109,11 +110,11 @@ namespace picongpu
                     Pml
                 };
 
-                //! Absorber kind used in the simulation
-                static Kind& kind();
-
                 //! Get absorber instance
                 static Absorber& get();
+
+                //! Absorber kind used in the simulation
+                inline Kind getKind() const;
 
                 /** Get absorber thickness in number of cells for the global domain
                  *
@@ -159,9 +160,49 @@ namespace picongpu
                  * Second index: 0 = negative (min coordinate), 1 = positive (max coordinate).
                  */
                 uint32_t numCells[3][2];
+                
+                //! Absorber kind
+                Kind kind;
+                
+                //! Text name for string properties
+                std::string name;
 
                 Absorber() = default;
-                ~Absorber() = default;
+                Absorber(Absorber const&) = delete;
+                virtual ~Absorber() = default;
+            };
+
+            /** Singletone factory class to construct absorber instances according to the preset kind
+             *
+             * This class is intended to be used only during initialization of the simulation and by Absorber itself.
+             */
+            class AbsorberFactory
+            {
+            public:
+            
+                //! Get instance of the factory
+                static AbsorberFactory& get()
+                {
+                    static AbsorberFactory instance;
+                    return instance;
+                }
+            
+                //! Make an absorber instance
+                inline std::unique_ptr<Absorber> make() const;
+                
+                /** Set absorber kind to be made
+                 *
+                 * @param newKind new absorber kind
+                 */
+                void setKind(Absorber::Kind newKind)
+                {
+                    kind = newKind;
+                    isInitialized = true;
+                }
+            private:
+            
+                Absorber::Kind kind;
+                bool isInitialized = false;
             };
 
         } // namespace absorber

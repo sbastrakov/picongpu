@@ -22,7 +22,7 @@
 #include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/fields/absorber/Absorber.hpp"
-#include "picongpu/fields/absorber/ExponentialDamping.kernel"
+#include "picongpu/fields/absorber/exponential/Exponential.kernel"
 #include "picongpu/fields/laserProfiles/profiles.hpp"
 #include "picongpu/simulation/control/MovingWindow.hpp"
 
@@ -31,6 +31,7 @@
 #include <pmacc/traits/GetNumWorkers.hpp>
 
 #include <cstdint>
+#include <string>
 
 
 namespace picongpu
@@ -39,20 +40,23 @@ namespace picongpu
     {
         namespace absorber
         {
+            namespace exponential
+            {
             /** Exponential damping field absorber
              *
              * Sets instance and implements absorption.
              */
-            class ExponentialDamping : public Absorber
+            class Exponential : public Absorber
             {
             public:
                 //! Create exponential damping absorber instance
-                ExponentialDamping()
+                Exponential()
                 {
                     // Copy thickness from grid.param
                     for(uint32_t axis = 0u; axis < 3u; axis++)
                         for(uint32_t direction = 0u; direction < 2u; direction++)
                             numCells[axis][direction] = ABSORBER_CELLS[axis][direction];
+                    name = std::string{"exponential damping"};
                 }
 
                 /** Apply absorber to the given field
@@ -124,6 +128,7 @@ namespace picongpu
                 }
             };
 
+            } // namespace exponential
         } // namespace absorber
     } // namespace fields
 } // namespace picongpu
