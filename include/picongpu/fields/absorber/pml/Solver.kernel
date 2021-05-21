@@ -481,13 +481,13 @@ namespace picongpu
 
                         // Threads process values of the supercell in parallel
                         constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
-                        ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{
-                            workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
-                            auto const idxInSuperCell
-                                = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
-                            auto const gridIdx = blockBeginIdx + idxInSuperCell;
-                            updateFunctor(gridIdx, cachedB.shift(idxInSuperCell), fieldE.shift(gridIdx));
-                        });
+                        ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{workerIdx}(
+                            [&](uint32_t const linearIdx, uint32_t const) {
+                                auto const idxInSuperCell
+                                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                                auto const gridIdx = blockBeginIdx + idxInSuperCell;
+                                updateFunctor(gridIdx, cachedB.shift(idxInSuperCell), fieldE.shift(gridIdx));
+                            });
                     }
                 };
 
@@ -545,13 +545,13 @@ namespace picongpu
 
                         // Threads process values of the supercell in parallel
                         constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
-                        ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{
-                            workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
-                            auto const idxInSuperCell
-                                = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
-                            auto const gridIdx = blockBeginIdx + idxInSuperCell;
-                            updateFunctor(gridIdx, cachedE.shift(idxInSuperCell), fieldB.shift(gridIdx));
-                        });
+                        ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{workerIdx}(
+                            [&](uint32_t const linearIdx, uint32_t const) {
+                                auto const idxInSuperCell
+                                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                                auto const gridIdx = blockBeginIdx + idxInSuperCell;
+                                updateFunctor(gridIdx, cachedE.shift(idxInSuperCell), fieldB.shift(gridIdx));
+                            });
                     }
                 };
 

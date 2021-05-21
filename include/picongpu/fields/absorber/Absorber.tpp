@@ -27,6 +27,7 @@
 
 #include <pmacc/Environment.hpp>
 
+#include <memory>
 #include <sstream>
 #include <type_traits>
 
@@ -40,8 +41,8 @@ namespace picongpu
             Absorber& Absorber::get()
             {
                 // Delay initialization till the first call since the factory has its parameters set during runtime
-                static std::unique_ptr<Absorber> pInstance = std::nullptr;
-                if(!instance)
+                static std::unique_ptr<Absorber> pInstance = nullptr;
+                if(!pInstance)
                 {
                     auto& factory = AbsorberFactory::get();
                     pInstance = factory.make();
@@ -49,7 +50,7 @@ namespace picongpu
                 return *pInstance;
             }
 
-            Absorber::Kind Absorber::getKind()
+            Absorber::Kind Absorber::getKind() const
             {
                 return kind;
             }
@@ -108,10 +109,10 @@ namespace picongpu
                 if(kind == Kind::Exponential)
                 {
                     // In this case, the cast is safe
-                    auto* damping = *dynamic_cast<ExponentialDamping*>(this);
-                    if (!damping)
+                    auto* exponentialInstance = dynamic_cast<exponential::Exponential*>(this);
+                    if(!exponentialInstance)
                         throw std::runtime_error("Corrupt internal state of the field absorber");
-                    damping->run(currentStep, cellDescription, deviceBox);
+                    exponentialInstance->run(currentStep, cellDescription, deviceBox);
                 }
                 // PML runs as part of the field solver, nothing to be done here
             }
@@ -167,15 +168,18 @@ namespace picongpu
             }
 
             // This implementation has to go to a .tpp file as it requires definitions of Pml and ExponentialDamping
-            std::unique_ptr<Absorber> AbsorberFactory::make()
+            std::unique_ptr<Absorber> AbsorberFactory::make() const
             {
-                if (!isInitialized)
+                if(!isInitialized)
                     throw std::runtime_error("Absorber factory used before being initialized");
-                switch (kind)
+                switch(kind)
                 {
-                    case Kind::Exponential: return std::make_unique<exponential::Exponential>();
-                    case Kind::Pml: return std::make_unique<pml::Pml>();
-                    default: throw std::runtime_error("Unsupported absorber kind requested to be made");
+                case Absorber::Kind::Exponential:
+                    return std::make_unique<exponential::Exponential>();
+                case Absorber::Kind::Pml:
+                    return std::make_unique<pml::Pml>();
+                default:
+                    throw std::runtime_error("Unsupported absorber kind requested to be made");
                 }
             }
 

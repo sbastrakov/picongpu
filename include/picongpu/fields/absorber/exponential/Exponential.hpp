@@ -42,91 +42,91 @@ namespace picongpu
         {
             namespace exponential
             {
-            /** Exponential damping field absorber
-             *
-             * Sets instance and implements absorption.
-             */
-            class Exponential : public Absorber
-            {
-            public:
-                //! Create exponential damping absorber instance
-                Exponential()
-                {
-                    // Copy thickness from grid.param
-                    for(uint32_t axis = 0u; axis < 3u; axis++)
-                        for(uint32_t direction = 0u; direction < 2u; direction++)
-                            numCells[axis][direction] = ABSORBER_CELLS[axis][direction];
-                    name = std::string{"exponential damping"};
-                }
-
-                /** Apply absorber to the given field
+                /** Exponential damping field absorber
                  *
-                 * @tparam BoxedMemory field box type
-                 *
-                 * @param currentStep current time iteration
-                 * @param cellDescription mapping description for kernels
-                 * @param deviceBox field box
+                 * Sets instance and implements absorption.
                  */
-                template<class BoxedMemory>
-                void run(uint32_t currentStep, MappingDesc& cellDescription, BoxedMemory deviceBox)
+                class Exponential : public Absorber
                 {
-                    const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
-                    for(uint32_t i = 1; i < NumberOfExchanges<simDim>::value; ++i)
+                public:
+                    //! Create exponential damping absorber instance
+                    Exponential()
                     {
-                        /* only call for planes: left right top bottom back front*/
-                        if(FRONT % i == 0
-                           && !(Environment<simDim>::get().GridController().getCommunicationMask().isSet(i)))
+                        // Copy thickness from grid.param
+                        for(uint32_t axis = 0u; axis < 3u; axis++)
+                            for(uint32_t direction = 0u; direction < 2u; direction++)
+                                numCells[axis][direction] = ABSORBER_CELLS[axis][direction];
+                        name = std::string{"exponential damping"};
+                    }
+
+                    /** Apply absorber to the given field
+                     *
+                     * @tparam BoxedMemory field box type
+                     *
+                     * @param currentStep current time iteration
+                     * @param cellDescription mapping description for kernels
+                     * @param deviceBox field box
+                     */
+                    template<class BoxedMemory>
+                    void run(uint32_t currentStep, MappingDesc& cellDescription, BoxedMemory deviceBox)
+                    {
+                        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
+                        for(uint32_t i = 1; i < NumberOfExchanges<simDim>::value; ++i)
                         {
-                            uint32_t direction = 0; /*set direction to X (default)*/
-                            if(i >= BOTTOM && i <= TOP)
-                                direction = 1; /*set direction to Y*/
-                            if(i >= BACK)
-                                direction = 2; /*set direction to Z*/
-
-                            /* exchange mod 2 to find positive or negative direction
-                             * positive direction = 1
-                             * negative direction = 0
-                             */
-                            uint32_t pos_or_neg = i % 2;
-
-                            uint32_t thickness = numCells[direction][pos_or_neg];
-                            float_X absorber_strength = ABSORBER_STRENGTH[direction][pos_or_neg];
-
-                            if(thickness == 0)
-                                continue; /*if the absorber has no thickness we check the next side*/
-
-                            /* allow to enable the absorber on the top side if the laser
-                             * initialization plane in y direction is *not* in cell zero
-                             */
-                            if(fields::laserProfiles::Selected::initPlaneY == 0)
+                            /* only call for planes: left right top bottom back front*/
+                            if(FRONT % i == 0
+                               && !(Environment<simDim>::get().GridController().getCommunicationMask().isSet(i)))
                             {
-                                /* disable the absorber on top side if
-                                 *      no slide was performed and
-                                 *      laser init time is not over
+                                uint32_t direction = 0; /*set direction to X (default)*/
+                                if(i >= BOTTOM && i <= TOP)
+                                    direction = 1; /*set direction to Y*/
+                                if(i >= BACK)
+                                    direction = 2; /*set direction to Z*/
+
+                                /* exchange mod 2 to find positive or negative direction
+                                 * positive direction = 1
+                                 * negative direction = 0
                                  */
-                                if(numSlides == 0
-                                   && ((currentStep * DELTA_T) <= fields::laserProfiles::Selected::INIT_TIME))
+                                uint32_t pos_or_neg = i % 2;
+
+                                uint32_t thickness = numCells[direction][pos_or_neg];
+                                float_X absorber_strength = ABSORBER_STRENGTH[direction][pos_or_neg];
+
+                                if(thickness == 0)
+                                    continue; /*if the absorber has no thickness we check the next side*/
+
+                                /* allow to enable the absorber on the top side if the laser
+                                 * initialization plane in y direction is *not* in cell zero
+                                 */
+                                if(fields::laserProfiles::Selected::initPlaneY == 0)
                                 {
-                                    /* disable absorber on top side */
-                                    if(i == TOP)
-                                        continue;
+                                    /* disable the absorber on top side if
+                                     *      no slide was performed and
+                                     *      laser init time is not over
+                                     */
+                                    if(numSlides == 0
+                                       && ((currentStep * DELTA_T) <= fields::laserProfiles::Selected::INIT_TIME))
+                                    {
+                                        /* disable absorber on top side */
+                                        if(i == TOP)
+                                            continue;
+                                    }
                                 }
+
+                                /* if sliding window is active we disable absorber on bottom side*/
+                                if(MovingWindow::getInstance().isSlidingWindowActive(currentStep) && i == BOTTOM)
+                                    continue;
+
+                                ExchangeMapping<GUARD, MappingDesc> mapper(cellDescription, i);
+                                constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
+                                    pmacc::math::CT::volume<SuperCellSize>::type::value>::value;
+
+                                PMACC_KERNEL(KernelAbsorbBorder<numWorkers>{})
+                                (mapper.getGridDim(), numWorkers)(deviceBox, thickness, absorber_strength, mapper);
                             }
-
-                            /* if sliding window is active we disable absorber on bottom side*/
-                            if(MovingWindow::getInstance().isSlidingWindowActive(currentStep) && i == BOTTOM)
-                                continue;
-
-                            ExchangeMapping<GUARD, MappingDesc> mapper(cellDescription, i);
-                            constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-                                pmacc::math::CT::volume<SuperCellSize>::type::value>::value;
-
-                            PMACC_KERNEL(KernelAbsorbBorder<numWorkers>{})
-                            (mapper.getGridDim(), numWorkers)(deviceBox, thickness, absorber_strength, mapper);
                         }
                     }
-                }
-            };
+                };
 
             } // namespace exponential
         } // namespace absorber

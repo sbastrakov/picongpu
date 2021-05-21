@@ -110,6 +110,9 @@ namespace picongpu
                     Pml
                 };
 
+                //! Destructor needs to be public due to internal use of std::unique_ptr
+                virtual ~Absorber() = default;
+
                 //! Get absorber instance
                 static Absorber& get();
 
@@ -160,16 +163,15 @@ namespace picongpu
                  * Second index: 0 = negative (min coordinate), 1 = positive (max coordinate).
                  */
                 uint32_t numCells[3][2];
-                
+
                 //! Absorber kind
                 Kind kind;
-                
+
                 //! Text name for string properties
                 std::string name;
 
                 Absorber() = default;
                 Absorber(Absorber const&) = delete;
-                virtual ~Absorber() = default;
             };
 
             /** Singletone factory class to construct absorber instances according to the preset kind
@@ -179,17 +181,16 @@ namespace picongpu
             class AbsorberFactory
             {
             public:
-            
                 //! Get instance of the factory
                 static AbsorberFactory& get()
                 {
                     static AbsorberFactory instance;
                     return instance;
                 }
-            
+
                 //! Make an absorber instance
                 inline std::unique_ptr<Absorber> make() const;
-                
+
                 /** Set absorber kind to be made
                  *
                  * @param newKind new absorber kind
@@ -199,8 +200,8 @@ namespace picongpu
                     kind = newKind;
                     isInitialized = true;
                 }
+
             private:
-            
                 Absorber::Kind kind;
                 bool isInitialized = false;
             };
