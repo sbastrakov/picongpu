@@ -22,6 +22,7 @@
 #include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/fields/absorber/pml/Parameters.hpp"
+#include "picongpu/fields/MaxwellSolver/Yee/StencilFunctor.hpp"
 
 #include <pmacc/algorithms/math/floatMath/floatingPoint.tpp>
 #include <pmacc/math/operation.hpp>
@@ -228,13 +229,13 @@ namespace picongpu
                     }
                 } // namespace detail
 
-                /** Functor to update electric field by a time step using FDTD with the given curl and PML
+                /** Stencil functor to update electric field by a time step using FDTD with the given curl and PML
                  *
                  * @tparam T_CurlB curl functor type to be applied to magnetic field,
                  *                 adheres to the Curl concept
                  */
                 template<typename T_CurlB>
-                class UpdateEFunctor
+                class UpdateEFunctor : public maxwellSolver::yee::StencilFunctor<T_CurlB>
                 {
                 public:
                     //! Stencil requirements for lower margins
@@ -325,19 +326,15 @@ namespace picongpu
                     T_CurlB const curl;
                 };
 
-                /** Functor to update magnetic field by half a time step using FDTD with the given curl and PML
+                /** Stencil functor to update magnetic field by half a time step using FDTD with the given curl and PML
                  *
                  * @tparam T_CurlE curl functor type to be applied to electric field,
                  *                 adheres to the Curl concept
                  */
                 template<typename T_CurlE>
-                class UpdateBHalfFunctor
+                class UpdateBHalfFunctor : public maxwellSolver::yee::StencilFunctor<T_CurlE>
                 {
                 public:
-                    //! Stencil requirements for lower margins
-                    using LowerMargin = typename traits::GetLowerMargin<T_CurlE>::type;
-                    //! Stencil requirements for upper margins
-                    using UpperMargin = typename traits::GetUpperMargin<T_CurlE>::type;
 
                     /** Create a functor instance on the host side
                      *

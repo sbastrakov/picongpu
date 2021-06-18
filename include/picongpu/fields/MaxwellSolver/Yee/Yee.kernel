@@ -21,6 +21,8 @@
 
 #include "picongpu/simulation_defines.hpp"
 
+#include "picongpu/fields/MaxwellSolver/Yee/StencilFunctor.hpp"
+
 #include <pmacc/algorithms/math/floatMath/floatingPoint.tpp>
 #include <pmacc/dimensions/SuperCellDescription.hpp>
 #include <pmacc/lockstep.hpp>
@@ -39,20 +41,15 @@ namespace picongpu
         {
             namespace yee
             {
-                /** Functor to update electric field by a time step using standard FDTD with the given curl
+                /** Stencil functor to update electric field by a time step using FDTD with the given curl
                  *
                  * @tparam T_CurlB curl functor type to be applied to magnetic field,
                  *                 adheres to the Curl concept
                  */
                 template<typename T_CurlB>
-                class UpdateEFunctor
+                class UpdateEFunctor : public StencilFunctor<T_CurlB>
                 {
                 public:
-                    //! Stencil requirements for lower margins
-                    using LowerMargin = typename traits::GetLowerMargin<T_CurlB>::type;
-                    //! Stencil requirements for upper margins
-                    using UpperMargin = typename traits::GetUpperMargin<T_CurlB>::type;
-
                     /** Update electric field at the given position
                      *
                      * @tparam T_LocalBBox local magnetic field box type
@@ -81,19 +78,15 @@ namespace picongpu
                     T_CurlB const curl = T_CurlB{};
                 };
 
-                /** Functor to update magnetic field by half a time step using standard FDTD with the given curl
+                /** Stencil functor to update magnetic field by a half time step using FDTD with the given curl
                  *
                  * @tparam T_CurlE curl functor type to be applied to electric field,
                  *                 adheres to the Curl concept
                  */
                 template<typename T_CurlE>
-                class UpdateBHalfFunctor
+                class UpdateBHalfFunctor : public StencilFunctor<T_CurlB>
                 {
                 public:
-                    //! Stencil requirements for lower margins
-                    using LowerMargin = typename traits::GetLowerMargin<T_CurlE>::type;
-                    //! Stencil requirements for upper margins
-                    using UpperMargin = typename traits::GetUpperMargin<T_CurlE>::type;
 
                     /** Update magnetic field at the given position
                      *
@@ -133,7 +126,8 @@ namespace picongpu
                      *
                      * @tparam T_Acc alpaka accelerator type
                      * @tparam T_Mapping mapper functor type
-                     * @tparam T_StencilFunctor stencil functor type to update a cell
+                     * @tparam T_StencilFunctor stencil functor type to update a cell,
+                     *         adheres the StencilFunctor concept
                      * @tparam T_SrcBox pmacc::DataBox, source field box type
                      * @tparam T_DestBox pmacc::DataBox, electric field box type
                      *
