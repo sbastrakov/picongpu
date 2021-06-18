@@ -237,6 +237,11 @@ namespace picongpu
                 class UpdateEFunctor
                 {
                 public:
+                    //! Stencil requirements for lower margins
+                    using LowerMargin = typename traits::GetLowerMargin<T_CurlB>::type;
+                    //! Stencil requirements for upper margins
+                    using UpperMargin = typename traits::GetUpperMargin<T_CurlB>::type;
+
                     /** Create a functor instance on the host side
                      *
                      * @param fieldPsiE PML convolutional electric field iterator
@@ -329,6 +334,11 @@ namespace picongpu
                 class UpdateBHalfFunctor
                 {
                 public:
+                    //! Stencil requirements for lower margins
+                    using LowerMargin = typename traits::GetLowerMargin<T_CurlE>::type;
+                    //! Stencil requirements for upper margins
+                    using UpperMargin = typename traits::GetUpperMargin<T_CurlE>::type;
+
                     /** Create a functor instance on the host side
                      *
                      * @param fieldPsiE PML convolutional electric field iterator

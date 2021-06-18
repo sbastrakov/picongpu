@@ -148,12 +148,6 @@ namespace picongpu
                 }
 
             private:
-                // Helper types for configuring kernels
-                template<typename T_Curl>
-                using BlockDescription = pmacc::SuperCellDescription<
-                    SuperCellSize,
-                    typename traits::GetLowerMargin<T_Curl>::type,
-                    typename traits::GetUpperMargin<T_Curl>::type>;
                 template<uint32_t T_Area>
                 using AreaMapper = pmacc::AreaMapping<T_Area, MappingDesc>;
 
@@ -204,7 +198,7 @@ namespace picongpu
                 void updateBHalf(uint32_t const currentStep, bool const updatePsiB)
                 {
                     constexpr auto numWorkers = getNumWorkers();
-                    using Kernel = yee::KernelUpdateB<numWorkers, BlockDescription<CurlE>>;
+                    using Kernel = yee::KernelUpdateField<numWorkers>;
                     AreaMapper<T_Area> mapper{cellDescription};
 
                     // The ugly transition from run-time to compile-time polymorphism is contained here
@@ -240,7 +234,7 @@ namespace picongpu
                 void updateE(uint32_t currentStep)
                 {
                     constexpr auto numWorkers = getNumWorkers();
-                    using Kernel = yee::KernelUpdateE<numWorkers, BlockDescription<CurlB>>;
+                    using Kernel = yee::KernelUpdateField<numWorkers>;
                     auto mapper = AreaMapper<T_Area>{cellDescription};
 
                     // The ugly transition from run-time to compile-time polymorphism is contained here
